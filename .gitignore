@@ -27,3 +27,10 @@
 *.exe
 *.out
 *.app
+
+# Clion
+.idea/
+cmake-build-*/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
