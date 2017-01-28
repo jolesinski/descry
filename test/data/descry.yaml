@@ -1,0 +1,18 @@
+recognizer:
+  type: sparse
+  refinement: icp
+  verification: ghv
+
+sparse:
+  normals:
+    type: omp
+    k-support: 10
+    threads: 4
+  keypoints:
+    type: uniform
+    r-support: 0.03
+  reference-frames:
+    type: board
+    find-holes: true
+    r-support: 0.015
+  descriptors: fpfh

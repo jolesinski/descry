@@ -3,7 +3,6 @@
 #define DESCRY_RECOGNIZER_H
 
 #include <descry/common.h>
-#include <descry/config.h>
 #include <descry/model.h>
 
 namespace descry {

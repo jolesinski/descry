@@ -5,9 +5,11 @@
 #include <Eigen/Eigen>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <yaml-cpp/yaml.h>
 
 namespace descry {
 
+using Config = YAML::Node;
 using Point = pcl::PointXYZRGBA;
 using PointCloud = pcl::PointCloud<Point>;
 using Normals = pcl::PointCloud<pcl::Normal>;

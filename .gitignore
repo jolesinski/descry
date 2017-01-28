@@ -34,3 +34,6 @@ cmake-build-*/
 
 # JIRA plugin
 atlassian-ide-plugin.xml
+
+# Test data
+*.pcd

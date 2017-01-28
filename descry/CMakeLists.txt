@@ -1,5 +1,4 @@
 add_library(descry
-        src/config.cpp
         src/model.cpp
         src/recognizer.cpp)
 
@@ -13,4 +12,5 @@ set_target_properties(descry
 
 target_link_libraries(descry
         ${OpenCV_LIBS}
-        ${PCL_LIBRARIES})
+        ${PCL_LIBRARIES}
+        ${YAML_CPP_LIBRARIES})

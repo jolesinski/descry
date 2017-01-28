@@ -1,0 +1,33 @@
+#ifndef DESCRY_TEST_DATA_H
+#define DESCRY_TEST_DATA_H
+
+#include <descry/common.h>
+#include <pcl/io/pcd_io.h>
+
+#cmakedefine DESCRY_TEST_DATA_PATH "${DESCRY_TEST_DATA_PATH}"
+
+namespace descry {
+
+static constexpr auto config_path = DESCRY_TEST_DATA_PATH "/descry.yaml";
+static constexpr auto scene_path = DESCRY_TEST_DATA_PATH "/test_scene.pcd";
+static constexpr auto model_path = DESCRY_TEST_DATA_PATH "/test_model.pcd";
+
+inline PointCloud::Ptr loadPCD(const std::string& path)
+{
+  PointCloud::Ptr cloud (new PointCloud ());
+
+  if (pcl::io::loadPCDFile<Point> (path, *cloud) == -1)
+  {
+    PCL_ERROR ("Couldn't read file %s \n", path.c_str());
+    exit(-1);
+  }
+
+  return cloud;
+}
+
+inline PointCloud::Ptr loadScene() { return loadPCD(scene_path); }
+inline PointCloud::Ptr loadModel() { return loadPCD(model_path); }
+
+}
+
+#endif //DESCRY_TEST_DATA_H
