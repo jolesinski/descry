@@ -9,7 +9,7 @@ namespace descry {
 
 class Recognizer {
 public:
-    void configure(const Config& config);
+    bool configure(const Config& config);
     void train(const Model& model);
     std::vector<ModelInstance> recognize(const PointCloud::ConstPtr& scene);
 };

@@ -6,7 +6,7 @@ recognizer:
 sparse:
   normals:
     type: omp
-    k-support: 10
+    k-support: 30
     threads: 4
   keypoints:
     type: uniform

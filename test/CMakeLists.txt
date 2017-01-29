@@ -1,5 +1,6 @@
 set(DESCRY_TEST_DATA_PATH "${CMAKE_CURRENT_LIST_DIR}/data" CACHE PATH "Path to test data")
-configure_file(data/data.h.in include/data.h)
+configure_file(data/data_paths.h.in generated/descry/test/data_paths.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 add_subdirectory(catch EXCLUDE_FROM_ALL)
 
@@ -8,6 +9,7 @@ enable_testing()
 add_executable(descry_ut
         ut/catch.cpp
         ut/test_model.cpp
+        ut/test_normals.cpp
         ut/test_recognizer.cpp)
 
 target_include_directories(descry_ut

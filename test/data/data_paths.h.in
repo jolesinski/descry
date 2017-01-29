@@ -1,0 +1,15 @@
+#ifndef DESCRY_TEST_DATA_CONFIG_H
+#define DESCRY_TEST_DATA_CONFIG_H
+
+namespace descry {
+namespace test {
+
+#cmakedefine DESCRY_TEST_DATA_PATH "${DESCRY_TEST_DATA_PATH}"
+static constexpr auto CONFIG_PATH = DESCRY_TEST_DATA_PATH "/descry.yaml";
+static constexpr auto SCENE_PATH = DESCRY_TEST_DATA_PATH "/test_scene.pcd";
+static constexpr auto MODEL_PATH = DESCRY_TEST_DATA_PATH "/test_model.pcd";
+
+}
+}
+
+#endif //DESCRY_TEST_DATA_CONFIG_H

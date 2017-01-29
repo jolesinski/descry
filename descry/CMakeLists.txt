@@ -1,5 +1,6 @@
 add_library(descry
         src/model.cpp
+        src/normals.cpp
         src/recognizer.cpp)
 
 target_include_directories(descry
