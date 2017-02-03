@@ -12,7 +12,9 @@ Project developed as part of masters thesis:
 * CUDA 8
 
 ### Testing:
-Unit and performance tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework.
+Unit tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework.
+
+Performance benchmarks are implemented within [nonius](https://github.com/libnonius/nonius) framework.
 
 ### Results:
-TBD
+TBD.

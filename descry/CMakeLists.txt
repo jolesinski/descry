@@ -1,4 +1,4 @@
-add_library(descry
+add_library(descry SHARED
         src/model.cpp
         src/normals.cpp
         src/recognizer.cpp)
