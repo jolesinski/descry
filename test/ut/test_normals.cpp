@@ -1,6 +1,7 @@
 #include <catch.hpp>
 
 #include <descry/test/data.h>
+#include <descry/test/config.h>
 #include <descry/normals.h>
 
 TEST_CASE( "Configuring normals", "[normals]" ) {
@@ -14,7 +15,7 @@ TEST_CASE( "Configuring normals", "[normals]" ) {
 
     REQUIRE(nest.configure(cfg));
 
-    cfg.reset(YAML::LoadFile(descry::test::CONFIG_PATH));
+    cfg.reset(descry::test::loadFullConfig());
 
     REQUIRE(!nest.configure(cfg));
     REQUIRE(nest.configure(cfg["sparse"]["normals"]));
@@ -22,9 +23,13 @@ TEST_CASE( "Configuring normals", "[normals]" ) {
 
 TEST_CASE( "Normal estimation on planar cloud", "[normals]") {
     auto nest = descry::NormalEstimation{};
-    auto cfg = YAML::LoadFile(descry::test::CONFIG_PATH)["sparse"]["normals"];
 
-    REQUIRE(nest.configure(cfg));
+    SECTION("OMP") {
+        REQUIRE(nest.configure(descry::test::normals::loadConfigOmp()));
+    }
+    SECTION("INT") {
+        REQUIRE(nest.configure(descry::test::normals::loadConfigInt()));
+    }
 
     Eigen::Vector4f coeffs;
     coeffs << 1, 1, -1, 1;
@@ -36,12 +41,13 @@ TEST_CASE( "Normal estimation on planar cloud", "[normals]") {
     auto ground_truth = coeffs.head<3>();
     ground_truth.normalize();
 
-    auto accuracy = 5e-4;
-    for(int i = 0; i < normals->width; i += 8)
-    {
-        for(int j = 0; j < normals->height; j += 8)
-        {
+    auto nan_count = 0u;
+    auto accuracy = 1e-3;
+    for(int i = 0; i < normals->width; i += 8) {
+        for(int j = 0; j < normals->height; j += 8) {
             const pcl::Normal& normal = normals->at(i, j);
+            if (!pcl::isFinite(normal) && ++nan_count)
+                continue;
 
             CAPTURE( i + j * normals->width );
             REQUIRE( normal.normal_x == Approx(ground_truth(0)).epsilon( accuracy ) );
@@ -50,4 +56,7 @@ TEST_CASE( "Normal estimation on planar cloud", "[normals]") {
             REQUIRE( normal.curvature == Approx(0).epsilon(1e-3) );
         }
     }
+
+    if(nan_count > 0)
+        WARN("Invalid normals: " << nan_count << "/" << normals->size());
 }

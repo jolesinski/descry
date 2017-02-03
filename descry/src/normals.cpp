@@ -1,4 +1,3 @@
-
 #include <descry/normals.h>
 
 #include <pcl/features/normal_3d_omp.h>
@@ -19,13 +18,63 @@ struct convert<NEstOMP> {
             rhs.setKSearch(node["k-support"].as<int>());
         else if (node["r-support"])
             rhs.setRadiusSearch(node["r-support"].as<double>());
+        else
+            false;
 
         if (node["threads"])
-            rhs.setNumberOfThreads(node["threads"].as<int>());
+            rhs.setNumberOfThreads(node["threads"].as<unsigned>());
 
         return true;
     }
 };
+
+template<>
+struct convert<NEstINT> {
+    static bool decode(const Node& node, NEstINT& rhs) {
+        if(!node.IsMap()) {
+            return false;
+        }
+
+        auto elem = node["max-depth-change"];
+        if (elem)
+            rhs.setMaxDepthChangeFactor(elem.as<float>());
+
+        elem = node["smoothing"];
+        if (elem)
+            rhs.setNormalSmoothingSize(elem.as<float>());
+
+        elem = node["method"];
+        if (elem)
+        {
+            auto method_str = elem.as<std::string>();
+            if (method_str == "covariance")
+                rhs.setNormalEstimationMethod(rhs.COVARIANCE_MATRIX);
+            else if (method_str == "average_gradient")
+                rhs.setNormalEstimationMethod(rhs.AVERAGE_3D_GRADIENT);
+            else if (method_str == "average_depth_change")
+                rhs.setNormalEstimationMethod(rhs.AVERAGE_DEPTH_CHANGE);
+            else
+                return false;
+        }
+
+        return true;
+    }
+};
+}
+
+namespace descry {
+template<class NEst>
+auto configureEstimatorPCL(const YAML::Node& node) {
+    auto nest = node.as<NEst>();
+    return [ nest{std::move(nest)} ]
+            (const auto &cloud) mutable
+            {
+                nest.setInputCloud(cloud);
+                descry::Normals::Ptr normals(new descry::Normals{});
+                nest.compute(*normals);
+                return normals;
+            };
+}
 }
 
 bool descry::NormalEstimation::configure(const descry::Config& config) {
@@ -34,19 +83,9 @@ bool descry::NormalEstimation::configure(const descry::Config& config) {
 
     auto est_type = config["type"].as<std::string>();
     if (est_type == "omp") {
-        auto nest_omp = config.as<NEstOMP>();
-        _nest = [ nest{std::move(nest_omp)} ]
-                (const auto& cloud) mutable
-                {
-                    nest.setInputCloud(cloud);
-                    descry::Normals::Ptr normals(new descry::Normals{});
-                    nest.compute(*normals);
-                    return normals;
-                };
-    } else if (est_type == "integral") {
-        auto nest_int = std::make_unique<NEstINT>();
-        if (config["r-support"])
-            nest_int->setRadiusSearch(config["r-support"].as<double>());
+        _nest = configureEstimatorPCL<NEstOMP>(config);
+    } else if (est_type == "int") {
+        _nest = configureEstimatorPCL<NEstINT>(config);
     } else
         return false;
 
