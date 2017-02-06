@@ -9,6 +9,7 @@ enable_testing()
 add_executable(descry_ut
         ut/catch.cpp
         ut/test_model.cpp
+        ut/test_image.cpp
         ut/test_normals.cpp
         ut/test_recognizer.cpp)
 
@@ -16,7 +17,7 @@ target_include_directories(descry_ut
         PRIVATE include
         ${CATCH_INCLUDE_DIR})
 
-target_link_libraries(descry_ut descry)
+target_link_libraries(descry_ut descry cupcl)
 
 set_target_properties(descry_ut
         PROPERTIES CXX_STANDARD 14
@@ -24,6 +25,7 @@ set_target_properties(descry_ut
 
 add_dependencies(descry_ut catch)
 
+add_test(descry::image descry_ut [image])
 add_test(descry::model descry_ut [model])
 add_test(descry::recognizer descry_ut [recognizer])
 

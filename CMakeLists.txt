@@ -13,4 +13,5 @@ include_directories(
         ${YAML_CPP_INCLUDE_DIR})
 
 add_subdirectory(descry)
+add_subdirectory(cupcl)
 add_subdirectory(test)

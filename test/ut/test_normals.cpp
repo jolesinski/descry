@@ -33,7 +33,7 @@ TEST_CASE( "Normal estimation on planar cloud", "[normals]") {
 
     Eigen::Vector4f coeffs;
     coeffs << 1, 1, -1, 1;
-    auto plane = descry::test::createPlanarCloud(128, 128, coeffs);
+    auto plane = descry::Image(descry::test::createPlanarCloud(128, 128, coeffs));
 
     auto normals = nest.compute(plane);
     REQUIRE(!normals->empty());

@@ -7,17 +7,17 @@
 //TODO: add a macro
 
 NONIUS_BENCHMARK("normals_omp", [](nonius::chronometer meter){
-    auto cloud = descry::test::loadScene();
+    auto image = descry::Image(descry::test::loadSceneCloud());
     auto nest = descry::NormalEstimation{};
 
     if(nest.configure(descry::test::normals::loadConfigOmp()))
-        meter.measure([&nest, &cloud](){ return nest.compute(cloud); });
+        meter.measure([&nest, &image](){ return nest.compute(image); });
 })
 
 NONIUS_BENCHMARK("normals_int", [](nonius::chronometer meter){
-    auto cloud = descry::test::loadScene();
+    auto image = descry::Image(descry::test::loadSceneCloud());
     auto nest = descry::NormalEstimation{};
 
     if(nest.configure(descry::test::normals::loadConfigInt()))
-        meter.measure([&nest, &cloud](){ return nest.compute(cloud); });
+        meter.measure([&nest, &image](){ return nest.compute(image); });
 })

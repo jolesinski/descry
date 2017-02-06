@@ -67,9 +67,9 @@ template<class NEst>
 auto configureEstimatorPCL(const YAML::Node& node) {
     auto nest = node.as<NEst>();
     return [ nest{std::move(nest)} ]
-            (const auto &cloud) mutable
+            (const Image &image) mutable
             {
-                nest.setInputCloud(cloud);
+                nest.setInputCloud(image.get<PointCloud::ConstPtr>());
                 descry::Normals::Ptr normals(new descry::Normals{});
                 nest.compute(*normals);
                 return normals;
@@ -93,7 +93,7 @@ bool descry::NormalEstimation::configure(const descry::Config& config) {
 }
 
 descry::Normals::Ptr
-descry::NormalEstimation::compute(const descry::PointCloud::ConstPtr& cloud) {
+descry::NormalEstimation::compute(const descry::Image& image) {
     assert(_nest);
-    return _nest(cloud);
+    return _nest(image);
 }

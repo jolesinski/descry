@@ -17,6 +17,9 @@ using RFs = pcl::PointCloud<pcl::ReferenceFrame>;
 using Pose = Eigen::Matrix4f;
 using Perspective = Eigen::Matrix<float, 3, 4, Eigen::RowMajor>;
 
+template<class T>
+using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;
+
 }
 
 #endif //DESCRY_COMMON_H

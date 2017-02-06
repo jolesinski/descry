@@ -3,15 +3,16 @@
 #define DESCRY_NORMALS_H
 
 #include <descry/common.h>
+#include <descry/image.h>
 
 namespace descry {
 
 class NormalEstimation {
 public:
     bool configure(const Config& config);
-    Normals::Ptr compute(const PointCloud::ConstPtr& cloud);
+    Normals::Ptr compute(const Image& image);
 private:
-    std::function<Normals::Ptr(const PointCloud::ConstPtr&)> _nest;
+    std::function<Normals::Ptr(const Image&)> _nest;
 };
 
 }

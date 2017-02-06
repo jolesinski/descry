@@ -9,7 +9,7 @@
 namespace descry {
 namespace test {
 
-    inline PointCloud::Ptr loadPCD(const std::string &path) {
+    inline PointCloud::Ptr loadCloudPCD(const std::string &path) {
         PointCloud::Ptr cloud(new PointCloud());
 
         if (pcl::io::loadPCDFile<Point>(path, *cloud) == -1) {
@@ -20,8 +20,8 @@ namespace test {
         return cloud;
     }
 
-    inline PointCloud::Ptr loadScene() { return loadPCD(SCENE_PATH); }
-    inline PointCloud::Ptr loadModel() { return loadPCD(MODEL_PATH); }
+    inline PointCloud::Ptr loadSceneCloud() { return loadCloudPCD(SCENE_PATH); }
+    inline PointCloud::Ptr loadModelCloud() { return loadCloudPCD(MODEL_PATH); }
 
     static constexpr auto VGA_WIDTH = 640u;
     static constexpr auto VGA_HEIGHT = 480u;
