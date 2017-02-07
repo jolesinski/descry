@@ -16,7 +16,19 @@ TEST_CASE( "Create dual container", "[image]" ) {
     auto cloud = descry::test::loadSceneCloud();
     auto dual = descry::cupcl::DualContainer<descry::Point>(cloud);
 
-    dual.device();
-
+    REQUIRE(dual.host() == cloud);
+    REQUIRE(dual.device() != nullptr);
+    REQUIRE_NOTHROW(dual.download());
+    REQUIRE(dual.host() != cloud);
+    REQUIRE(std::equal(cloud->begin(), cloud->end(), dual.host()->begin(),
+                       [](const auto& rhs, const auto& lhs)
+                       { return (!pcl::isFinite(lhs) && !pcl::isFinite(rhs)) ||
+                                 (std::tie(lhs.x, lhs.y, lhs.z, lhs.rgba) ==
+                                  std::tie(rhs.x, rhs.y, rhs.z, rhs.rgba)); }));
+    REQUIRE_NOTHROW(dual.reset());
+    REQUIRE(dual.device() == nullptr);
+    REQUIRE(dual.host() == nullptr);
+    REQUIRE_NOTHROW(dual.reset(cloud));
+    REQUIRE(dual.device() != nullptr);
     REQUIRE(dual.host() == cloud);
 }

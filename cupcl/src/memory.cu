@@ -44,13 +44,19 @@ bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const {
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::upload() const {
-    d_container.reset(new thrust::device_vector<D_T>(h_container->begin(), h_container->end()));
+    if (isHostSet())
+        d_container.reset(new thrust::device_vector<D_T>(h_container->points));
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::download() const {
-    h_container.reset(new pcl::PointCloud<H_T>());
-    thrust::copy(d_container->begin(), d_container->end(), h_container->begin());
+    if (isDeviceSet()) {
+        h_container.reset(new pcl::PointCloud<H_T>());
+        h_container->width = d_container->size();
+        h_container->height = 1;
+        h_container->points.resize(d_container->size());
+        thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
+    }
 }
 
 template

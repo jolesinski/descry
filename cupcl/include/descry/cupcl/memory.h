@@ -29,12 +29,12 @@ public:
     DualContainer& operator=(DualContainer&& other);
     ~DualContainer();
 
-    void clearDevice();
-    void clearHost();
-
     void reset() { clearHost(); clearDevice(); }
     void reset(DeviceContainer d) { clearHost(); d_container = std::move(d); }
     void reset(HostContainer h) { clearDevice(); h_container = std::move(h); }
+
+    void upload() const;
+    void download() const;
 
     const DeviceContainer& device() const {
         if (!isDeviceSet())
@@ -49,11 +49,11 @@ public:
     }
 
 private:
+    void clearDevice();
+    void clearHost();
+
     bool isDeviceSet() const;
     bool isHostSet() const;
-
-    void upload() const;
-    void download() const;
 
     mutable HostContainer h_container;
     mutable DeviceContainer d_container;
