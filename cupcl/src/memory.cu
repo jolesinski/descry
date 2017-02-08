@@ -1,5 +1,6 @@
 #include <descry/common.h>
 #include <descry/cupcl/memory.h>
+#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <pcl/point_types.h>
 
@@ -82,16 +83,15 @@ template<>
 void DualContainer<float, std::unique_ptr<descry::Perspective>>::upload() const {
     if (isHostSet())
         d_container.reset(new thrust::device_vector<float>(h_container->data(),
-                                                           h_container->data() + 12));
+                                                           h_container->data() + h_container->size()));
 }
 
 template<>
 void DualContainer<float, std::unique_ptr<descry::Perspective>>::download() const {
-    /*if (isDeviceSet()) {
-        h_container.reset(new descry::Perspective());
-
-        thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
-    }*/
+    if (isDeviceSet()) {
+        thrust::host_vector<float> h_vec = *d_container;
+        h_container.reset(new descry::Perspective{thrust::raw_pointer_cast(&h_vec[0])});
+    }
 }
 
 template
