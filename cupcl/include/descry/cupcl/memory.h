@@ -4,6 +4,9 @@
 #include <memory.h>
 #include <pcl/point_cloud.h>
 
+#ifdef __CUDACC__
+#include <thrust/device_vector.h>
+#else
 // To keep descy independent of CUDA compiler, thrust is left incomplete
 namespace thrust {
 template<typename T>
@@ -11,6 +14,7 @@ class device_malloc_allocator;
 template<typename T, typename Alloc>
 class device_vector;
 }
+#endif
 
 namespace descry { namespace cupcl {
 
@@ -47,6 +51,8 @@ public:
             download();
         return h_container;
     }
+
+    std::size_t size() const;
 
 private:
     void clearDevice();

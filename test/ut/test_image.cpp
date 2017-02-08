@@ -17,6 +17,7 @@ TEST_CASE( "Create dual container", "[image]" ) {
     auto dual = descry::cupcl::DualContainer<descry::Point>(cloud);
 
     REQUIRE(dual.host() == cloud);
+    REQUIRE(dual.size() == cloud->size());
     REQUIRE(dual.device() != nullptr);
     REQUIRE_NOTHROW(dual.download());
     REQUIRE(dual.host() != cloud);
@@ -26,6 +27,7 @@ TEST_CASE( "Create dual container", "[image]" ) {
                                  (std::tie(lhs.x, lhs.y, lhs.z, lhs.rgba) ==
                                   std::tie(rhs.x, rhs.y, rhs.z, rhs.rgba)); }));
     REQUIRE_NOTHROW(dual.reset());
+    REQUIRE(dual.size() == 0);
     REQUIRE(dual.device() == nullptr);
     REQUIRE(dual.host() == nullptr);
     REQUIRE_NOTHROW(dual.reset(cloud));

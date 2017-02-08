@@ -1,3 +1,4 @@
+#include <descry/common.h>
 #include <descry/cupcl/memory.h>
 #include <thrust/device_vector.h>
 #include <pcl/point_types.h>
@@ -59,10 +60,41 @@ void DualContainer<H_T, H_C, D_T, D_C>::download() const {
     }
 }
 
+template<class H_T, class H_C, class D_T, class D_C>
+std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const {
+    if (isHostSet())
+        return h_container->size();
+    if (isDeviceSet())
+        return d_container->size();
+    return 0;
+}
+
 template
 class DualContainer<pcl::PointXYZ>;
 
 template
 class DualContainer<pcl::PointXYZRGBA>;
+
+template
+class DualContainer<pcl::Normal>;
+
+template<>
+void DualContainer<float, std::unique_ptr<descry::Perspective>>::upload() const {
+    if (isHostSet())
+        d_container.reset(new thrust::device_vector<float>(h_container->data(),
+                                                           h_container->data() + 12));
+}
+
+template<>
+void DualContainer<float, std::unique_ptr<descry::Perspective>>::download() const {
+    /*if (isDeviceSet()) {
+        h_container.reset(new descry::Perspective());
+
+        thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
+    }*/
+}
+
+template
+class DualContainer<float, std::unique_ptr<descry::Perspective>>;
 
 }}
