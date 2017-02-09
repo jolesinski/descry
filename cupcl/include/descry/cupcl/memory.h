@@ -25,6 +25,7 @@ public:
     using HostContainerType = HostContainer;
     using DeviceContainerType = DeviceContainer;
 
+    DualContainer();
     DualContainer(HostContainer h);
     DualContainer(DeviceContainer d);
 

@@ -2,6 +2,7 @@
 #define DESCRY_IMAGE_H
 
 #include <descry/common.h>
+#include <descry/cupcl/memory.h>
 
 namespace descry {
 
@@ -10,8 +11,8 @@ public:
     Image(PointCloud::ConstPtr cloud) : cloud(cloud) {};
     template <class T> const T& get() const;
 private:
-    PointCloud::ConstPtr cloud;
-    std::unique_ptr<Perspective> projection;
+    cupcl::DualContainer<const Point, PointCloud::ConstPtr, Point> cloud;
+    cupcl::DualContainer<float, std::unique_ptr<descry::Perspective>> projection;
 };
 
 }

@@ -3,11 +3,12 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <pcl/point_types.h>
-
-// TODO: add support for constptr
-// #include <type_traits>
+#include <type_traits>
 
 namespace descry { namespace cupcl {
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::DualContainer() = default;
 
 template<class H_T, class H_C, class D_T, class D_C>
 DualContainer<H_T, H_C, D_T, D_C>::DualContainer(H_C h) : h_container(std::move(h)) {}
@@ -71,10 +72,10 @@ std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const {
 }
 
 template
-class DualContainer<pcl::PointXYZ>;
+class DualContainer<pcl::PointXYZRGBA>;
 
 template
-class DualContainer<pcl::PointXYZRGBA>;
+class DualContainer<pcl::PointXYZ>;
 
 template
 class DualContainer<pcl::Normal>;
@@ -96,5 +97,13 @@ void DualContainer<float, std::unique_ptr<descry::Perspective>>::download() cons
 
 template
 class DualContainer<float, std::unique_ptr<descry::Perspective>>;
+
+template<>
+void DualContainer<const pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr, pcl::PointXYZRGBA>::download() const {
+}
+
+template
+class DualContainer<const pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr, pcl::PointXYZRGBA>;
+
 
 }}
