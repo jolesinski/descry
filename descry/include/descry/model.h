@@ -16,7 +16,7 @@ public:
 
         Pose viewpoint;
         Perspective perspective;
-        PointCloud::Ptr cloud;
+        FullCloud::Ptr cloud;
         Normals::Ptr normals;
         RFs::Ptr rfs;
         std::vector<bool> mask;
@@ -31,15 +31,15 @@ public:
         int sphere_turns;
         int sphere_divisions;
 
-        View project(const PointCloud::ConstPtr& full, const Pose& viewpoint) const noexcept;
-        View::Vector generateViews(const PointCloud::ConstPtr& cloud) const noexcept;
+        View project(const FullCloud::ConstPtr& full, const Pose& viewpoint) const noexcept;
+        View::Vector generateViews(const FullCloud::ConstPtr& cloud) const noexcept;
     };
 
-    Model(const PointCloud::ConstPtr& full, const Projector& projector);
-    Model(const PointCloud::ConstPtr& full, const View::Vector& views);
+    Model(const FullCloud::ConstPtr& full, const Projector& projector);
+    Model(const FullCloud::ConstPtr& full, const View::Vector& views);
 
 protected:
-    PointCloud::ConstPtr full_cloud;
+    FullCloud::ConstPtr full_cloud;
     View::Vector views;
 };
 

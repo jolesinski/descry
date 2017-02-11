@@ -11,7 +11,7 @@ class Recognizer {
 public:
     bool configure(const Config& config);
     void train(const Model& model);
-    std::vector<ModelInstance> recognize(const PointCloud::ConstPtr& scene);
+    std::vector<ModelInstance> recognize(const FullCloud::ConstPtr& scene);
 };
 
 }

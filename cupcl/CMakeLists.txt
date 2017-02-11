@@ -27,6 +27,7 @@ include_directories(include ../descry/include )
 
 cuda_add_library(cupcl SHARED
         src/eigen.cu
+        src/conversion.cu
         src/support.cu
         src/normals.cu
         src/memory.cu

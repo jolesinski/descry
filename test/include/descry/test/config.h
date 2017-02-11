@@ -25,6 +25,13 @@ inline descry::Config loadConfigInt() {
     cfg["max-depth-change"] = 0.02f;
     return cfg;
 }
+
+inline descry::Config loadConfigCupcl() {
+    auto cfg = descry::Config();
+    cfg["type"] = "cupcl";
+    cfg["r-support"] = 0.02;
+    return cfg;
+}
 }
 
 } }

@@ -47,23 +47,23 @@ bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const {
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::upload() const {
-    if (isHostSet())
-        d_container.reset(new thrust::device_vector<D_T>(h_container->points));
+    assert(isHostSet());
+    d_container.reset(new thrust::device_vector<D_T>(h_container->points));
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::download() const {
-    if (isDeviceSet()) {
-        h_container.reset(new pcl::PointCloud<H_T>());
-        h_container->width = d_container->size();
-        h_container->height = 1;
-        h_container->points.resize(d_container->size());
-        thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
-    }
+    assert(isDeviceSet());
+    h_container.reset(new pcl::PointCloud<H_T>);
+    // FIXME: how to pass width and height - detail for organized, detail for const
+    h_container->width = 640;//d_container->size();
+    h_container->height = 480;
+    h_container->points.resize(d_container->size());
+    thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
-std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const {
+std::size_t DualContainer<H_T, H_C, D_T, D_C>::getSize() const {
     if (isHostSet())
         return h_container->size();
     if (isDeviceSet())

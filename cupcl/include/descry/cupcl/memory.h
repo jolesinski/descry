@@ -38,6 +38,7 @@ public:
     void reset(DeviceContainer d) { clearHost(); d_container = std::move(d); }
     void reset(HostContainer h) { clearDevice(); h_container = std::move(h); }
 
+    // FIXME: those two should be private for const correctness
     void upload() const;
     void download() const;
 
@@ -53,7 +54,8 @@ public:
         return h_container;
     }
 
-    std::size_t size() const;
+    std::size_t getSize() const;
+    bool empty() const { return getSize() == 0; }
 
 private:
     void clearDevice();

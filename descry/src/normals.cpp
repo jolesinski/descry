@@ -1,10 +1,11 @@
 #include <descry/normals.h>
+#include <descry/cupcl/normals.h>
 
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
 
-using NEstOMP = pcl::NormalEstimationOMP<descry::Point, pcl::Normal>;
-using NEstINT = pcl::IntegralImageNormalEstimation<descry::Point, pcl::Normal>;
+using NEstOMP = pcl::NormalEstimationOMP<descry::FullPoint, pcl::Normal>;
+using NEstINT = pcl::IntegralImageNormalEstimation<descry::FullPoint, pcl::Normal>;
 
 namespace YAML {
 template<>
@@ -63,21 +64,20 @@ struct convert<NEstINT> {
 }
 
 namespace descry {
+
 template<class NEst>
 auto configureEstimatorPCL(const YAML::Node& node) {
     auto nest = node.as<NEst>();
     return [ nest{std::move(nest)} ]
-            (const Image &image) mutable
-            {
-                nest.setInputCloud(image.get<PointCloud::ConstPtr>());
-                descry::Normals::Ptr normals(new descry::Normals{});
+            (const Image &image) mutable {
+                nest.setInputCloud(image.getFullCloud().host());
+                descry::Normals::Ptr normals{new descry::Normals{}};
                 nest.compute(*normals);
                 return normals;
             };
 }
-}
 
-bool descry::NormalEstimation::configure(const descry::Config& config) {
+bool NormalEstimation::configure(const Config& config) {
     if (!config["type"])
         return false;
 
@@ -86,14 +86,23 @@ bool descry::NormalEstimation::configure(const descry::Config& config) {
         _nest = configureEstimatorPCL<NEstOMP>(config);
     } else if (est_type == "int") {
         _nest = configureEstimatorPCL<NEstINT>(config);
+    } else if (est_type == "cupcl" && config["r-support"]) {
+        auto rad = config["r-support"].as<float>();
+        _nest = [rad](const Image &image) {
+            auto normals = cupcl::computeNormals(image.getShapeCloud(),
+                                                 image.getProjection(),
+                                                 rad);
+            return normals.host();
+        };
     } else
         return false;
 
     return true;
 }
 
-descry::Normals::Ptr
-descry::NormalEstimation::compute(const descry::Image& image) {
+Normals::Ptr NormalEstimation::compute(const Image& image) {
     assert(_nest);
     return _nest(image);
+}
+
 }

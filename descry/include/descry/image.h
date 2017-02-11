@@ -8,11 +8,18 @@ namespace descry {
 
 class Image {
 public:
-    Image(PointCloud::ConstPtr cloud) : cloud(cloud) {};
-    template <class T> const T& get() const;
+    Image(FullCloud::ConstPtr cloud) : full(cloud) {};
+
+    const DualConstFullCloud& getFullCloud() const;
+    const DualPerpective& getProjection() const;
+    const DualShapeCloud& getShapeCloud() const;
+    const DualNormals& getNormals() const;
+
 private:
-    cupcl::DualContainer<const Point, PointCloud::ConstPtr, Point> cloud;
-    cupcl::DualContainer<float, std::unique_ptr<descry::Perspective>> projection;
+    DualConstFullCloud full;
+    mutable DualPerpective projection;
+    mutable DualShapeCloud shape;
+    DualNormals normals;
 };
 
 }
