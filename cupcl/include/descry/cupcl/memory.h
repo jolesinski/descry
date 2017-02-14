@@ -1,30 +1,16 @@
 #ifndef DESCRY_CUPCL_MEMORY_H
 #define DESCRY_CUPCL_MEMORY_H
 
+#include <descry/cupcl/vector_2d.h>
 #include <memory.h>
-#include <pcl/point_cloud.h>
-
-#ifdef __CUDACC__
-#include <thrust/device_vector.h>
-#else
-// To keep descy independent of CUDA compiler, thrust is left incomplete
-namespace thrust {
-template<typename T>
-class device_malloc_allocator;
-template<typename T, typename Alloc>
-class device_vector;
-}
-#endif
 
 namespace descry { namespace cupcl {
 
 template<class HostType, class HostContainer = typename pcl::PointCloud<HostType>::Ptr,
-         class DeviceType = HostType, class DeviceContainer = std::unique_ptr<thrust::device_vector<DeviceType, thrust::device_malloc_allocator<DeviceType>>>>
+         class DeviceType = HostType,
+         class DeviceContainer = std::unique_ptr<DeviceVector2d<DeviceType, remove_underlying_const<HostContainer>>>>
 class DualContainer {
 public:
-    using HostContainerType = HostContainer;
-    using DeviceContainerType = DeviceContainer;
-
     DualContainer();
     DualContainer(HostContainer h);
     DualContainer(DeviceContainer d);
@@ -54,8 +40,8 @@ public:
         return h_container;
     }
 
-    std::size_t getSize() const;
-    bool empty() const { return getSize() == 0; }
+    std::size_t size() const;
+    bool empty() const { return size() == 0; }
 
 private:
     void clearDevice();

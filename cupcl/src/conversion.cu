@@ -14,10 +14,11 @@ struct strip_rgba {
 namespace descry { namespace cupcl {
 
 DualShapeCloud convertToXYZ(const DualConstFullCloud& points) {
-    auto d_points_xyz = std::make_unique<thrust::device_vector<pcl::PointXYZ>>(points.getSize());
+    auto d_points_xyz = std::make_unique<DeviceVector2d<pcl::PointXYZ>>(points.device()->getWidth(),
+                                                                        points.device()->getHeight());
 
-    thrust::transform(points.device()->begin(), points.device()->end(),
-                      d_points_xyz->begin(), strip_rgba{});
+    thrust::transform(points.device()->getThrust().begin(), points.device()->getThrust().end(),
+                      d_points_xyz->getThrust().begin(), strip_rgba{});
 
     return DualShapeCloud{std::move(d_points_xyz)};
 }

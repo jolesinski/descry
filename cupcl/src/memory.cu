@@ -1,9 +1,6 @@
 #include <descry/common.h>
 #include <descry/cupcl/memory.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #include <pcl/point_types.h>
-#include <type_traits>
 
 namespace descry { namespace cupcl {
 
@@ -48,22 +45,17 @@ bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const {
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::upload() const {
     assert(isHostSet());
-    d_container.reset(new thrust::device_vector<D_T>(h_container->points));
+    d_container.reset(new typename D_C::element_type{h_container});
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::download() const {
     assert(isDeviceSet());
-    h_container.reset(new pcl::PointCloud<H_T>);
-    // FIXME: how to pass width and height - detail for organized, detail for const
-    h_container->width = 640;//d_container->size();
-    h_container->height = 480;
-    h_container->points.resize(d_container->size());
-    thrust::copy(d_container->begin(), d_container->end(), h_container->points.begin());
+    h_container = d_container->download();
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
-std::size_t DualContainer<H_T, H_C, D_T, D_C>::getSize() const {
+std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const {
     if (isHostSet())
         return h_container->size();
     if (isDeviceSet())
@@ -80,30 +72,16 @@ class DualContainer<pcl::PointXYZ>;
 template
 class DualContainer<pcl::Normal>;
 
-template<>
-void DualContainer<float, std::unique_ptr<descry::Perspective>>::upload() const {
-    if (isHostSet())
-        d_container.reset(new thrust::device_vector<float>(h_container->data(),
-                                                           h_container->data() + h_container->size()));
-}
-
-template<>
-void DualContainer<float, std::unique_ptr<descry::Perspective>>::download() const {
-    if (isDeviceSet()) {
-        thrust::host_vector<float> h_vec = *d_container;
-        h_container.reset(new descry::Perspective{thrust::raw_pointer_cast(&h_vec[0])});
-    }
-}
-
 template
 class DualContainer<float, std::unique_ptr<descry::Perspective>>;
 
 template<>
-void DualContainer<const pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr, pcl::PointXYZRGBA>::download() const {
+void DualContainer<pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr>::download() const {
+    // TODO: should throw
 }
 
 template
-class DualContainer<const pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr, pcl::PointXYZRGBA>;
+class DualContainer<pcl::PointXYZRGBA, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr>;
 
 
 }}

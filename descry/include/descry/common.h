@@ -26,7 +26,7 @@ using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;
 
 // Dual Containers
 using DualFullCloud = cupcl::DualContainer<FullPoint>;
-using DualConstFullCloud = cupcl::DualContainer<const FullPoint, FullCloud::ConstPtr, FullPoint>;
+using DualConstFullCloud = cupcl::DualContainer<FullPoint, FullCloud::ConstPtr>;
 
 // FIXME: unaligned allocation?
 using DualPerpective = cupcl::DualContainer<float, std::unique_ptr<descry::Perspective>>;

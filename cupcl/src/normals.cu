@@ -1,9 +1,9 @@
+#include <descry/cupcl/normals.h>
 #include <descry/cupcl/utils.cuh>
 #include <descry/cupcl/eigen.cuh>
 #include <descry/cupcl/support.cuh>
 #include <descry/cupcl/memory.h>
 #include <descry/cupcl/unique.h>
-#include <descry/common.h>
 
 #include <device_launch_parameters.h>
 
@@ -67,25 +67,28 @@ DualNormals computeNormals(const DualShapeCloud& points,
     assert(!points.empty());
     assert(!projection.empty());
 
-    auto d_normals = std::make_unique<thrust::device_vector<pcl::Normal>>(points.getSize());
-    pcl::Normal* d_norms_raw = thrust::raw_pointer_cast(&(*d_normals)[0]);
-    const auto d_points_raw = thrust::raw_pointer_cast(&(*points.device())[0]);
-    const auto d_projection_raw = thrust::raw_pointer_cast(&(*projection.device())[0]);
+    auto& d_points = points.device();
+    const auto d_points_raw = d_points->getRaw();
 
-    dim3 threadsPerBlock(32, 32);
+    auto width = d_points->getWidth();
+    auto height = d_points->getHeight();
 
-    // FIXME: pass width and height along with device container
+    auto d_normals = std::make_unique<DeviceVector2d<pcl::Normal>>(width, height);
+    pcl::Normal* d_norms_raw = d_normals->getRaw();
+
+    const auto d_projection_raw = projection.device()->getRaw();
+
+    // FIXME: magic 32
     // FIXME: investigate alignment error, probably when conversion called from nvcc
-    dim3 numBlocks(/*points.host()->width*/ 640 / threadsPerBlock.x,
-                   /*points.host()->height*/ 480 / threadsPerBlock.y);
+    dim3 threadsPerBlock(32, 32);
+    dim3 numBlocks(width / threadsPerBlock.x, height / threadsPerBlock.y);
 
     computeNormalsKernel<< < numBlocks, threadsPerBlock >> >
-                (d_points_raw, /*points.host()->width*/ 640, /*points.host()->height*/ 480,
-                    d_projection_raw, radius, d_norms_raw);
+                (d_points_raw, width, height, d_projection_raw, radius, d_norms_raw);
 
     CudaSyncAndBail();
 
-    return DualContainer<pcl::Normal>(std::move(d_normals));
+    return DualContainer<pcl::Normal>{std::move(d_normals)};
 }
 
 }}

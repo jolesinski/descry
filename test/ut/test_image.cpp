@@ -3,7 +3,6 @@
 #include <descry/test/data.h>
 #include <descry/test/config.h>
 #include <descry/image.h>
-#include <descry/cupcl/memory.h>
 
 TEST_CASE( "Create from real point cloud", "[image]" ) {
     auto cloud = descry::test::loadSceneCloud();
@@ -13,7 +12,7 @@ TEST_CASE( "Create from real point cloud", "[image]" ) {
 
     auto& shape = image.getShapeCloud();
 
-    REQUIRE(shape.getSize() == cloud->size());
+    REQUIRE(shape.size() == cloud->size());
 
 //    Needed in debug config
 //    auto ptr = descry::ShapeCloud::Ptr(new descry::ShapeCloud);
