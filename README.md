@@ -1,5 +1,5 @@
 # descry
-Library for real-time object instance recognition in RGB-D scenes.
+Library for real-time object instance recognition in RGB-D scenes **(under dev)**.
 
 Project developed as part of masters thesis:
 *Object recognition in RGB-D images for robotic applications*
@@ -12,9 +12,13 @@ Project developed as part of masters thesis:
 * CUDA 8
 
 ### Testing:
-Unit tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework.
+Unit and functional tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework,
+[nonius](https://github.com/libnonius/nonius) framework is used for performance benchmarks.
 
-Performance benchmarks are implemented within [nonius](https://github.com/libnonius/nonius) framework.
 
 ### Results:
 TBD.
+
+### References:
+* [Point Cloud Library](https://github.com/PointCloudLibrary/pcl)
+* [Vision 4 Robotics](https://github.com/strands-project/v4r)
