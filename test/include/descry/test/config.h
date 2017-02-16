@@ -20,7 +20,7 @@ inline descry::Config loadConfigOmp() {
 inline descry::Config loadConfigInt() {
     auto cfg = descry::Config();
     cfg["type"] = "int";
-    cfg["method"] = "covariance";
+    cfg["method"] = "average_depth_change";
     cfg["smoothing"] = 10.0f;
     cfg["max-depth-change"] = 0.02f;
     return cfg;

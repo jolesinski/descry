@@ -4,8 +4,6 @@
 #include <descry/test/config.h>
 #include <descry/normals.h>
 
-//TODO: add a macro
-
 NONIUS_BENCHMARK("normals_omp", [](nonius::chronometer meter){
     auto image = descry::Image(descry::test::loadSceneCloud());
     auto nest = descry::NormalEstimation{};
@@ -20,4 +18,12 @@ NONIUS_BENCHMARK("normals_int", [](nonius::chronometer meter){
 
     if(nest.configure(descry::test::normals::loadConfigInt()))
         meter.measure([&nest, &image](){ return nest.compute(image); });
+})
+
+NONIUS_BENCHMARK("normals_cupcl", [](nonius::chronometer meter){
+    auto image = descry::Image(descry::test::loadSceneCloud());
+    auto nest = descry::NormalEstimation{};
+
+    if(nest.configure(descry::test::normals::loadConfigCupcl()))
+            meter.measure([&nest, &image](){ return nest.compute(image); });
 })

@@ -2,7 +2,6 @@
 #define DESCRY_IMAGE_H
 
 #include <descry/common.h>
-#include <descry/cupcl/memory.h>
 
 namespace descry {
 
@@ -13,7 +12,9 @@ public:
     const DualConstFullCloud& getFullCloud() const;
     const DualPerpective& getProjection() const;
     const DualShapeCloud& getShapeCloud() const;
+
     const DualNormals& getNormals() const;
+    void setNormals(DualNormals&& normals);
 
 private:
     DualConstFullCloud full;

@@ -48,4 +48,8 @@ const DualNormals& Image::getNormals() const {
     return normals;
 }
 
+void Image::setNormals(DualNormals&& normals) {
+    this->normals = std::move(normals);
+}
+
 }

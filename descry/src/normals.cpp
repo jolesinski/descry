@@ -73,7 +73,7 @@ auto configureEstimatorPCL(const YAML::Node& node) {
                 nest.setInputCloud(image.getFullCloud().host());
                 descry::Normals::Ptr normals{new descry::Normals{}};
                 nest.compute(*normals);
-                return normals;
+                return DualNormals{normals};
             };
 }
 
@@ -89,10 +89,7 @@ bool NormalEstimation::configure(const Config& config) {
     } else if (est_type == "cupcl" && config["r-support"]) {
         auto rad = config["r-support"].as<float>();
         _nest = [rad](const Image &image) {
-            auto normals = cupcl::computeNormals(image.getShapeCloud(),
-                                                 image.getProjection(),
-                                                 rad);
-            return normals.host();
+            return cupcl::computeNormals(image.getShapeCloud(), image.getProjection(), rad);
         };
     } else
         return false;
@@ -100,7 +97,8 @@ bool NormalEstimation::configure(const Config& config) {
     return true;
 }
 
-Normals::Ptr NormalEstimation::compute(const Image& image) {
+DualNormals NormalEstimation::compute(const Image& image) {
+    // TODO: should throw
     assert(_nest);
     return _nest(image);
 }
