@@ -20,7 +20,7 @@ TEST_CASE( "Configuring normals", "[normals]" ) {
     cfg.reset(descry::test::loadFullConfig());
 
     REQUIRE(!nest.configure(cfg));
-    REQUIRE(nest.configure(cfg["sparse"]["normals"]));
+    REQUIRE(nest.configure(cfg["recognizer"]["normals"]));
 }
 
 TEST_CASE( "Normal estimation on planar cloud", "[normals]") {

@@ -26,11 +26,12 @@ LIST(APPEND CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets)
 include_directories(include ../descry/include )
 
 cuda_add_library(cupcl SHARED
-        src/eigen.cu
         src/conversion.cu
-        src/support.cu
-        src/normals.cu
+        src/eigen.cu
+        src/iss.cu
         src/memory.cu
+        src/normals.cu
+        src/support.cu
         OPTIONS -shared -Xcompiler -fPIC --expt-relaxed-constexpr --std=c++11)
 
 # Add it anyway for dependent targets

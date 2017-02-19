@@ -2,7 +2,6 @@
 #ifndef DESCRY_NORMALS_H
 #define DESCRY_NORMALS_H
 
-#include <descry/common.h>
 #include <descry/image.h>
 
 namespace descry {

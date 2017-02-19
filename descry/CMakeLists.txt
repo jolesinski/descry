@@ -1,8 +1,9 @@
 add_library(descry SHARED
+        src/image.cpp
+        src/keypoints.cpp
         src/model.cpp
         src/normals.cpp
-        src/recognizer.cpp
-        src/image.cpp ../cupcl/include/descry/cupcl/unique.h ../cupcl/include/descry/cupcl/memory.h)
+        src/recognizer.cpp)
 
 target_include_directories(descry
         PUBLIC include

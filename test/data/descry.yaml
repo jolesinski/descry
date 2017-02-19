@@ -1,18 +1,25 @@
 recognizer:
-  type: sparse
-  refinement: icp
-  verification: ghv
-
-sparse:
   normals:
     type: omp
     k-support: 30
     threads: 4
-  keypoints:
-    type: uniform
-    r-support: 0.03
   reference-frames:
     type: board
     find-holes: true
     r-support: 0.015
+  matcher: sparse
+  refinement: icp
+  verification: ghv
+
+sparse:
+  keypoints:
+    type: iss
+    salient-radius: 0.03
+    non-max-radius: 0.03
+    border-radius: 0.03
+    normal-radius: 0.03
+    threshold-21: 0.975
+    threshold-32: 0.975
+    min-neighbours: 5
+    threads: 4
   descriptors: fpfh

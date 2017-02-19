@@ -10,6 +10,7 @@ add_executable(descry_ut
         ut/catch.cpp
         ut/test_model.cpp
         ut/test_image.cpp
+        ut/test_keypoints.cpp
         ut/test_normals.cpp
         ut/test_recognizer.cpp)
 
@@ -34,6 +35,7 @@ add_subdirectory(benchmark EXCLUDE_FROM_ALL)
 
 add_executable(descry_perf
         perf/runner.cpp
+        perf/test_keypoints.cpp
         perf/test_normals.cpp)
 
 target_include_directories(descry_perf

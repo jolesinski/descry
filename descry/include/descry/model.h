@@ -12,7 +12,7 @@ class Model
 public:
     struct View
     {
-        using Vector = std::vector<View, Eigen::aligned_allocator<View>>;
+        using Vector = AlignedVector<View>;
 
         Pose viewpoint;
         Perspective perspective;

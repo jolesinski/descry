@@ -2,13 +2,13 @@
 This module adapts organized point cloud processing routines from [Point Cloud Library](https://github.com/PointCloudLibrary/pcl) (with a few add-ons) for CUDA parallelization.
 
 ### Currently supported:
-N/A
+* radial neighbourhood
+* normal estimation
+* FPFH descriptor
 
 ### Planned:
-* radial neighbourhood
 * cloud resolution
-* normal estimation
 * ISS-WBE keypoints
 * boundary estimation
-* SHOT, FPFH descriptors
+* SHOT descriptor
 * CSHOT, BSHOT, BFPFH descriptors
