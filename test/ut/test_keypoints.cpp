@@ -54,13 +54,16 @@ TEST_CASE( "Keypoint duetection on real cloud", "[keypoints]") {
     SECTION("Uniform") {
         REQUIRE(kdet.configure(descry::test::keypoints::loadConfigUniform()));
     }
-    SECTION("ISS") {
-        REQUIRE(kdet.configure(descry::test::keypoints::loadConfigISS()));
+//    SECTION("ISS") {
+//        REQUIRE(kdet.configure(descry::test::keypoints::loadConfigISS()));
+//    }
+    SECTION("CUPCL") {
+        REQUIRE(kdet.configure(descry::test::keypoints::loadConfigCupcl()));
     }
 
     auto image = descry::Image(descry::test::loadSceneCloud());
     auto keypoints = kdet.compute(image);
 
-    REQUIRE(!keypoints->empty());
-    WARN(keypoints->size());
+    REQUIRE(!keypoints.empty());
+    INFO(keypoints.size());
 }

@@ -1,16 +1,18 @@
 #include <descry/cupcl/iss.h>
 #include <descry/cupcl/support.cuh>
 #include <descry/cupcl/eigen.cuh>
+#include <descry/cupcl/utils.cuh>
+#include <descry/cupcl/unique.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/copy.h>
-#include <descry/cupcl/device_utils.h>
+#include <thrust/count.h>
 
 __global__ void
-computeSaliencies(const cupcl::PointT* in,
+computeSaliencies(const pcl::PointXYZ* in,
                   const int width, const int height,
                   const float* projection,
                   const float salient_rad,
@@ -34,26 +36,25 @@ computeSaliencies(const cupcl::PointT* in,
 
   if( lambdas(1) / lambdas(0) < eps1
       && lambdas(2) / lambdas(1) < eps2
-      && lambdas(2) > eps3 )
-  {
+      && lambdas(2) > eps3 ) {
     out[idx] = lambdas(2);
   }
 }
 
 __global__ void
-computeNoNMaxima(const cupcl::PointT* in,
+computeNoNMaxima(const pcl::PointXYZ* in,
                  const int width, const int height,
                  const float* projection,
                  const float* saliency,
                  const float nonmax_rad,
                  const int min_nn,
-                 int* is_keypoint)
+                 bool* is_keypoint)
 {
   int u = blockIdx.x * blockDim.x + threadIdx.x;
   int v = blockIdx.y * blockDim.y + threadIdx.y;
   int idx = width*v + u;
 
-  const cupcl::PointT& query = in[idx];
+  const pcl::PointXYZ& query = in[idx];
 
   auto query_l3 = saliency[idx];
   if (query_l3 == 0 || !isfinite(query.x))
@@ -74,76 +75,63 @@ computeNoNMaxima(const cupcl::PointT* in,
         break;
       }
 
-    is_keypoint[idx] = static_cast<int>(is_max);
+    is_keypoint[idx] = is_max;
   }
 }
 
-template<typename T>
-struct is_true
-{
-  __host__ __device__
-  bool operator()(const T& x)
-  {
-    return x != 0;
-  }
-};
+namespace descry { namespace cupcl {
 
-void
-cudaComputeISS(const cupcl::Cloud<cupcl::PointT>& cloud,
-               const float resolution,
-               const float eps1,
-               const float eps2,
-               const float eps3,
-               cupcl::PointVecT& keys)
-{
-  float salient_rad = 6*resolution;
-  float nonmax_rad = 4*resolution;
-  int min_neighs = 5;
+DualShapeCloud computeISS(const DualShapeCloud& points,
+                          const DualPerpective& projection,
+                          const ISSConfig& cfg) {
+    assert(!points.empty());
+    assert(!projection.empty());
 
-  thrust::device_vector<float> d_l3(cloud.getDeviceThrust()->size(), 0);
-  float* d_l3_array = thrust::raw_pointer_cast(&d_l3[0]);
+    auto& d_points = points.device();
+    const auto d_points_raw = d_points->getRaw();
 
-  thrust::device_vector<int> d_is_keypoint(cloud.getDeviceThrust()->size(), 0);
-  int* d_is_keypoint_array = thrust::raw_pointer_cast(&d_is_keypoint[0]);
+    auto width = d_points->getWidth();
+    auto height = d_points->getHeight();
 
-  dim3 threadsPerBlock(32, 32);
-  dim3 numBlocks(cloud.getPCL()->width / threadsPerBlock.x,
-                 cloud.getPCL()->height / threadsPerBlock.y);
+    const auto d_projection_raw = projection.device()->getRaw();
 
-  computeSaliencies<< < numBlocks, threadsPerBlock >> >
-      (cloud.getDeviceRaw(), cloud.getPCL()->width, cloud.getPCL()->height,
-          cloud.getDeviceProjectionMatrix(), salient_rad, eps1, eps2, eps3, d_l3_array);
+    float salient_rad = cfg.salient_rad*cfg.resolution;
+    float nonmax_rad = cfg.non_max_rad*cfg.resolution;
+    int min_neighs = cfg.min_neighs;
 
-  CudaSyncAndBail();
+    thrust::device_vector<float> d_l3(points.size(), 0);
+    float* d_l3_array = thrust::raw_pointer_cast(&d_l3[0]);
 
-  computeNoNMaxima<< < numBlocks, threadsPerBlock >> >
-      (cloud.getDeviceRaw(), cloud.getPCL()->width, cloud.getPCL()->height,
-          cloud.getDeviceProjectionMatrix(), d_l3_array, nonmax_rad, min_neighs, d_is_keypoint_array);
+    thrust::device_vector<bool> d_is_keypoint(points.size(), 0);
+    bool* d_is_keypoint_array = thrust::raw_pointer_cast(&d_is_keypoint[0]);
 
-  CudaSyncAndBail();
+    // FIXME: magic 32
+    // FIXME: investigate alignment error, probably when conversion called from nvcc
+    dim3 threadsPerBlock(32, 32);
+    dim3 numBlocks(width / threadsPerBlock.x, height / threadsPerBlock.y);
 
-  thrust::device_vector<cupcl::PointT> d_keypoints;
-  d_keypoints.reserve(cloud.getPCL()->size());
-  auto key_end = thrust::copy_if(cloud.getDeviceThrust()->begin(), cloud.getDeviceThrust()->end(),
-                                 d_is_keypoint.begin(), d_keypoints.begin(), is_true<float>());
-  //int sum = thrust::reduce(thrust::device, d_is_keypoint.begin(), d_is_keypoint.end());
+    computeSaliencies<<< numBlocks, threadsPerBlock >>>(d_points_raw, width, height,
+            d_projection_raw, salient_rad, cfg.lambda_ratio_21,
+            cfg.lambda_ratio_32, cfg.lambda_threshold_3, d_l3_array);
 
-  size_t key_size = key_end - d_keypoints.begin();
-  std::cout << "Sum " << key_size << std::endl;
-  keys.resize(key_size);
-  thrust::copy(d_keypoints.begin(), key_end, keys.begin());
+    CudaSyncAndBail();
+
+    computeNoNMaxima<<< numBlocks, threadsPerBlock >>>(d_points_raw, width, height,
+            d_projection_raw, d_l3_array, nonmax_rad, min_neighs, d_is_keypoint_array);
+
+    CudaSyncAndBail();
+
+    using namespace thrust::placeholders;
+
+    auto key_count = thrust::count_if(d_is_keypoint.begin(), d_is_keypoint.end(), _1);
+
+    auto d_keys = std::make_unique<DeviceVector2d<pcl::PointXYZ>>(key_count, 1);
+    auto key_end = thrust::copy_if(d_points->getThrust().begin(), d_points->getThrust().end(),
+                                   d_is_keypoint.begin(), d_keys->getThrust().begin(), _1);
+
+    size_t key_size = key_end - d_keys->getThrust().begin();
+
+    return DualShapeCloud{std::move(d_keys)};
 }
 
-cupcl::CloudPtrT
-cupcl::computeISS(const cupcl::Cloud<cupcl::PointT>& cloud,
-                  const float resolution,
-                  const float eps1,
-                  const float eps2,
-                  const float eps3)
-{
-  cupcl::CloudPtrT keys (new cupcl::CloudT ());
-
-  cudaComputeISS(cloud, resolution, eps1, eps2, eps3, keys->points);
-
-  return keys;
-}
+} }

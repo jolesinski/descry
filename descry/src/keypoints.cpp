@@ -1,6 +1,8 @@
 #include <descry/keypoints.h>
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/keypoints/iss_3d.h>
+#include <descry/cupcl/iss.h>
+
 
 using KDetUniform = pcl::UniformSampling<descry::ShapePoint>;
 using KDetISS = pcl::ISSKeypoint3D<descry::ShapePoint, descry::ShapePoint>;
@@ -78,21 +80,52 @@ struct convert<KDetISS> {
         return true;
     }
 };
+
+
+
+template<>
+struct convert<descry::cupcl::ISSConfig> {
+    static bool decode(const Node& node, descry::cupcl::ISSConfig& rhs) {
+        if(!node.IsMap())
+            return false;
+
+        // required
+        if (!node["salient-radius"] || !node["non-max-radius"])
+            return false;
+
+        rhs.salient_rad = node["salient-radius"].as<float>();
+        rhs.non_max_rad = node["non-max-radius"].as<float>();
+
+        {
+            auto &elem = node["lambda-ratio-21"];
+            if (elem)
+                rhs.lambda_ratio_21 = elem.as<float>();
+        }
+
+        {
+            auto &elem = node["lambda-ratio-32"];
+            if (elem)
+                rhs.lambda_ratio_32 = elem.as<float>();
+        }
+
+        {
+            auto &elem = node["lambda-threshold-3"];
+            if (elem)
+                rhs.lambda_threshold_3 = elem.as<float>();
+        }
+
+        {
+            auto &elem = node["min-neighbours"];
+            if (elem)
+                rhs.min_neighs = elem.as<unsigned int>();
+        }
+
+        return true;
+    }
+};
 }
 
 namespace descry {
-
-template<class KDet>
-auto configureDetectorPCL(const YAML::Node& node) {
-    auto nest = node.as<KDet>();
-    return [ nest{std::move(nest)} ]
-    (const Image &image) mutable {
-        nest.setInputCloud(image.getFullCloud().host());
-        descry::Normals::Ptr normals{new descry::Normals{}};
-        nest.compute(*normals);
-        return DualNormals{normals};
-    };
-}
 
 bool ShapeKeypointDetector::configure(const Config& config) {
     if (!config["type"])
@@ -105,9 +138,9 @@ bool ShapeKeypointDetector::configure(const Config& config) {
             auto nest = config.as<KDetUniform>();
             _nest = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
-                ShapeKeypoints::Ptr keypoints{new ShapeKeypoints{}};
+                ShapeCloud::Ptr keypoints{new ShapeCloud{}};
                 nest.filter(*keypoints);
-                return keypoints;
+                return ShapeKeypoints{keypoints};
             };
         } else if (est_type == "iss") {
             auto nest = config.as<KDetISS>();
@@ -115,9 +148,13 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
-                ShapeKeypoints::Ptr keypoints{new ShapeKeypoints{}};
+                ShapeCloud::Ptr keypoints{new ShapeCloud{}};
                 nest.compute(*keypoints);
-                return keypoints;
+                return ShapeKeypoints{keypoints};
+            };
+        } else if (est_type == "iss-cupcl") {
+            _nest = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
+                return cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
             };
         } else
             return false;
@@ -128,7 +165,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
     return true;
 }
 
-ShapeKeypoints::Ptr ShapeKeypointDetector::compute(const Image& image) {
+ShapeKeypoints ShapeKeypointDetector::compute(const Image& image) {
     assert(_nest);
     return _nest(image);
 }

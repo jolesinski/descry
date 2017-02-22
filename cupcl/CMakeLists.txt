@@ -32,7 +32,7 @@ cuda_add_library(cupcl SHARED
         src/memory.cu
         src/normals.cu
         src/support.cu
-        OPTIONS -shared -Xcompiler -fPIC --expt-relaxed-constexpr --std=c++11)
+        OPTIONS -shared -Xcompiler -fPIC --expt-relaxed-constexpr --std=c++11 --expt-extended-lambda)
 
 # Add it anyway for dependent targets
 target_include_directories(cupcl

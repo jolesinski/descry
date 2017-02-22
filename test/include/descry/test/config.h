@@ -61,6 +61,18 @@ inline descry::Config loadConfigISS() {
     return cfg;
 }
 
+inline descry::Config loadConfigCupcl() {
+    auto cfg = descry::Config();
+    cfg["type"] = "iss-cupcl";
+    cfg["salient-radius"] = 0.05;
+    cfg["non-max-radius"] = 0.15;
+    cfg["lambda-ratio-21"] = 0.975;
+    cfg["lambda-ratio-32"] = 0.975;
+    cfg["lambda-threshold-3"] = 0.00005;
+    cfg["min-neighbours"] = 5;
+    return cfg;
+}
+
 }
 
 } }

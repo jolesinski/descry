@@ -72,6 +72,7 @@ class DeviceVector2d<Point, EigenPtr<Point, Rows, Cols>>
 public:
     using Ptr = std::unique_ptr<DeviceVector2d<Point, EigenPtr<Point, Rows, Cols>>>;
 
+    // FIXME: (Rows, Cols)
     DeviceVector2d(std::size_t width, std::size_t height)
         : _DeviceVector2dCore<Point, EigenPtr<Point, Rows, Cols>>(width, height) {}
 
