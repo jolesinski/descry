@@ -13,7 +13,7 @@ TEST_CASE( "Configuring normals", "[normals]" ) {
     REQUIRE(!nest.configure(cfg));
 
     cfg.SetTag("normals");
-    cfg["type"] = "omp";
+    cfg["type"] = descry::config::normals::OMP_TYPE;
 
     REQUIRE(nest.configure(cfg));
 

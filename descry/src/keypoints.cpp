@@ -3,6 +3,7 @@
 #include <pcl/keypoints/iss_3d.h>
 #include <descry/cupcl/iss.h>
 
+using namespace descry::config::keypoints;
 
 using KDetUniform = pcl::UniformSampling<descry::ShapePoint>;
 using KDetISS = pcl::ISSKeypoint3D<descry::ShapePoint, descry::ShapePoint>;
@@ -14,10 +15,10 @@ struct convert<KDetUniform> {
         if(!node.IsMap())
             return false;
 
-        if (!node["r-support"])
+        if (!node[SUPPORT_RAD])
             return false;
 
-        rhs.setRadiusSearch(node["r-support"].as<double>());
+        rhs.setRadiusSearch(node[SUPPORT_RAD].as<double>());
         return true;
     }
 };
@@ -29,50 +30,50 @@ struct convert<KDetISS> {
             return false;
 
         // required
-        if (!node["salient-radius"] || !node["non-max-radius"])
+        if (!node[SALIENT_RAD] || !node[NON_MAX_RAD])
             return false;
 
-        rhs.setSalientRadius(node["salient-radius"].as<double>());
-        rhs.setNonMaxRadius(node["non-max-radius"].as<double>());
+        rhs.setSalientRadius(node[SALIENT_RAD].as<double>());
+        rhs.setNonMaxRadius(node[NON_MAX_RAD].as<double>());
 
         {
-            auto &elem = node["border-radius"];
+            auto &elem = node[BORDER_RAD];
             if (elem)
                 rhs.setBorderRadius(elem.as<double>());
         }
 
         {
-            auto &elem = node["normal-radius"];
+            auto &elem = node[NORMAL_RAD];
             if (elem)
                 rhs.setNormalRadius(elem.as<double>());
         }
 
         {
-            auto &elem = node["threshold-21"];
+            auto &elem = node[LAMBDA_RATIO_21];
             if (elem)
                 rhs.setThreshold21(elem.as<double>());
         }
 
         {
-            auto &elem = node["threshold-32"];
+            auto &elem = node[LAMBDA_RATIO_32];
             if (elem)
                 rhs.setThreshold32(elem.as<double>());
         }
 
         {
-            auto &elem = node["threshold-angle"];
+            auto &elem = node[BOUNDARY_ANGLE];
             if (elem)
                 rhs.setAngleThreshold(elem.as<float>());
         }
 
         {
-            auto &elem = node["min-neighbours"];
+            auto &elem = node[MIN_NEIGHBOURS];
             if (elem)
                 rhs.setMinNeighbors(elem.as<int>());
         }
 
         {
-            auto &elem = node["threads"];
+            auto &elem = node[THREADS];
             if (elem)
                 rhs.setNumberOfThreads(elem.as<unsigned>());
         }
@@ -81,8 +82,6 @@ struct convert<KDetISS> {
     }
 };
 
-
-
 template<>
 struct convert<descry::cupcl::ISSConfig> {
     static bool decode(const Node& node, descry::cupcl::ISSConfig& rhs) {
@@ -90,32 +89,32 @@ struct convert<descry::cupcl::ISSConfig> {
             return false;
 
         // required
-        if (!node["salient-radius"] || !node["non-max-radius"])
+        if (!node[SALIENT_RAD] || !node[NON_MAX_RAD])
             return false;
 
-        rhs.salient_rad = node["salient-radius"].as<float>();
-        rhs.non_max_rad = node["non-max-radius"].as<float>();
+        rhs.salient_rad = node[SALIENT_RAD].as<float>();
+        rhs.non_max_rad = node[NON_MAX_RAD].as<float>();
 
         {
-            auto &elem = node["lambda-ratio-21"];
+            auto &elem = node[descry::config::keypoints::LAMBDA_RATIO_21];
             if (elem)
                 rhs.lambda_ratio_21 = elem.as<float>();
         }
 
         {
-            auto &elem = node["lambda-ratio-32"];
+            auto &elem = node[descry::config::keypoints::LAMBDA_RATIO_32];
             if (elem)
                 rhs.lambda_ratio_32 = elem.as<float>();
         }
 
         {
-            auto &elem = node["lambda-threshold-3"];
+            auto &elem = node[descry::config::keypoints::LAMBDA_THRESHOLD_3];
             if (elem)
                 rhs.lambda_threshold_3 = elem.as<float>();
         }
 
         {
-            auto &elem = node["min-neighbours"];
+            auto &elem = node[descry::config::keypoints::MIN_NEIGHBOURS];
             if (elem)
                 rhs.min_neighs = elem.as<unsigned int>();
         }
@@ -142,7 +141,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.filter(*keypoints);
                 return ShapeKeypoints{keypoints};
             };
-        } else if (est_type == "iss") {
+        } else if (est_type == config::keypoints::ISS_TYPE) {
             auto nest = config.as<KDetISS>();
             _nest = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
@@ -152,7 +151,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.compute(*keypoints);
                 return ShapeKeypoints{keypoints};
             };
-        } else if (est_type == "iss-cupcl") {
+        } else if (est_type == config::keypoints::ISS_CUPCL_TYPE) {
             _nest = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
                 return cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
             };

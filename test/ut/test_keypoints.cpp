@@ -15,7 +15,7 @@ TEST_CASE( "Configuring uniform keypoints", "[keypoints]" ) {
 
     REQUIRE(!kdet.configure(cfg));
 
-    cfg["r-support"] = 0.03f;
+    cfg[descry::config::keypoints::SUPPORT_RAD] = 0.03f;
 
     REQUIRE(kdet.configure(cfg));
 }
@@ -27,23 +27,23 @@ TEST_CASE( "Configuring iss keypoints", "[keypoints]" ) {
     REQUIRE(!kdet.configure(cfg));
 
     cfg.SetTag("keypoints");
-    cfg["type"] = "iss";
+    cfg["type"] = descry::config::keypoints::ISS_TYPE;
 
     REQUIRE(!kdet.configure(cfg));
 
-    cfg["r-support"] = 0.03f;
+    cfg[descry::config::keypoints::SUPPORT_RAD] = 0.03f;
 
     REQUIRE(!kdet.configure(cfg));
 
-    cfg["salient-radius"] = 0.03;
+    cfg[descry::config::keypoints::SALIENT_RAD] = 0.03;
 
     REQUIRE(!kdet.configure(cfg));
 
-    cfg["non-max-radius"] = 0.03;
+    cfg[descry::config::keypoints::NON_MAX_RAD] = 0.03;
 
     REQUIRE(kdet.configure(cfg));
 
-    cfg["salient-radius"] = "asdf";
+    cfg[descry::config::keypoints::SALIENT_RAD] = "asdf";
 
     REQUIRE(!kdet.configure(cfg));
 }

@@ -2,6 +2,7 @@
 #define DESCRY_KEYPOINTS_H
 
 #include <descry/image.h>
+#include <descry/config/keypoints.h>
 
 namespace descry {
 

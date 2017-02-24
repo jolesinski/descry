@@ -3,6 +3,7 @@
 #define DESCRY_NORMALS_H
 
 #include <descry/image.h>
+#include <descry/config/normals.h>
 
 namespace descry {
 

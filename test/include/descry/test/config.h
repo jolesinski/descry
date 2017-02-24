@@ -6,6 +6,8 @@
  */
 
 #include <descry/common.h>
+#include <descry/config/keypoints.h>
+#include <descry/config/normals.h>
 #include <descry/test/data_paths.h>
 
 namespace descry { namespace test {
@@ -16,25 +18,25 @@ namespace normals {
 
 inline descry::Config loadConfigOmp() {
     auto cfg = descry::Config();
-    cfg["type"] = "omp";
-    cfg["k-support"] = 10;
-    cfg["threads"] = 8;
+    cfg["type"] = config::normals::OMP_TYPE;
+    cfg[config::normals::SUPPORT_RAD] = 0.02;
+    cfg[config::normals::THREADS] = 8;
     return cfg;
 }
 
 inline descry::Config loadConfigInt() {
     auto cfg = descry::Config();
-    cfg["type"] = "int";
-    cfg["method"] = "covariance";
-    cfg["smoothing"] = 10.0f;
-    cfg["max-depth-change"] = 0.02f;
+    cfg["type"] = config::normals::INTEGRAL_IMAGE_TYPE;
+    cfg[config::normals::INTEGRAL_METHOD] = "covariance";
+    cfg[config::normals::SMOOTHING_SIZE] = 10.0f;
+    cfg[config::normals::MAX_DEPTH_CHANGE] = 0.02f;
     return cfg;
 }
 
 inline descry::Config loadConfigCupcl() {
     auto cfg = descry::Config();
-    cfg["type"] = "cupcl";
-    cfg["r-support"] = 0.02;
+    cfg["type"] = config::normals::CUPCL_TYPE;
+    cfg[config::keypoints::SUPPORT_RAD] = 0.02;
     return cfg;
 }
 
@@ -43,33 +45,33 @@ inline descry::Config loadConfigCupcl() {
 namespace keypoints {
 
 inline descry::Config loadConfigUniform() {
-    auto cfg = descry::Config();
+    auto cfg = Config();
     cfg["type"] = "uniform";
-    cfg["r-support"] = 0.03f;
+    cfg[config::keypoints::SUPPORT_RAD] = 0.03f;
     return cfg;
 }
 
 inline descry::Config loadConfigISS() {
-    auto cfg = descry::Config();
-    cfg["type"] = "iss";
-    cfg["salient-radius"] = 0.05;
-    cfg["non-max-radius"] = 0.15;
-    //cfg["border-radius"] = 0.03;
-    //cfg["normal-radius"] = 0.03;
-    cfg["min-neighbours"] = 5;
-    cfg["threads"] = 4;
+    auto cfg = Config();
+    cfg["type"] = config::keypoints::ISS_TYPE;
+    cfg[config::keypoints::SALIENT_RAD] = 0.05;
+    cfg[config::keypoints::NON_MAX_RAD] = 0.15;
+    //cfg[config::keypoints::BORDER_RAD] = 0.03;
+    //cfg[config::keypoints::NORMAL_RAD] = 0.03;
+    cfg[config::keypoints::MIN_NEIGHBOURS] = 5;
+    cfg[config::keypoints::THREADS] = 4;
     return cfg;
 }
 
 inline descry::Config loadConfigCupcl() {
-    auto cfg = descry::Config();
-    cfg["type"] = "iss-cupcl";
-    cfg["salient-radius"] = 0.05;
-    cfg["non-max-radius"] = 0.15;
-    cfg["lambda-ratio-21"] = 0.975;
-    cfg["lambda-ratio-32"] = 0.975;
-    cfg["lambda-threshold-3"] = 0.00005;
-    cfg["min-neighbours"] = 5;
+    auto cfg = Config();
+    cfg["type"] = config::keypoints::ISS_CUPCL_TYPE;
+    cfg[config::keypoints::SALIENT_RAD] = 0.05;
+    cfg[config::keypoints::NON_MAX_RAD] = 0.15;
+    cfg[config::keypoints::LAMBDA_RATIO_21] = 0.975;
+    cfg[config::keypoints::LAMBDA_RATIO_32] = 0.975;
+    cfg[config::keypoints::LAMBDA_THRESHOLD_3] = 0.00005;
+    cfg[config::keypoints::MIN_NEIGHBOURS] = 5;
     return cfg;
 }
 
