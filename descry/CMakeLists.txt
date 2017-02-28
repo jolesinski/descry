@@ -1,9 +1,11 @@
 add_library(descry SHARED
+        src/describer.cpp
         src/image.cpp
         src/keypoints.cpp
         src/model.cpp
         src/normals.cpp
-        src/recognizer.cpp)
+        src/recognizer.cpp
+        src/ref_frames.cpp)
 
 target_include_directories(descry
         PUBLIC include

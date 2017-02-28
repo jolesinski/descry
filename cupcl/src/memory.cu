@@ -73,6 +73,15 @@ template
 class DualContainer<pcl::Normal>;
 
 template
+class DualContainer<pcl::ReferenceFrame>;
+
+template
+class DualContainer<pcl::FPFHSignature33>;
+
+template
+class DualContainer<pcl::SHOT352>;
+
+template
 class DualContainer<float, std::unique_ptr<descry::Perspective>>;
 
 template<>

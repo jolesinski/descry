@@ -18,7 +18,7 @@ public:
         Perspective perspective;
         FullCloud::Ptr cloud;
         Normals::Ptr normals;
-        RFs::Ptr rfs;
+        RefFrames::Ptr rfs;
         std::vector<bool> mask;
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

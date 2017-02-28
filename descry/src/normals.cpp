@@ -18,7 +18,7 @@ struct convert<NEstOMP> {
         if (node[descry::config::normals::SUPPORT_RAD])
             rhs.setRadiusSearch(node[descry::config::normals::SUPPORT_RAD].as<double>());
         else
-            false;
+            return false;
 
         if (node[descry::config::normals::THREADS])
             rhs.setNumberOfThreads(node[descry::config::normals::THREADS].as<unsigned>());
@@ -74,7 +74,7 @@ auto configureEstimatorPCL(const YAML::Node& node) {
     return [ nest{std::move(nest)} ]
             (const Image &image) mutable {
                 nest.setInputCloud(image.getFullCloud().host());
-                descry::Normals::Ptr normals{new descry::Normals{}};
+                Normals::Ptr normals{new Normals{}};
                 nest.compute(*normals);
                 return DualNormals{normals};
             };

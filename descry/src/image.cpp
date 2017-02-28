@@ -52,4 +52,20 @@ void Image::setNormals(DualNormals&& normals) {
     this->normals = std::move(normals);
 }
 
+const DualRefFrames& Image::getRefFrames() const {
+    return ref_frames;
+}
+
+void Image::setRefFrames(DualRefFrames&& ref_frames) {
+    this->ref_frames = std::move(ref_frames);
+}
+
+const DualShapeCloud& Image::getShapeKeypoints() const {
+    return shape_keypoints;
+}
+
+void Image::setShapeKeypoints(DualShapeCloud&& keypoints) {
+    this->shape_keypoints = std::move(keypoints);
+}
+
 }

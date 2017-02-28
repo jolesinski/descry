@@ -8,11 +8,13 @@ enable_testing()
 
 add_executable(descry_ut
         ut/catch.cpp
-        ut/test_model.cpp
+        ut/test_describer.cpp
         ut/test_image.cpp
         ut/test_keypoints.cpp
+        ut/test_model.cpp
         ut/test_normals.cpp
-        ut/test_recognizer.cpp)
+        ut/test_recognizer.cpp
+        ut/test_ref_frames.cpp)
 
 target_include_directories(descry_ut
         PRIVATE include

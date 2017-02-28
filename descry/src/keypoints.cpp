@@ -133,7 +133,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
     auto est_type = config["type"].as<std::string>();
 
     try {
-        if (est_type == "uniform") {
+        if (est_type == config::keypoints::UNIFORM_TYPE) {
             auto nest = config.as<KDetUniform>();
             _nest = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());

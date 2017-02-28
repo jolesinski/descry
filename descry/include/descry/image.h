@@ -16,11 +16,19 @@ public:
     const DualNormals& getNormals() const;
     void setNormals(DualNormals&& normals);
 
+    const DualRefFrames& getRefFrames() const;
+    void setRefFrames(DualRefFrames&& ref_frames);
+
+    const DualShapeCloud& getShapeKeypoints() const;
+    void setShapeKeypoints(DualShapeCloud&& keypoints);
+
 private:
     DualConstFullCloud full;
     mutable DualPerpective projection;
     mutable DualShapeCloud shape;
     DualNormals normals;
+    DualRefFrames ref_frames;
+    DualShapeCloud shape_keypoints;
 };
 
 }

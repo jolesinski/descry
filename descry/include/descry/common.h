@@ -17,7 +17,7 @@ using ShapeCloud = pcl::PointCloud<ShapePoint>;
 using FullPoint = pcl::PointXYZRGBA;
 using FullCloud = pcl::PointCloud<FullPoint>;
 using Normals = pcl::PointCloud<pcl::Normal>;
-using RFs = pcl::PointCloud<pcl::ReferenceFrame>;
+using RefFrames = pcl::PointCloud<pcl::ReferenceFrame>;
 using Pose = Eigen::Matrix4f;
 using Perspective = Eigen::Matrix<float, 3, 4, Eigen::RowMajor>;
 
@@ -32,6 +32,7 @@ using DualConstFullCloud = cupcl::DualContainer<FullPoint, FullCloud::ConstPtr>;
 using DualPerpective = cupcl::DualContainer<float, std::unique_ptr<descry::Perspective>>;
 using DualShapeCloud = cupcl::DualContainer<pcl::PointXYZ>;
 using DualNormals = cupcl::DualContainer<pcl::Normal>;
+using DualRefFrames = cupcl::DualContainer<pcl::ReferenceFrame>;
 
 }
 

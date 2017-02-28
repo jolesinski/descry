@@ -1,12 +1,12 @@
 recognizer:
   normals:
     type: omp
-    k-support: 30
+    support-radius: 30
     threads: 4
   reference-frames:
     type: board
     find-holes: true
-    r-support: 0.015
+    support-radius: 0.015
   matcher: sparse
   refinement: icp
   verification: ghv
@@ -22,4 +22,6 @@ sparse:
     threshold-32: 0.975
     min-neighbours: 5
     threads: 4
-  descriptors: fpfh
+  descriptors:
+    type: fpfh
+    support-radius: 0.015
