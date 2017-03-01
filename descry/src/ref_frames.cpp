@@ -38,8 +38,9 @@ bool RefFramesEstimation::configure(const Config& config) {
             auto est = config.as<EstBOARD>();
             _est = [ est{std::move(est)} ]
                    (const Image &image) mutable {
-                       est.setInputCloud(image.getShapeCloud().host());
+                       est.setInputCloud(image.getShapeKeypoints().host());
                        est.setInputNormals(image.getNormals().host());
+                       est.setSearchSurface(image.getShapeCloud().host());
                        RefFrames::Ptr ref_frames{new RefFrames{}};
                        est.compute(*ref_frames);
                        return DualRefFrames{ref_frames};

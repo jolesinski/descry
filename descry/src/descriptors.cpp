@@ -1,4 +1,4 @@
-#include <descry/describer.h>
+#include <descry/descriptors.h>
 
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/fpfh_omp.h>
@@ -14,13 +14,13 @@ bool decode_pcl_omp_describer(const YAML::Node& node, DescriberPCL& rhs)
     if (!node.IsMap())
         return false;
 
-    if (node[descry::config::describer::SUPPORT_RAD])
-        rhs.setRadiusSearch(node[descry::config::describer::SUPPORT_RAD].as<double>());
+    if (node[descry::config::descriptors::SUPPORT_RAD])
+        rhs.setRadiusSearch(node[descry::config::descriptors::SUPPORT_RAD].as<double>());
     else
         return false;
 
-    if (node[descry::config::describer::THREADS])
-        rhs.setNumberOfThreads(node[descry::config::describer::THREADS].as<unsigned>());
+    if (node[descry::config::descriptors::THREADS])
+        rhs.setNumberOfThreads(node[descry::config::descriptors::THREADS].as<unsigned>());
 
     return true;
 }
@@ -53,7 +53,7 @@ struct pcl_describer_parser<pcl::SHOT352> {
     using describer_t = SHOT_PCL;
 
     static bool is_config_matching(const std::string& type_str) {
-        return type_str == config::describer::SHOT_PCL_TYPE;
+        return type_str == config::descriptors::SHOT_PCL_TYPE;
     }
 
     static void add_rfs_if_supported(describer_t& descr, const Image& image) {
@@ -66,7 +66,7 @@ struct pcl_describer_parser<pcl::FPFHSignature33> {
     using describer_t = FPFH_PCL;
 
     static bool is_config_matching(const std::string& type_str) {
-        return type_str == config::describer::FPFH_PCL_TYPE;
+        return type_str == config::descriptors::FPFH_PCL_TYPE;
     }
 
     static void add_rfs_if_supported(describer_t&, const Image&) {}

@@ -1,7 +1,7 @@
-#ifndef DESCRY_CONFIG_DESCRIBER_H
-#define DESCRY_CONFIG_DESCRIBER_H
+#ifndef DESCRY_CONFIG_DESCRIPTORS_H
+#define DESCRY_CONFIG_DESCRIPTORS_H
 
-namespace descry { namespace config { namespace describer {
+namespace descry { namespace config { namespace descriptors {
 
 // SHOT PCL implentation
 static constexpr auto SHOT_PCL_TYPE = "shot";
@@ -13,4 +13,4 @@ static constexpr auto THREADS = "threads";
 
 }}}
 
-#endif //DESCRY_CONFIG_DESCRIBER_H
+#endif //DESCRY_CONFIG_DESCRIPTORS_H

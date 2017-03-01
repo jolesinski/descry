@@ -2,7 +2,7 @@
 #define DESCRY_DESCRIBER_H
 
 #include <descry/image.h>
-#include <descry/config/describer.h>
+#include <descry/config/descriptors.h>
 
 namespace descry {
 

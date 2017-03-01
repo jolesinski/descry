@@ -4,6 +4,8 @@
 #include <descry/test/config.h>
 #include <descry/keypoints.h>
 
+#include <algorithm>
+
 TEST_CASE( "Configuring uniform keypoints", "[keypoints]" ) {
     auto kdet = descry::ShapeKeypointDetector{};
     auto cfg = YAML::Load("");
@@ -66,4 +68,7 @@ TEST_CASE( "Keypoint duetection on real cloud", "[keypoints]") {
 
     REQUIRE(!keypoints.empty());
     INFO(keypoints.size());
+
+    std::all_of(keypoints.host()->begin(), keypoints.host()->end(),
+                [](const auto& p){ return pcl::isFinite(p); });
 }

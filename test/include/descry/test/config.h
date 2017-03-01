@@ -6,8 +6,10 @@
  */
 
 #include <descry/common.h>
+#include <descry/config/descriptors.h>
 #include <descry/config/keypoints.h>
 #include <descry/config/normals.h>
+#include <descry/config/ref_frames.h>
 #include <descry/test/data_paths.h>
 
 namespace descry { namespace test {
@@ -37,6 +39,19 @@ inline descry::Config loadConfigCupcl() {
     auto cfg = descry::Config();
     cfg["type"] = config::normals::CUPCL_TYPE;
     cfg[config::keypoints::SUPPORT_RAD] = 0.02;
+    return cfg;
+}
+
+}
+
+
+namespace ref_frames {
+
+inline descry::Config loadConfigBOARD() {
+    auto cfg = descry::Config();
+    cfg["type"] = config::ref_frames::BOARD_TYPE;
+    cfg[config::ref_frames::SUPPORT_RAD] = 0.02;
+    cfg[config::ref_frames::BOARD_FIND_HOLES] = true;
     return cfg;
 }
 
@@ -72,6 +87,24 @@ inline descry::Config loadConfigCupcl() {
     cfg[config::keypoints::LAMBDA_RATIO_32] = 0.975;
     cfg[config::keypoints::LAMBDA_THRESHOLD_3] = 0.00005;
     cfg[config::keypoints::MIN_NEIGHBOURS] = 5;
+    return cfg;
+}
+
+}
+
+namespace descriptors {
+
+inline descry::Config loadConfigFPFH() {
+    auto cfg = Config();
+    cfg["type"] = "fpfh";
+    cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
+    return cfg;
+}
+
+inline descry::Config loadConfigSHOT() {
+    auto cfg = Config();
+    cfg["type"] = "shot";
+    cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
     return cfg;
 }
 

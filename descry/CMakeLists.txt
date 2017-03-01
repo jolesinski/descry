@@ -1,5 +1,5 @@
 add_library(descry SHARED
-        src/describer.cpp
+        src/descriptors.cpp
         src/image.cpp
         src/keypoints.cpp
         src/model.cpp
