@@ -1,7 +1,10 @@
 add_library(descry SHARED
+        src/alignment.cpp
+        src/clusters.cpp
         src/descriptors.cpp
         src/image.cpp
         src/keypoints.cpp
+        src/matching.cpp
         src/model.cpp
         src/normals.cpp
         src/recognizer.cpp

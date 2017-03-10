@@ -20,7 +20,7 @@ void descry::Recognizer::train(const descry::Model &model) {
 
 }
 
-std::vector<descry::ModelInstance>
+descry::Instances
 descry::Recognizer::recognize(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &scene) {
-    return std::vector<descry::ModelInstance>();
+    return descry::Instances{};
 }

@@ -15,6 +15,7 @@ struct convert<KDetUniform> {
         if(!node.IsMap())
             return false;
 
+        // required
         if (!node[SUPPORT_RAD])
             return false;
 
@@ -36,6 +37,7 @@ struct convert<KDetISS> {
         rhs.setSalientRadius(node[SALIENT_RAD].as<double>());
         rhs.setNonMaxRadius(node[NON_MAX_RAD].as<double>());
 
+        // optionals
         {
             auto &elem = node[BORDER_RAD];
             if (elem)

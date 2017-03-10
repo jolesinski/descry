@@ -24,6 +24,11 @@ using Perspective = Eigen::Matrix<float, 3, 4, Eigen::RowMajor>;
 template<class T>
 using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;
 
+struct Instances {
+    FullCloud::ConstPtr cloud;
+    AlignedVector<Pose> poses;
+};
+
 // Dual Containers
 using DualFullCloud = cupcl::DualContainer<FullPoint>;
 using DualConstFullCloud = cupcl::DualContainer<FullPoint, FullCloud::ConstPtr>;

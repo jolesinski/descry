@@ -3,25 +3,21 @@
 #define DESCRY_MODEL_H
 
 #include <descry/common.h>
-#include <vector>
+#include <descry/image.h>
 
 namespace descry {
 
 class Model
 {
 public:
+    template<class Descriptor>
+    using Description = cupcl::DualContainer<Descriptor>;
+
     struct View
     {
-        using Vector = AlignedVector<View>;
-
+        Image image;
         Pose viewpoint;
-        Perspective perspective;
-        FullCloud::Ptr cloud;
-        Normals::Ptr normals;
-        RefFrames::Ptr rfs;
         std::vector<bool> mask;
-
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     };
 
     struct Projector
@@ -32,24 +28,17 @@ public:
         int sphere_divisions;
 
         View project(const FullCloud::ConstPtr& full, const Pose& viewpoint) const noexcept;
-        View::Vector generateViews(const FullCloud::ConstPtr& cloud) const noexcept;
+        std::vector<View> generateViews(const FullCloud::ConstPtr& cloud) const noexcept;
     };
 
     Model(const FullCloud::ConstPtr& full, const Projector& projector);
-    Model(const FullCloud::ConstPtr& full, const View::Vector& views);
+    Model(const FullCloud::ConstPtr& full, std::vector<View>&& views);
 
+    const FullCloud::ConstPtr& getFullCloud() const { return full_cloud; }
+    const std::vector<View>& getViews() const { return views; }
 protected:
     FullCloud::ConstPtr full_cloud;
-    View::Vector views;
-};
-
-class ModelInstance : public Model {
-public:
-    using Pose = Eigen::Matrix4f;
-
-    ModelInstance(const Model& model, Pose pose);
-protected:
-    Pose pose;
+    std::vector<View> views;
 };
 
 }

@@ -3,15 +3,6 @@ recognizer:
     type: omp
     support-radius: 30
     threads: 4
-  reference-frames:
-    type: board
-    find-holes: true
-    support-radius: 0.015
-  matcher: sparse
-  refinement: icp
-  verification: ghv
-
-sparse:
   keypoints:
     type: iss
     salient-radius: 0.03
@@ -22,6 +13,22 @@ sparse:
     threshold-32: 0.975
     min-neighbours: 5
     threads: 4
-  descriptors:
-    type: fpfh
+  reference-frames:
+    type: board
+    find-holes: true
     support-radius: 0.015
+  aligner:
+    type: sparse
+    descriptors:
+      type: fpfh
+      support-radius: 0.015
+    matcher:
+      type: kdtree-flann
+      max-neighs: 1
+      max-distance: 0.25
+    clusterizer:
+      type: hough
+      bin-size: 0.01
+      threshold: 5.0
+  refinement: icp
+  verification: ghv
