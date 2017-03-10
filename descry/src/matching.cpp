@@ -45,7 +45,7 @@ public:
     using Tree = pcl::KdTreeFLANN<Descriptor>;
 
     KDTreeFlannMatching(const Config& config) {
-        max_distance = config[config::matcher::MAX_DISTANCE].as<unsigned int>();
+        max_distance = config[config::matcher::MAX_DISTANCE].as<float>();
 
         if (config[config::matcher::MAX_NEIGHS])
             max_neighs = config[config::matcher::MAX_NEIGHS].as<unsigned int>();
@@ -63,6 +63,8 @@ public:
         std::vector<pcl::CorrespondencesPtr> view_corrs;
         for (const auto& tree : trees)
             view_corrs.emplace_back(match_view(scene, tree));
+
+        return view_corrs;
     }
 
     pcl::CorrespondencesPtr match_view(const DualDescriptors& scene, const Tree& tree) {
@@ -70,10 +72,11 @@ public:
 
         // For each scene keypoint descriptor, find nearest neighbor into the model
         // keypoints descriptor cloud and add it to the correspondences vector.
+        std::vector<int> neigh_indices(max_neighs);
+        std::vector<float> neigh_sqr_dists(max_neighs);
+
         for (size_t i = 0; i < scene.host()->size (); ++i)
         {
-            std::vector<int> neigh_indices(max_neighs);
-            std::vector<float> neigh_sqr_dists(max_neighs);
             if (!descriptorFinite<Descriptor>(scene.host()->at(i))) //skipping NaNs
                 continue;
 
@@ -103,14 +106,16 @@ private:
 
 template <class Descriptor>
 std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config) {
-    if(!config["matcher"]["type"])
+    if(!config.IsMap() || !config["type"])
         return nullptr;
 
-    auto descr_type = config["matcher"]["type"].as<std::string>();
-    if (descr_type == config::matcher::KDTREE_FLANN_TYPE)
-        return std::make_unique<KDTreeFlannMatching<Descriptor>>(config);
-    else
-        return nullptr;
+    try {
+        auto descr_type = config["type"].as<std::string>();
+        if (descr_type == config::matcher::KDTREE_FLANN_TYPE)
+            return std::make_unique<KDTreeFlannMatching<Descriptor>>(config);
+    } catch ( const YAML::RepresentationException& e) { }
+
+    return nullptr;
 }
 
 template

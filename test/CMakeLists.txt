@@ -12,6 +12,7 @@ add_executable(descry_ut
         ut/test_image.cpp
         ut/test_keypoints.cpp
         ut/test_model.cpp
+        ut/test_matcher.cpp
         ut/test_normals.cpp
         ut/test_recognizer.cpp
         ut/test_ref_frames.cpp)
