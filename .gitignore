@@ -37,3 +37,4 @@ atlassian-ide-plugin.xml
 
 # Test data
 *.pcd
+test/data/willow

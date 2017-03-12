@@ -38,7 +38,6 @@ public:
     Instances match(const Image& image) override;
 private:
     Describer<Descriptor> scene_describer;
-
     Describer<Descriptor> model_describer;
 
     Matcher<Descriptor> matcher;

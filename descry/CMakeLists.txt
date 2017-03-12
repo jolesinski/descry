@@ -7,8 +7,10 @@ add_library(descry SHARED
         src/matching.cpp
         src/model.cpp
         src/normals.cpp
+        src/projector.cpp
         src/recognizer.cpp
-        src/ref_frames.cpp)
+        src/ref_frames.cpp
+        src/willow.cpp)
 
 target_include_directories(descry
         PUBLIC include
@@ -23,3 +25,5 @@ target_link_libraries(descry
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}
         ${YAML_CPP_LIBRARIES})
+
+target_compile_options(descry PRIVATE "-Wall" "-Wextra" "-Werror" "--pedantic")

@@ -20,6 +20,14 @@ namespace test {
         return cloud;
     }
 
+    inline Perspective loadPerspective() {
+        Perspective projection;
+        projection << 0.622757,       .0,  0.378992, .0,
+                            .0, 0.622757,  0.284096, .0,
+                            .0,       .0, 0.0011862, .0;
+        return projection;
+    }
+
     inline FullCloud::Ptr loadSceneCloud() { return loadCloudPCD(SCENE_PATH); }
     inline FullCloud::Ptr loadModelCloud() { return loadCloudPCD(MODEL_PATH); }
 

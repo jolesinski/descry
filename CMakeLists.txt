@@ -6,7 +6,7 @@ find_package(OpenCV 3.1 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 find_package(yaml-cpp 0.5.3 REQUIRED)
 
-include_directories(
+include_directories(SYSTEM
         ${EIGEN3_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}

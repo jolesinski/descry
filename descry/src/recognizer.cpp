@@ -16,11 +16,11 @@ bool descry::Recognizer::configure(const descry::Config &config) {
     return true;
 }
 
-void descry::Recognizer::train(const descry::Model &model) {
+void descry::Recognizer::train(const descry::Model& /*model*/) {
 
 }
 
 descry::Instances
-descry::Recognizer::recognize(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &scene) {
+descry::Recognizer::recognize(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& /*scene*/) {
     return descry::Instances{};
 }

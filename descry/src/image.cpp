@@ -22,7 +22,7 @@ computeProjection(const descry::FullCloud::ConstPtr& in, int pyramid = 5) {
     pcl::estimateProjectionMatrix<descry::FullPoint>(in, projection, indices);
 
     return projection;
-};
+}
 
 }
 

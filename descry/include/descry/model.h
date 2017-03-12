@@ -2,8 +2,7 @@
 #ifndef DESCRY_MODEL_H
 #define DESCRY_MODEL_H
 
-#include <descry/common.h>
-#include <descry/image.h>
+#include <descry/projector.h>
 
 namespace descry {
 
@@ -13,32 +12,14 @@ public:
     template<class Descriptor>
     using Description = cupcl::DualContainer<Descriptor>;
 
-    struct View
-    {
-        Image image;
-        Pose viewpoint;
-        std::vector<bool> mask;
-    };
-
-    struct Projector
-    {
-        Perspective perspective;
-        float sphere_radius;
-        int sphere_turns;
-        int sphere_divisions;
-
-        View project(const FullCloud::ConstPtr& full, const Pose& viewpoint) const noexcept;
-        std::vector<View> generateViews(const FullCloud::ConstPtr& cloud) const noexcept;
-    };
-
     Model(const FullCloud::ConstPtr& full, const Projector& projector);
-    Model(const FullCloud::ConstPtr& full, std::vector<View>&& views);
+    Model(const FullCloud::ConstPtr& full, AlignedVector<View>&& views);
 
-    const FullCloud::ConstPtr& getFullCloud() const { return full_cloud; }
-    const std::vector<View>& getViews() const { return views; }
+    const FullCloud::ConstPtr& getFullCloud() const { return full_; }
+    const AlignedVector<View>& getViews() const { return views_; }
 protected:
-    FullCloud::ConstPtr full_cloud;
-    std::vector<View> views;
+    FullCloud::ConstPtr full_;
+    AlignedVector<View> views_;
 };
 
 }

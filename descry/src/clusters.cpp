@@ -115,11 +115,13 @@ public:
             for (auto pose : poses)
                 instances.poses.emplace_back(pose * viewpoints_[idx]);
         }
+
+        return instances;
     }
 
     void train() {}
-    void setModelRefFrames(const Model& model) {}
-    void setSceneRefFrames(const Image& image) {}
+    void setModelRefFrames(const Model& /*model*/) {}
+    void setSceneRefFrames(const Image& /*image*/) {}
 
 private:
     FullCloud::ConstPtr model_;
