@@ -17,7 +17,7 @@ public:
     static constexpr auto viewpoint_prefix = "pose_";
     static constexpr auto viewpoint_extension = ".txt";
 
-    WillowProjector(const Config& cfg);
+    WillowProjector(const std::string& views_path);
     virtual ~WillowProjector() = default;
     AlignedVector<View> generateViews(const FullCloud::ConstPtr& cloud) const override;
 
@@ -26,6 +26,18 @@ public:
     View loadView(const std::string& view_id) const;
 private:
     std::string views_path;
+};
+
+class WillowDatabase {
+public:
+    static constexpr auto views_dir = "views";
+    static constexpr auto full_cloud_filename = "3D_model.pcd";
+
+    WillowDatabase(const std::string& base_path);
+    Model loadModel(const std::string& obj_name) const;
+    std::vector<Model> loadDatabase() const;
+private:
+    std::string base_path;
 };
 
 }

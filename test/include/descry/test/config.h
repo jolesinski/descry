@@ -6,6 +6,7 @@
  */
 
 #include <descry/common.h>
+#include <descry/config/clusters.h>
 #include <descry/config/descriptors.h>
 #include <descry/config/keypoints.h>
 #include <descry/config/normals.h>
@@ -96,15 +97,35 @@ namespace descriptors {
 
 inline descry::Config loadConfigFPFH() {
     auto cfg = Config();
-    cfg["type"] = "fpfh";
+    cfg["type"] = config::descriptors::FPFH_PCL_TYPE;
     cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
     return cfg;
 }
 
 inline descry::Config loadConfigSHOT() {
     auto cfg = Config();
-    cfg["type"] = "shot";
+    cfg["type"] = config::descriptors::SHOT_PCL_TYPE;
     cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
+    return cfg;
+}
+
+}
+
+namespace clusters {
+
+inline descry::Config loadConfigHough() {
+    auto cfg = Config();
+    cfg["type"] = config::clusters::HOUGH_TYPE;
+    cfg[config::clusters::BIN_SIZE] = 0.01;
+    cfg[config::clusters::HOUGH_THRESH] = 5.0;
+    return cfg;
+}
+
+inline descry::Config loadConfigGC() {
+    auto cfg = Config();
+    cfg["type"] = config::clusters::GEO_TYPE;
+    cfg[config::clusters::GC_SIZE] = 0.015;
+    cfg[config::clusters::GC_THRESH] = 5;
     return cfg;
 }
 

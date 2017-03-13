@@ -9,6 +9,7 @@ static constexpr auto CONFIG_PATH = DESCRY_TEST_DATA_PATH "/descry.yaml";
 static constexpr auto SCENE_PATH = DESCRY_TEST_DATA_PATH "/test_scene.pcd";
 static constexpr auto MODEL_PATH = DESCRY_TEST_DATA_PATH "/test_model.pcd";
 static constexpr auto WILLOW_PATH = DESCRY_TEST_DATA_PATH "/willow";
+static constexpr auto WILLOW_MODELS_PATH = DESCRY_TEST_DATA_PATH "/willow/willow_models";
 
 }
 }

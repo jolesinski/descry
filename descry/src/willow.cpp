@@ -9,8 +9,7 @@
 
 namespace descry {
 
-WillowProjector::WillowProjector(const Config& cfg) :
-        views_path{cfg[config::projection::VIEWS_PATH].as<std::string>()} {}
+WillowProjector::WillowProjector(const std::string& views_path) : views_path{views_path} {}
 
 AlignedVector<View> WillowProjector::generateViews(const FullCloud::ConstPtr& /*cloud*/) const {
     namespace fs = boost::filesystem;
@@ -91,6 +90,31 @@ View WillowProjector::loadView(const std::string& view_id) const {
     extract.filter(*cloud);
 
     return View{ Image{cloud}, viewpoint };
+}
+
+
+WillowDatabase::WillowDatabase(const std::string& base_path) : base_path{base_path} {}
+
+Model WillowDatabase::loadModel(const std::string& obj_name) const {
+    const auto obj_path = base_path + '/' + obj_name;
+
+    auto projector = descry::WillowProjector(obj_path + '/' + views_dir);
+    auto full =  loadCloud(obj_path + '/' + full_cloud_filename);
+
+    return Model{full, projector};
+}
+
+std::vector<Model> WillowDatabase::loadDatabase() const {
+    namespace fs = boost::filesystem;
+
+    auto models = std::vector<Model>{};
+    for (auto dirent : boost::make_iterator_range(fs::directory_iterator(base_path),
+                                                  fs::directory_iterator())) {
+        if( dirent.status().type() == fs::directory_file )
+            models.emplace_back(loadModel(dirent.path().string()));
+    }
+
+    return models;
 }
 
 }
