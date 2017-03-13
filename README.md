@@ -1,5 +1,5 @@
 # descry
-Library for real-time object instance recognition in RGB-D scenes **(under dev)**.
+Framework for real-time instance recognition in RGB-D scenes **(under dev)**.
 
 Project developed as part of masters thesis:
 *Object recognition in RGB-D images for robotic applications*

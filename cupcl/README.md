@@ -4,11 +4,11 @@ This module adapts organized point cloud processing routines from [Point Cloud L
 ### Currently supported:
 * radial neighbourhood
 * normal estimation
-* FPFH descriptor
+* reference frames
+* ISS-WBE keypoints
 
 ### Planned:
 * cloud resolution
-* ISS-WBE keypoints
 * boundary estimation
-* SHOT descriptor
+* FPFH, SHOT descriptor
 * CSHOT, BSHOT, BFPFH descriptors
