@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace descriptors {
 
+static constexpr auto NODE_NAME = "descriptors";
+
 // SHOT PCL implentation
 static constexpr auto SHOT_PCL_TYPE = "shot";
 // FPFH PCL implentation

@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace aligner {
 
+static constexpr auto NODE_NAME = "aligner";
+
 // Local features
 static constexpr auto SPARSE_TYPE = "sparse";
 

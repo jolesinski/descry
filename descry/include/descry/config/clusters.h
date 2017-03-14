@@ -4,6 +4,7 @@
 namespace descry { namespace config { namespace clusters {
 
 // Correspondence grouping
+static constexpr auto NODE_NAME = "clusters";
 
 // PCL Hough Grouping
 static constexpr auto HOUGH_TYPE = "uniform";

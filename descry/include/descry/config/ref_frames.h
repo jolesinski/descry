@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace ref_frames {
 
+static constexpr auto NODE_NAME = "reference-frames";
+
 // PCL BOARD implementation
 static constexpr auto BOARD_TYPE = "board";
 // Params

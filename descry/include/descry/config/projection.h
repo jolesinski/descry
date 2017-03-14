@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace projection {
 
+static constexpr auto NODE_NAME = "projections";
+
 // Willow-like database loader
 static constexpr auto WILLOW_TYPE = "willow";
 // Params (required):

@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace matcher {
 
+static constexpr auto NODE_NAME = "matching";
+
 // PCL kdtree flann
 static constexpr auto KDTREE_FLANN_TYPE = "kdtree-flann";
 // Params required:

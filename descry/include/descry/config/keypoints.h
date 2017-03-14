@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace keypoints {
 
+static constexpr auto NODE_NAME = "keypoints";
+
 // Uniform sampling
 static constexpr auto UNIFORM_TYPE = "uniform";
 // Params:

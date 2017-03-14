@@ -3,6 +3,8 @@
 
 namespace descry { namespace config { namespace normals {
 
+static constexpr auto NODE_NAME = "normals";
+
 // PCL OMP implementation
 static constexpr auto OMP_TYPE = "omp";
 // Params:
