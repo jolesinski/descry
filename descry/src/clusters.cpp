@@ -89,7 +89,7 @@ public:
         clust_.resize(model.getViews().size(), clust_.front());
 
         for (auto idx = 0u; idx < clust_.size(); ++idx)
-            clust_[idx].setInputCloud(model.getViews()[idx].image.getShapeCloud().host());
+            clust_[idx].setInputCloud(model.getViews()[idx].image.getShapeKeypoints().host());
 
         setModelRefFrames(model);
 

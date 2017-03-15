@@ -166,7 +166,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
     return true;
 }
 
-ShapeKeypoints ShapeKeypointDetector::compute(const Image& image) {
+ShapeKeypoints ShapeKeypointDetector::compute(const Image& image) const {
     assert(_nest);
     return _nest(image);
 }

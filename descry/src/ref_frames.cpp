@@ -54,7 +54,7 @@ bool RefFramesEstimation::configure(const Config& config) {
     return true;
 }
 
-DualRefFrames RefFramesEstimation::compute(const Image& image) {
+DualRefFrames RefFramesEstimation::compute(const Image& image) const {
     assert(_est);
     return _est(image);
 }

@@ -7,6 +7,7 @@ add_library(descry SHARED
         src/matching.cpp
         src/model.cpp
         src/normals.cpp
+        src/preprocess.cpp
         src/projector.cpp
         src/recognizer.cpp
         src/ref_frames.cpp

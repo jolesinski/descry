@@ -10,7 +10,7 @@ namespace descry {
 class NormalEstimation {
 public:
     bool configure(const Config& config);
-    DualNormals compute(const Image& image);
+    DualNormals compute(const Image& image) const;
 private:
     std::function<DualNormals(const Image&)> _nest;
 };

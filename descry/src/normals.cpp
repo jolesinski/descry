@@ -100,7 +100,7 @@ bool NormalEstimation::configure(const Config& config) {
     return true;
 }
 
-DualNormals NormalEstimation::compute(const Image& image) {
+DualNormals NormalEstimation::compute(const Image& image) const {
     // TODO: should throw
     assert(_nest);
     return _nest(image);

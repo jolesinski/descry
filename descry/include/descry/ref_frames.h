@@ -9,7 +9,7 @@ namespace descry {
 class RefFramesEstimation {
 public:
     bool configure(const Config& config);
-    DualRefFrames compute(const Image& image);
+    DualRefFrames compute(const Image& image) const;
 private:
     std::function<DualRefFrames(const Image&)> _est;
 };

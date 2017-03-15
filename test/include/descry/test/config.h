@@ -9,6 +9,7 @@
 #include <descry/config/clusters.h>
 #include <descry/config/descriptors.h>
 #include <descry/config/keypoints.h>
+#include <descry/config/matcher.h>
 #include <descry/config/normals.h>
 #include <descry/config/ref_frames.h>
 #include <descry/test/data_paths.h>
@@ -93,12 +94,27 @@ inline descry::Config loadConfigCupcl() {
 
 }
 
+namespace preprocess {
+
+inline descry::Config loadConfigCupcl() {
+    auto cfg = Config{};
+
+    cfg[descry::config::normals::NODE_NAME] = descry::test::normals::loadConfigCupcl();
+    cfg[descry::config::keypoints::NODE_NAME] = descry::test::keypoints::loadConfigCupcl();
+    cfg[descry::config::ref_frames::NODE_NAME] = descry::test::ref_frames::loadConfigBOARD();
+
+    return cfg;
+}
+
+}
+
 namespace descriptors {
 
 inline descry::Config loadConfigFPFH() {
     auto cfg = Config();
     cfg["type"] = config::descriptors::FPFH_PCL_TYPE;
     cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
+    cfg[config::descriptors::THREADS] = 4;
     return cfg;
 }
 
@@ -106,6 +122,18 @@ inline descry::Config loadConfigSHOT() {
     auto cfg = Config();
     cfg["type"] = config::descriptors::SHOT_PCL_TYPE;
     cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
+    return cfg;
+}
+
+}
+
+namespace matching {
+
+inline descry::Config loadConfigKdtreeFlann() {
+    auto cfg = Config();
+    cfg["type"] = config::matcher::KDTREE_FLANN_TYPE;
+    cfg[config::matcher::MAX_DISTANCE] = 0.25;
+    cfg[config::matcher::MAX_NEIGHS] = 1;
     return cfg;
 }
 

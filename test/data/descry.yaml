@@ -22,11 +22,11 @@ recognizer:
     descriptors:
       type: fpfh
       support-radius: 0.015
-    matcher:
+    matching:
       type: kdtree-flann
       max-neighs: 1
       max-distance: 0.25
-    clusterizer:
+    clusters:
       type: hough
       bin-size: 0.01
       threshold: 5.0

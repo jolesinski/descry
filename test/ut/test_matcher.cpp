@@ -3,6 +3,9 @@
 #include <descry/test/data.h>
 #include <descry/test/config.h>
 #include <descry/matching.h>
+#include <descry/preprocess.h>
+#include <descry/willow.h>
+#include <descry/descriptors.h>
 
 TEST_CASE( "Configuring kdtree flann matcher", "[matcher]" ) {
     auto matcher = descry::Matcher<pcl::SHOT352>{};
@@ -107,4 +110,89 @@ TEST_CASE( "Find correspondences", "[matcher]" ) {
 
     REQUIRE(corrs.size() == 2);
     REQUIRE(corrs[0]->size() == 4);
+}
+
+
+SCENARIO( "Find corrs in real cloud", "[matcher]" ) {
+    GIVEN("Preprocessed model and scene") {
+        auto prep = descry::Preprocess{};
+        REQUIRE(prep.configure(descry::test::preprocess::loadConfigCupcl()));
+
+        auto image = descry::Image(descry::test::loadSceneCloud());
+        prep.process(image);
+
+        auto willow = descry::WillowDatabase(descry::test::WILLOW_MODELS_PATH);
+        auto model = willow.loadModel("object_10");
+        model.prepare(prep);
+        WHEN("Descriptor is SHOT") {
+            auto dest = descry::Describer<pcl::SHOT352>{};
+            dest.configure(descry::test::descriptors::loadConfigSHOT());
+            auto scene_descr = dest.compute(image);
+
+            THEN("Matcher should find valid corrs") {
+                auto matcher = descry::Matcher<pcl::SHOT352>{};
+
+                auto max_dist = 0.25f;
+                auto cfg = descry::test::matching::loadConfigKdtreeFlann();
+                cfg[descry::config::matcher::MAX_DISTANCE] = max_dist;
+                matcher.configure(cfg);
+
+                std::vector<descry::Matcher<pcl::SHOT352>::DualDescriptors> model_descr;
+                for(const auto& view : model.getViews())
+                    model_descr.emplace_back(dest.compute(view.image));
+
+                matcher.setModel(model_descr);
+
+                auto corrs = matcher.match(scene_descr);
+
+                REQUIRE(corrs.size() == model.getViews().size());
+                for(const auto& test_corr : *corrs[0]) {
+                    auto &model_d = model_descr[0].host()->at(static_cast<unsigned>(test_corr.index_query));
+                    auto &scene_d = scene_descr.host()->at(static_cast<unsigned>(test_corr.index_match));
+
+                    auto model_map = Eigen::Map<Eigen::Matrix<float, 352, 1>>(model_d.descriptor);
+                    auto scene_map = Eigen::Map<Eigen::Matrix<float, 352, 1>>(scene_d.descriptor);
+
+                    auto distance = (model_map - scene_map).squaredNorm();
+                    REQUIRE(distance < max_dist);
+                    REQUIRE(distance == Approx(test_corr.distance));
+                }
+            }
+        }
+        WHEN("Descriptor is FPFH") {
+            auto dest = descry::Describer<pcl::FPFHSignature33>{};
+            dest.configure(descry::test::descriptors::loadConfigFPFH());
+            auto scene_descr = dest.compute(image);
+
+            THEN("Matcher should find valid corrs") {
+                auto matcher = descry::Matcher<pcl::FPFHSignature33>{};
+
+                const auto max_dist = 0.25f;
+                auto cfg = descry::test::matching::loadConfigKdtreeFlann();
+                cfg[descry::config::matcher::MAX_DISTANCE] = max_dist;
+                matcher.configure(cfg);
+
+                std::vector<descry::Matcher<pcl::FPFHSignature33>::DualDescriptors> model_descr;
+                for(const auto& view : model.getViews())
+                    model_descr.emplace_back(dest.compute(view.image));
+
+                matcher.setModel(model_descr);
+
+                auto corrs = matcher.match(scene_descr);
+
+                REQUIRE(corrs.size() == model.getViews().size());
+                for(const auto& test_corr : *corrs[0]) {
+                    auto &model_d = model_descr[0].host()->at(static_cast<unsigned>(test_corr.index_query));
+                    auto &scene_d = scene_descr.host()->at(static_cast<unsigned>(test_corr.index_match));
+
+                    auto model_map = Eigen::Map<Eigen::Matrix<float, 33, 1>>(model_d.histogram);
+                    auto scene_map = Eigen::Map<Eigen::Matrix<float, 33, 1>>(scene_d.histogram);
+
+                    auto distance = (model_map - scene_map).squaredNorm();
+                    REQUIRE(distance < max_dist);
+                    REQUIRE(distance == Approx(test_corr.distance));
+                }
+            }
+        }
+    }
 }

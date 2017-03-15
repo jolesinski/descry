@@ -3,6 +3,7 @@
 #define DESCRY_MODEL_H
 
 #include <descry/projector.h>
+#include <descry/preprocess.h>
 
 namespace descry {
 
@@ -17,6 +18,8 @@ public:
 
     const FullCloud::ConstPtr& getFullCloud() const { return full_; }
     const AlignedVector<View>& getViews() const { return views_; }
+
+    void prepare(const Preprocess& preprocessor);
 protected:
     FullCloud::ConstPtr full_;
     AlignedVector<View> views_;

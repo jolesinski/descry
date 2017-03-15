@@ -11,7 +11,7 @@ using ShapeKeypoints = DualShapeCloud;
 class ShapeKeypointDetector {
 public:
     bool configure(const Config &config);
-    ShapeKeypoints compute(const Image &image);
+    ShapeKeypoints compute(const Image &image) const;
 
 private:
     std::function<ShapeKeypoints( const Image& )> _nest;
