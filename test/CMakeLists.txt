@@ -8,6 +8,8 @@ enable_testing()
 
 add_executable(descry_ut
         ut/catch.cpp
+        ut/test_alignment.cpp
+        ut/test_clusters.cpp
         ut/test_describer.cpp
         ut/test_image.cpp
         ut/test_keypoints.cpp

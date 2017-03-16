@@ -101,17 +101,17 @@ public:
 
     Instances compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs) override {
         assert(corrs.size() == clust_.size());
-        std::vector<pcl::CorrespondencesPtr> view_corrs;
 
         auto instances = Instances{};
         instances.cloud = model_;
 
-        setSceneRefFrames(image);
         auto poses = AlignedVector<Pose>{};
         for (auto idx = 0u; idx < corrs.size(); ++idx) {
-            clust_[idx].setSceneCloud(image.getShapeCloud().host());
+            clust_[idx].setSceneCloud(image.getShapeKeypoints().host());
+            setSceneRefFrames(image, idx);
             clust_[idx].setModelSceneCorrespondences(corrs[idx]);
             clust_[idx].recognize(poses);
+
             for (auto pose : poses)
                 instances.poses.emplace_back(pose * viewpoints_[idx]);
         }
@@ -121,7 +121,7 @@ public:
 
     void train() {}
     void setModelRefFrames(const Model& /*model*/) {}
-    void setSceneRefFrames(const Image& /*image*/) {}
+    void setSceneRefFrames(const Image& /*image*/, unsigned /*model_idx*/) {}
 
 private:
     FullCloud::ConstPtr model_;
@@ -142,9 +142,8 @@ void PCLStrategy<CG_Hough>::setModelRefFrames(const Model& model) {
 }
 
 template<>
-void PCLStrategy<CG_Hough>::setSceneRefFrames(const Image& image) {
-    for (auto& hough : clust_)
-        hough.setSceneRf(image.getRefFrames().host());
+void PCLStrategy<CG_Hough>::setSceneRefFrames(const Image& image, unsigned model_idx) {
+    clust_.at(model_idx).setSceneRf(image.getRefFrames().host());
 }
 
 std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {

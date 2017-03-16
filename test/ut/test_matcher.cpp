@@ -116,13 +116,13 @@ TEST_CASE( "Find correspondences", "[matcher]" ) {
 SCENARIO( "Find corrs in real cloud", "[matcher]" ) {
     GIVEN("Preprocessed model and scene") {
         auto prep = descry::Preprocess{};
-        REQUIRE(prep.configure(descry::test::preprocess::loadConfigCupcl()));
+        REQUIRE(prep.configure(descry::test::preprocess::loadConfigCupclBoard()));
 
         auto image = descry::Image(descry::test::loadSceneCloud());
         prep.process(image);
 
         auto willow = descry::WillowDatabase(descry::test::WILLOW_MODELS_PATH);
-        auto model = willow.loadModel("object_10");
+        auto model = willow.loadModel("test");
         model.prepare(prep);
         WHEN("Descriptor is SHOT") {
             auto dest = descry::Describer<pcl::SHOT352>{};

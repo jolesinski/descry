@@ -101,6 +101,13 @@ inline descry::Config loadConfigCupcl() {
 
     cfg[descry::config::normals::NODE_NAME] = descry::test::normals::loadConfigCupcl();
     cfg[descry::config::keypoints::NODE_NAME] = descry::test::keypoints::loadConfigCupcl();
+
+    return cfg;
+}
+
+inline descry::Config loadConfigCupclBoard() {
+    auto cfg = loadConfigCupcl();
+
     cfg[descry::config::ref_frames::NODE_NAME] = descry::test::ref_frames::loadConfigBOARD();
 
     return cfg;
@@ -144,8 +151,8 @@ namespace clusters {
 inline descry::Config loadConfigHough() {
     auto cfg = Config();
     cfg["type"] = config::clusters::HOUGH_TYPE;
-    cfg[config::clusters::BIN_SIZE] = 0.01;
-    cfg[config::clusters::HOUGH_THRESH] = 5.0;
+    cfg[config::clusters::BIN_SIZE] = 1.;
+    cfg[config::clusters::HOUGH_THRESH] = 1.;
     return cfg;
 }
 
