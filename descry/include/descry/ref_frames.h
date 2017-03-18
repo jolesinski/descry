@@ -11,7 +11,7 @@ public:
     bool configure(const Config& config);
     DualRefFrames compute(const Image& image) const;
 private:
-    std::function<DualRefFrames(const Image&)> _est;
+    std::function<DualRefFrames(const Image&)> est_;
 };
 
 }

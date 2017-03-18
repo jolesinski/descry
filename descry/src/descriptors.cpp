@@ -76,7 +76,8 @@ struct pcl_describer_parser<pcl::FPFHSignature33> {
 
 template<class D>
 cupcl::DualContainer<D> Describer<D>::compute(const Image& image) {
-    assert(_descr);
+    if (!_descr)
+        DESCRY_THROW(NotConfiguredException, "Describer not configured");
     return _descr(image);
 }
 

@@ -18,13 +18,15 @@ bool Matcher<D>::configure(const Config& config) {
 
 template<class D>
 void Matcher<D>::setModel(const std::vector<DualDescriptors>& model) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Matcher not configured");
     return strategy_->setModel(model);
 }
 
 template<class D>
 std::vector<pcl::CorrespondencesPtr> Matcher<D>::match(const DualDescriptors& scene) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Matcher not configured");
     return strategy_->match(scene);
 }
 

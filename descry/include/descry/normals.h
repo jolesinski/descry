@@ -12,7 +12,7 @@ public:
     bool configure(const Config& config);
     DualNormals compute(const Image& image) const;
 private:
-    std::function<DualNormals(const Image&)> _nest;
+    std::function<DualNormals(const Image&)> nest_;
 };
 
 }

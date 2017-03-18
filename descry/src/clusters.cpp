@@ -68,12 +68,14 @@ bool Clusterizer::configure(const Config &config) {
 }
 
 void Clusterizer::setModel(const Model& model) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
     return strategy_->setModel(model);
 }
 
 Instances Clusterizer::compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
     return strategy_->compute(image, corrs);
 }
 

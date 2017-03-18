@@ -137,7 +137,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
     try {
         if (est_type == config::keypoints::UNIFORM_TYPE) {
             auto nest = config.as<KDetUniform>();
-            _nest = [ nest{std::move(nest)} ] (const Image &image) mutable {
+            nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
                 ShapeCloud::Ptr keypoints{new ShapeCloud{}};
                 nest.filter(*keypoints);
@@ -145,7 +145,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
             };
         } else if (est_type == config::keypoints::ISS_TYPE) {
             auto nest = config.as<KDetISS>();
-            _nest = [ nest{std::move(nest)} ] (const Image &image) mutable {
+            nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
@@ -154,7 +154,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 return ShapeKeypoints{keypoints};
             };
         } else if (est_type == config::keypoints::ISS_CUPCL_TYPE) {
-            _nest = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
+            nest_ = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
                 return cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
             };
         } else
@@ -167,8 +167,9 @@ bool ShapeKeypointDetector::configure(const Config& config) {
 }
 
 ShapeKeypoints ShapeKeypointDetector::compute(const Image& image) const {
-    assert(_nest);
-    return _nest(image);
+    if (!nest_)
+        DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
+    return nest_(image);
 }
 
 }

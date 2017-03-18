@@ -86,12 +86,12 @@ bool NormalEstimation::configure(const Config& config) {
 
     auto est_type = config["type"].as<std::string>();
     if (est_type == config::normals::OMP_TYPE) {
-        _nest = configureEstimatorPCL<NEstOMP>(config);
+        nest_ = configureEstimatorPCL<NEstOMP>(config);
     } else if (est_type == config::normals::INTEGRAL_IMAGE_TYPE) {
-        _nest = configureEstimatorPCL<NEstINT>(config);
+        nest_ = configureEstimatorPCL<NEstINT>(config);
     } else if (est_type == config::normals::CUPCL_TYPE && config[config::normals::SUPPORT_RAD]) {
         auto rad = config[config::normals::SUPPORT_RAD].as<float>();
-        _nest = [rad](const Image &image) {
+        nest_ = [rad](const Image &image) {
             return cupcl::computeNormals(image.getShapeCloud(), image.getProjection(), rad);
         };
     } else
@@ -101,9 +101,9 @@ bool NormalEstimation::configure(const Config& config) {
 }
 
 DualNormals NormalEstimation::compute(const Image& image) const {
-    // TODO: should throw
-    assert(_nest);
-    return _nest(image);
+    if (!nest_)
+        DESCRY_THROW(NotConfiguredException, "Normals not configured");
+    return nest_(image);
 }
 
 }

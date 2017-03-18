@@ -44,13 +44,15 @@ bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const {
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::upload() const {
-    assert(isHostSet());
+    if(!isHostSet())
+        DESCRY_THROW(NoMemoryToTransferException, "No host memory to upload from");
     d_container.reset(new typename D_C::element_type{h_container});
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
 void DualContainer<H_T, H_C, D_T, D_C>::download() const {
-    assert(isDeviceSet());
+    if(!isDeviceSet())
+        DESCRY_THROW(NoMemoryToTransferException, "No device memory to download from");
     h_container = d_container->download();
 }
 

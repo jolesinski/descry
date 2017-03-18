@@ -36,7 +36,7 @@ bool RefFramesEstimation::configure(const Config& config) {
     try {
         if (est_type == config::ref_frames::BOARD_TYPE) {
             auto est = config.as<EstBOARD>();
-            _est = [ est{std::move(est)} ]
+            est_ = [ est{std::move(est)} ]
                    (const Image &image) mutable {
                        est.setInputCloud(image.getShapeKeypoints().host());
                        est.setInputNormals(image.getNormals().host());
@@ -55,8 +55,10 @@ bool RefFramesEstimation::configure(const Config& config) {
 }
 
 DualRefFrames RefFramesEstimation::compute(const Image& image) const {
-    assert(_est);
-    return _est(image);
+    if (!est_)
+        DESCRY_THROW(NotConfiguredException, "Reference frames not configured");
+    return est_(image);
 }
 
 }
+

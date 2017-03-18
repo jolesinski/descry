@@ -8,6 +8,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <descry/cupcl/memory.h>
+#include <descry/exceptions.h>
 
 namespace descry {
 

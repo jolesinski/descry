@@ -23,12 +23,14 @@ bool Aligner::configure(const Config& config) {
 }
 
 void Aligner::setModel(const Model& model) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
     return strategy_->setModel(model);
 }
 
 Instances Aligner::compute(const Image& image) {
-    assert(strategy_);
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
     return strategy_->match(image);
 }
 

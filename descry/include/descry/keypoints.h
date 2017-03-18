@@ -14,7 +14,7 @@ public:
     ShapeKeypoints compute(const Image &image) const;
 
 private:
-    std::function<ShapeKeypoints( const Image& )> _nest;
+    std::function<ShapeKeypoints( const Image& )> nest_;
 };
 
 }
