@@ -35,22 +35,21 @@ add_test(descry::image descry_ut [image])
 add_test(descry::model descry_ut [model])
 add_test(descry::recognizer descry_ut [recognizer])
 
-add_subdirectory(nonius EXCLUDE_FROM_ALL)
 add_subdirectory(benchmark EXCLUDE_FROM_ALL)
 
 add_executable(descry_perf
-        perf/runner.cpp
-        perf/test_keypoints.cpp
-        perf/test_normals.cpp)
+        perf/perf.cpp
+        perf/keypoints.cpp
+        perf/normals.cpp)
 
 target_include_directories(descry_perf
         PRIVATE include
-        ${NONIUS_INCLUDE_DIR})
+        ${BENCHMARK_INCLUDE_DIR})
 
-target_link_libraries(descry_perf descry pthread)
+target_link_libraries(descry_perf descry gbenchmark pthread)
 
 set_target_properties(descry_perf
         PROPERTIES CXX_STANDARD 14
         CXX_STANDARD_REQUIRED ON)
 
-add_dependencies(descry_perf nonius)
+add_dependencies(descry_perf benchmark)
