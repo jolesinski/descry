@@ -20,6 +20,9 @@ public:
     DualContainer& operator=(DualContainer&& other);
     ~DualContainer();
 
+    DualContainer(const DualContainer& other) = delete;
+    DualContainer& operator=(const DualContainer& other) = delete;
+
     void reset() { clearHost(); clearDevice(); }
     void reset(DeviceContainer d) { clearHost(); d_container = std::move(d); }
     void reset(HostContainer h) { clearDevice(); h_container = std::move(h); }

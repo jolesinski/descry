@@ -7,30 +7,40 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/extract_indices.h>
 
+#include <algorithm>
+
 namespace descry {
 
-WillowProjector::WillowProjector(const std::string& views_path) : views_path{views_path} {}
+namespace {
 
-AlignedVector<View> WillowProjector::generateViews(const FullCloud::ConstPtr& /*cloud*/) const {
+template<class PredT>
+std::vector<boost::filesystem::path> getFiles(const std::string& dir_path, PredT pred) {
     namespace fs = boost::filesystem;
 
-    auto views = AlignedVector<View>{};
-    for (auto dirent : boost::make_iterator_range(fs::directory_iterator(views_path),
-                                                  fs::directory_iterator()))
-    {
-        const auto& dirent_path = dirent.path();
-        if( dirent_path.extension() == cloud_extension )
-        {
-            const auto& idx_str = dirent_path.stem().string().substr(strlen(cloud_prefix));
-            views.emplace_back(loadView(idx_str));
-        }
+    auto filenames = std::vector<boost::filesystem::path>{};
+    for (auto dirent : boost::make_iterator_range(fs::directory_iterator(dir_path),
+                                                  fs::directory_iterator())) {
+        if( pred(dirent.path()) )
+            filenames.emplace_back(dirent.path());
     }
 
-    return views;
+    return filenames;
+}
+
+std::vector<boost::filesystem::path> getCloudFiles(const std::string& path) {
+    return getFiles(path, [](const boost::filesystem::path dirent)
+                            { return (dirent.extension() == WillowProjector::cloud_extension &&
+                              boost::starts_with(dirent.stem().string(), WillowProjector::cloud_prefix)); });
+}
+
+std::vector<boost::filesystem::path> getPoseFiles(const std::string& path, const std::string& prefix) {
+    return getFiles(path, [prefix](const boost::filesystem::path dirent)
+                            { return (dirent.extension() == WillowProjector::viewpoint_extension &&
+                              boost::starts_with(dirent.stem().string(), prefix)); });
 }
 
 template <class T>
-std::vector<T> loadData(const std::string& path) {
+std::vector<T> loadNumericData(const std::string& path) {
     std::vector<T> elems;
     std::ifstream infile(path);
 
@@ -45,24 +55,6 @@ std::vector<T> loadData(const std::string& path) {
     return elems;
 }
 
-Pose WillowProjector::loadPose(const std::string& pose_path) const {
-    auto elems = loadData<float>(pose_path);
-    if ( elems.size() != 16 )
-        throw std::runtime_error("No pose found in " + pose_path);
-
-    Eigen::Matrix4f pose(elems.data());
-    return pose.transpose();
-}
-
-std::vector<int> WillowProjector::loadIndices(const std::string& indices_path) const {
-    auto indices = loadData<int>(indices_path);
-    if ( indices.empty() )
-        throw std::runtime_error("No indices found in " + indices_path);
-
-    return indices;
-}
-
-namespace {
 FullCloud::Ptr loadCloud(const std::string& cloud_path) {
     FullCloud::Ptr cloud_ptr(new FullCloud);
     if( pcl::io::loadPCDFile<pcl::PointXYZRGBA>(cloud_path, *cloud_ptr) == -1 )
@@ -70,6 +62,39 @@ FullCloud::Ptr loadCloud(const std::string& cloud_path) {
 
     return cloud_ptr;
 }
+
+Pose loadPose(const std::string& pose_path) {
+    auto elems = loadNumericData<float>(pose_path);
+    if ( elems.size() != 16 )
+        throw std::runtime_error("No pose found in " + pose_path);
+
+    Eigen::Matrix4f pose(elems.data());
+    return pose.transpose();
+}
+
+}
+
+WillowProjector::WillowProjector(const std::string& views_path) : views_path{views_path} {}
+
+AlignedVector<View> WillowProjector::generateViews(const FullCloud::ConstPtr& /*cloud*/) const {
+    auto cloud_files = getCloudFiles(views_path);
+
+    auto views = AlignedVector<View>{};
+    views.reserve(cloud_files.size());
+    for (const auto& file : cloud_files) {
+        const auto& idx_str = file.stem().string().substr(strlen(cloud_prefix));
+        views.emplace_back(loadView(idx_str));
+    }
+
+    return views;
+}
+
+std::vector<int> WillowProjector::loadIndices(const std::string& indices_path) const {
+    auto indices = loadNumericData<int>(indices_path);
+    if ( indices.empty() )
+        throw std::runtime_error("No indices found in " + indices_path);
+
+    return indices;
 }
 
 View WillowProjector::loadView(const std::string& view_id) const {
@@ -104,17 +129,59 @@ Model WillowDatabase::loadModel(const std::string& obj_name) const {
     return Model{full, projector};
 }
 
-std::vector<Model> WillowDatabase::loadDatabase() const {
+std::unordered_map<std::string, Model> WillowDatabase::loadDatabase() const {
     namespace fs = boost::filesystem;
 
-    auto models = std::vector<Model>{};
+    auto models = std::unordered_map<std::string, Model>{};
     for (auto dirent : boost::make_iterator_range(fs::directory_iterator(base_path),
                                                   fs::directory_iterator())) {
-        if( dirent.status().type() == fs::directory_file )
-            models.emplace_back(loadModel(dirent.path().string()));
+        if( dirent.status().type() == fs::directory_file ) {
+            auto obj_name = dirent.path().string();
+            models.emplace(obj_name, loadModel(obj_name));
+        }
     }
 
     return models;
+}
+
+
+std::vector<WillowTestSet::AnnotatedScene>
+WillowTestSet::loadTest(const std::string& scenes_path, const std::string& ground_truth_path) const {
+    auto scene_files = getCloudFiles(scenes_path);
+
+    auto annotated_scenes = std::vector<AnnotatedScene>{};
+    annotated_scenes.reserve(scene_files.size());
+    for (const auto& file : scene_files) {
+        annotated_scenes.emplace_back(loadCloud(file.string()),
+                                      loadInstances(ground_truth_path, file.stem().string()));
+    }
+
+    return annotated_scenes;
+}
+
+WillowTestSet::InstanceMap
+WillowTestSet::loadInstances(const std::string& ground_truth_path, const std::string& scene_name) const {
+    static constexpr auto obj_token = "object_";
+    const auto pose_prefix = scene_name + '_' + obj_token;
+
+    // ordered
+    auto instances = InstanceMap{};
+
+    auto pose_files = getPoseFiles(ground_truth_path, pose_prefix);
+    for (const auto& file : pose_files) {
+        const auto& object_name = file.stem().string().substr(pose_prefix.size() - strlen(obj_token),
+                                                              pose_prefix.rfind('_'));
+
+        auto pose = loadPose(file.string());
+
+        auto instance = instances.find(object_name);
+        if(instance == instances.end())
+            instances.insert({object_name, {pose}});
+        else
+            instance->second.emplace_back(pose);
+    }
+
+    return instances;
 }
 
 }
