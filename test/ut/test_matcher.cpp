@@ -121,7 +121,7 @@ SCENARIO( "Find corrs in real cloud", "[matcher]" ) {
         auto image = descry::Image(descry::test::loadSceneCloud());
         prep.process(image);
 
-        auto willow = descry::WillowDatabase(descry::test::WILLOW_MODELS_PATH);
+        auto willow = descry::WillowDatabase(descry::test::loadDBConfig());
         auto model = willow.loadModel("test");
         model.prepare(prep);
         WHEN("Descriptor is SHOT") {

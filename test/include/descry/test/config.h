@@ -17,6 +17,7 @@
 namespace descry { namespace test {
 
 inline descry::Config loadFullConfig() { return YAML::LoadFile(descry::test::CONFIG_PATH); }
+inline descry::Config loadDBConfig() { return YAML::LoadFile(descry::test::DB_CFG_PATH); }
 
 namespace normals {
 

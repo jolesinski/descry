@@ -26,7 +26,7 @@ function emit_array_elem {
 }
 
 function emit_model {
-    emit 'model:'
+    emit 'models:'
     for object in ${WILLOW_DB_PATH}/willow_models/*; do
         if [[ -d $object ]]; then
             indent
@@ -44,9 +44,11 @@ function emit_model {
                     cloud_basename="$(basename "$cloud" .pcd)"
                     view_idx="${cloud_basename#cloud_}"
                     emit "- "
+                    indent
                     emit "cloud: $cloud"
                     emit "indices: ${object}/views/object_indices_${view_idx}.txt"
                     emit "pose: ${object}/views/pose_${view_idx}.txt"
+                    unindent
                     unindent
                 done
                 unindent

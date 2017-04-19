@@ -17,7 +17,8 @@ add_executable(descry_ut
         ut/test_matcher.cpp
         ut/test_normals.cpp
         ut/test_recognizer.cpp
-        ut/test_ref_frames.cpp)
+        ut/test_ref_frames.cpp
+        ut/test_willow.cpp)
 
 target_include_directories(descry_ut
         PRIVATE include
@@ -53,3 +54,5 @@ set_target_properties(descry_perf
         CXX_STANDARD_REQUIRED ON)
 
 add_dependencies(descry_perf benchmark)
+
+add_subdirectory(eval)

@@ -15,7 +15,7 @@ SCENARIO( "Sparse alignment", "[alignment]" ) {
         auto image = descry::Image(descry::test::loadSceneCloud());
         prep.process(image);
 
-        auto willow = descry::WillowDatabase(descry::test::WILLOW_MODELS_PATH);
+        auto willow = descry::WillowDatabase(descry::test::loadDBConfig());
         auto model = willow.loadModel("test");
         model.prepare(prep);
 
