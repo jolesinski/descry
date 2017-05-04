@@ -25,7 +25,7 @@ TEST_CASE( "Configuring fpfh pcl describer", "[describer]" ) {
     cfg.reset(descry::test::loadFullConfig());
 
     REQUIRE(!est.configure(cfg));
-    REQUIRE(est.configure(cfg["sparse"]["descriptors"]));
+    REQUIRE(est.configure(cfg["recognizer"]["aligner"]["descriptors"]));
 }
 
 TEST_CASE( "Configuring shot pcl describer", "[describer]" ) {
