@@ -97,7 +97,7 @@ Model WillowDatabase::loadModel(const std::string& model_name) const {
     const auto& model_cfg = db_cfg_[model_name];
 
     auto projector = descry::WillowProjector(model_cfg["views"]);
-    auto full =  loadCloud(model_cfg["full"].as<std::string>());
+    auto full = loadCloud(model_cfg["full"].as<std::string>());
 
     return Model{full, projector};
 }
@@ -114,12 +114,15 @@ std::unordered_map<std::string, Model> WillowDatabase::loadDatabase() const {
 
 
 std::vector<WillowTestSet::AnnotatedScene>
-WillowTestSet::loadTest(const Config& test_cfg) const {
+WillowTestSet::loadTest(const Config& test_cfg, std::size_t max_frames) const {
     auto annotated_scenes = std::vector<AnnotatedScene>{};
     annotated_scenes.reserve(test_cfg.size());
-    for (const auto& scene : test_cfg)
+    for (const auto& scene : test_cfg) {
+        if (max_frames-- == 0)
+            break;
         annotated_scenes.emplace_back(loadCloud(scene["cloud"].as<std::string>()),
                                       loadInstances(scene["instances"]));
+    }
 
     return annotated_scenes;
 }

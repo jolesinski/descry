@@ -40,12 +40,16 @@ public:
             WillowDatabase(db_cfg["models"]),
             test_set_cfg_(db_cfg["scenes"]) {};
 
-    std::vector<AnnotatedScene> loadSingleTest(const std::string& test_name) const {
-        return loadTest(test_set_cfg_[test_name]);
+    template <typename... Args>
+    std::vector<AnnotatedScene> loadSingleTest(const std::string& test_name, Args... args) const {
+        return loadTest(test_set_cfg_[test_name], args...);
     }
 
     InstanceMap loadInstances(const Config& instances_cfg) const;
-    std::vector<AnnotatedScene> loadTest(const Config& test_cfg) const;
+    std::vector<AnnotatedScene> loadTest(const Config& test_cfg, std::size_t max_frames) const;
+    std::vector<AnnotatedScene> loadTest(const Config& test_cfg) const {
+        return loadTest(test_cfg, test_cfg.size());
+    }
 private:
 
     const Config test_set_cfg_;
