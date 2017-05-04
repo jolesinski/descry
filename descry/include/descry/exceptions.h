@@ -17,6 +17,7 @@ Exception(const std::string &error_description = "", \
 namespace descry {
 
 DESCRY_DEFINE_EXCEPTION(NotConfiguredException)
+DESCRY_DEFINE_EXCEPTION(InvalidConfigException)
 DESCRY_DEFINE_EXCEPTION(NoMemoryToTransferException)
 
 }

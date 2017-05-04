@@ -22,6 +22,11 @@ using RefFrames = pcl::PointCloud<pcl::ReferenceFrame>;
 using Pose = Eigen::Matrix4f;
 using Perspective = Eigen::Matrix<float, 3, 4, Eigen::RowMajor>;
 
+template<typename Point>
+inline typename pcl::PointCloud<Point>::Ptr make_cloud() {
+    return (typename pcl::PointCloud<Point>::Ptr)(new pcl::PointCloud<Point>());
+}
+
 template<class T>
 using AlignedVector = std::vector<T, Eigen::aligned_allocator<T>>;
 
