@@ -72,11 +72,11 @@ inline descry::Config loadConfigUniform() {
 inline descry::Config loadConfigISS() {
     auto cfg = Config();
     cfg["type"] = config::keypoints::ISS_TYPE;
-    cfg[config::keypoints::SALIENT_RAD] = 0.05;
-    cfg[config::keypoints::NON_MAX_RAD] = 0.15;
+    cfg[config::keypoints::SALIENT_RAD] = 0.005;
+    cfg[config::keypoints::NON_MAX_RAD] = 0.01;
     //cfg[config::keypoints::BORDER_RAD] = 0.03;
     //cfg[config::keypoints::NORMAL_RAD] = 0.03;
-    cfg[config::keypoints::MIN_NEIGHBOURS] = 5;
+    cfg[config::keypoints::MIN_NEIGHBOURS] = 10;
     cfg[config::keypoints::THREADS] = 4;
     return cfg;
 }
@@ -84,12 +84,12 @@ inline descry::Config loadConfigISS() {
 inline descry::Config loadConfigCupcl() {
     auto cfg = Config();
     cfg["type"] = config::keypoints::ISS_CUPCL_TYPE;
-    cfg[config::keypoints::SALIENT_RAD] = 0.05;
-    cfg[config::keypoints::NON_MAX_RAD] = 0.15;
+    cfg[config::keypoints::SALIENT_RAD] = 0.01;
+    cfg[config::keypoints::NON_MAX_RAD] = 0.01;
     cfg[config::keypoints::LAMBDA_RATIO_21] = 0.975;
     cfg[config::keypoints::LAMBDA_RATIO_32] = 0.975;
     cfg[config::keypoints::LAMBDA_THRESHOLD_3] = 0.00005;
-    cfg[config::keypoints::MIN_NEIGHBOURS] = 5;
+    cfg[config::keypoints::MIN_NEIGHBOURS] = 10;
     return cfg;
 }
 

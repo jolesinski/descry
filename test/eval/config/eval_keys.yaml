@@ -1,0 +1,31 @@
+model:
+    name: object_17
+    normals:
+        type: cupcl
+        support-radius: 0.02
+    keypoints:
+        type: iss-cupcl
+        salient-radius: 0.02
+        non-max-radius: 0.02
+        lambda-ratio-21: 0.9
+        lambda-ratio-32: 0.2
+        lambda-threshold-3: 1e-6
+        min-neighbours: 10
+
+scene:
+    name: T_06_willow_dataset
+    normals:
+        type: cupcl
+        support-radius: 0.01
+    keypoints:
+        type: iss-cupcl
+        salient-radius: 0.005
+        non-max-radius: 0.01
+        lambda-ratio-21: 0.9
+        lambda-ratio-32: 0.2
+        lambda-threshold-3: 1e-6
+        min-neighbours: 10
+
+metrics:
+    radius: 0.01
+    visualize: true
