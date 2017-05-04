@@ -18,6 +18,7 @@ public:
 
     const FullCloud::ConstPtr& getFullCloud() const { return full_; }
     const AlignedVector<View>& getViews() const { return views_; }
+    AlignedVector<View>& getViews() { return views_; }
 
     void prepare(const Preprocess& preprocessor);
 protected:
