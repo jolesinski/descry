@@ -13,7 +13,7 @@ Project developed as part of masters thesis:
 
 ### Testing:
 Unit and functional tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework,
-[nonius](https://github.com/libnonius/nonius) framework is used for performance benchmarks.
+[benchmark](https://github.com/google/benchmark) framework is used for performance benchmarks.
 
 
 ### Results:
