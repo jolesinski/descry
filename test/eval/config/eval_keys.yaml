@@ -1,5 +1,5 @@
 model:
-    name: object_17
+    name: object_13
     normals:
         type: cupcl
         support-radius: 0.02
@@ -13,7 +13,7 @@ model:
         min-neighbours: 10
 
 scene:
-    name: T_06_willow_dataset
+    name: T_07_willow_dataset
     normals:
         type: cupcl
         support-radius: 0.01
