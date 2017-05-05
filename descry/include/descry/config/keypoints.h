@@ -30,6 +30,7 @@ static constexpr auto THREADS = "threads";
 // Harris 3d
 static constexpr auto HARRIS_TYPE = "harris";
 // Params:
+//static constexpr auto SUPPORT_RAD = "support-radius";
 static constexpr auto METHOD_NAME = "method";
 static constexpr auto METHOD_HARRIS = "harris";
 static constexpr auto METHOD_NOBLE = "noble";
@@ -39,6 +40,26 @@ static constexpr auto METHOD_CURVATURE = "curvature";
 static constexpr auto HARRIS_THRESHOLD = "threshold";
 static constexpr auto USE_REFINE = "use_refine";
 static constexpr auto USE_NONMAX = "use_nonmax";
+//static constexpr auto THREADS = "threads";
+
+// SIFT PCL
+static constexpr auto SIFT_PCL_TYPE = "sift-pcl";
+// Params:
+static constexpr auto MIN_SCALE = "min-scale";
+static constexpr auto OCTAVES = "octaves";
+static constexpr auto SCALES_PER_OCTAVE = "scales-per-octave";
+static constexpr auto MIN_CONTRAST = "min-contrast";
+
+// SUSAN PCL
+static constexpr auto SUSAN_PCL_TYPE = "susan-pcl";
+// Params:
+static constexpr auto ANGULAR_THRESH = "angular-threshold";
+static constexpr auto DISTANCE_THRESH = "distance-threshold";
+static constexpr auto INTENSITY_THRESH = "intensity-threshold";
+static constexpr auto USE_VALIDATION = "use-validation";
+//static constexpr auto SUPPORT_RAD = "support-radius";
+//static constexpr auto USE_NONMAX = "use_nonmax";
+//static constexpr auto THREADS = "threads";
 
 }}}
 

@@ -2,13 +2,17 @@
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/keypoints/iss_3d.h>
 #include <pcl/keypoints/harris_3d.h>
+#include <pcl/keypoints/sift_keypoint.h>
+#include <pcl/keypoints/susan.h>
 #include <descry/cupcl/iss.h>
 
 using namespace descry::config::keypoints;
 
-using KDetUniform = pcl::UniformSampling<descry::ShapePoint>;
-using KDetISS = pcl::ISSKeypoint3D<descry::ShapePoint, descry::ShapePoint>;
-using KDetHarris = pcl::HarrisKeypoint3D<descry::ShapePoint, pcl::PointXYZI>;
+using KDetUniform = pcl::UniformSampling<pcl::PointXYZ>;
+using KDetISS = pcl::ISSKeypoint3D<pcl::PointXYZ, pcl::PointXYZ>;
+using KDetHarris = pcl::HarrisKeypoint3D<pcl::PointXYZ, pcl::PointXYZI>;
+using KDetSIFT = pcl::SIFTKeypoint<pcl::PointNormal, pcl::PointXYZI>;
+using KDetSUSAN = pcl::SUSANKeypoint<pcl::PointXYZ, pcl::PointXYZ>;
 
 namespace YAML {
 template<>
@@ -157,6 +161,82 @@ struct convert<KDetHarris> {
 };
 
 template<>
+struct convert<KDetSIFT> {
+    static bool decode(const Node& node, KDetSIFT& rhs) {
+        if(!node.IsMap())
+            return false;
+
+        // required
+        if (!node[MIN_SCALE] || !node[OCTAVES] || !node[SCALES_PER_OCTAVE])
+            return false;
+
+        rhs.setScales(node[MIN_SCALE].as<float>(), node[OCTAVES].as<int>(), node[SCALES_PER_OCTAVE].as<int>());
+
+        // optionals
+        {
+            auto &elem = node[MIN_CONTRAST];
+            if (elem)
+                rhs.setMinimumContrast(elem.as<float>());
+        }
+
+        return true;
+    }
+};
+
+template<>
+struct convert<KDetSUSAN> {
+    static bool decode(const Node& node, KDetSUSAN& rhs) {
+        if(!node.IsMap())
+            return false;
+
+        // required
+        if (!node[SUPPORT_RAD])
+            return false;
+
+        rhs.setRadius(node[SUPPORT_RAD].as<float>());
+
+        // optionals
+        {
+            auto &elem = node[USE_NONMAX];
+            if (elem)
+                rhs.setNonMaxSupression(elem.as<bool>());
+        }
+
+        {
+            auto &elem = node[ANGULAR_THRESH];
+            if (elem)
+                rhs.setAngularThreshold(elem.as<float>());
+        }
+
+        {
+            auto &elem = node[DISTANCE_THRESH];
+            if (elem)
+                rhs.setDistanceThreshold(elem.as<float>());
+        }
+
+        {
+            auto &elem = node[INTENSITY_THRESH];
+            if (elem)
+                rhs.setIntensityThreshold(elem.as<float>());
+        }
+
+        {
+            auto &elem = node[USE_VALIDATION];
+            if (elem)
+                rhs.setGeometricValidation(elem.as<bool>());
+        }
+
+        {
+            auto &elem = node[THREADS];
+            if (elem)
+                rhs.setNumberOfThreads(elem.as<unsigned>());
+        }
+
+        return true;
+    }
+};
+
+template<>
 struct convert<descry::cupcl::ISSConfig> {
     static bool decode(const Node& node, descry::cupcl::ISSConfig& rhs) {
         if(!node.IsMap())
@@ -211,7 +291,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
             auto nest = config.as<KDetUniform>();
             nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
-                ShapeCloud::Ptr keypoints{new ShapeCloud{}};
+                auto keypoints = make_cloud<pcl::PointXYZ>();
                 nest.filter(*keypoints);
                 return ShapeKeypoints{keypoints};
             };
@@ -221,7 +301,7 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
-                ShapeCloud::Ptr keypoints{new ShapeCloud{}};
+                auto keypoints = make_cloud<pcl::PointXYZ>();
                 nest.compute(*keypoints);
                 return ShapeKeypoints{keypoints};
             };
@@ -231,10 +311,32 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
-                auto harris_keys = make_cloud<pcl::PointXYZI>();
-                nest.compute(*harris_keys);
+                auto intensity_keys = make_cloud<pcl::PointXYZI>();
+                nest.compute(*intensity_keys);
                 auto keypoints = make_cloud<pcl::PointXYZ>();
-                pcl::copyPointCloud(*harris_keys, *keypoints);
+                pcl::copyPointCloud(*intensity_keys, *keypoints);
+                return ShapeKeypoints{keypoints};
+            };
+        } else if (est_type == config::keypoints::SIFT_PCL_TYPE) {
+            auto nest = config.as<KDetSIFT>();
+            nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
+                auto point_normals = make_cloud<pcl::PointNormal>();
+                pcl::concatenateFields(*image.getShapeCloud().host(), *image.getNormals().host(), *point_normals);
+                nest.setInputCloud(point_normals);
+                auto intensity_keys = make_cloud<pcl::PointXYZI>();
+                nest.compute(*intensity_keys);
+                auto keypoints = make_cloud<pcl::PointXYZ>();
+                pcl::copyPointCloud(*intensity_keys, *keypoints);
+                return ShapeKeypoints{keypoints};
+            };
+        } else if (est_type == config::keypoints::SUSAN_PCL_TYPE) {
+            auto nest = config.as<KDetSUSAN>();
+            nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
+                nest.setInputCloud(image.getShapeCloud().host());
+                if (!image.getNormals().empty())
+                    nest.setNormals(image.getNormals().host());
+                auto keypoints = make_cloud<pcl::PointXYZ>();
+                nest.compute(*keypoints);
                 return ShapeKeypoints{keypoints};
             };
         } else if (est_type == config::keypoints::ISS_CUPCL_TYPE) {
