@@ -24,6 +24,32 @@ computeProjection(const descry::FullCloud::ConstPtr& in, int pyramid = 5) {
     return projection;
 }
 
+cv::Mat convertToColorMat(const descry::FullCloud::ConstPtr& in) {
+    typedef cv::Point3_<uint8_t> Pixel;
+    cv::Mat frame = cv::Mat::zeros(in->height, in->width, CV_8UC3);
+    frame.forEach<Pixel>([&](Pixel& pixel, const int position[]) -> void {
+        const auto& point = in->at(position[1], position[0]);
+        pixel.x = point.b;
+        pixel.y = point.g;
+        pixel.z = point.r;
+    });
+
+    return frame;
+}
+
+std::vector<cv::KeyPoint> convertShapeToColorKeypoints(const descry::ShapeCloud& keys,
+                                                       const descry::Perspective& proj) {
+    std::vector<cv::KeyPoint> cv_keys;
+
+    for (auto key : keys.points) {
+        Eigen::Vector4f vec = key.getArray4fMap();
+        key.getArray3fMap() = proj * vec;
+        cv_keys.emplace_back(key.x/key.z, key.y/key.z, -1);
+    }
+
+    return cv_keys;
+}
+
 }
 
 namespace descry {
@@ -44,6 +70,13 @@ const DualShapeCloud& Image::getShapeCloud() const {
     return shape;
 }
 
+const cv::Mat& Image::getColorMat() const {
+    if (color.empty())
+        color = convertToColorMat(full.host());
+
+    return color;
+}
+
 const DualNormals& Image::getNormals() const {
     return normals;
 }
@@ -60,12 +93,32 @@ void Image::setRefFrames(DualRefFrames&& ref_frames) {
     this->ref_frames = std::move(ref_frames);
 }
 
-const DualShapeCloud& Image::getShapeKeypoints() const {
-    return shape_keypoints;
+const Image::Keypoints& Image::getKeypoints() const {
+    keys.initPerspective(*getProjection().host());
+    return keys;
 }
 
-void Image::setShapeKeypoints(DualShapeCloud&& keypoints) {
-    this->shape_keypoints = std::move(keypoints);
+const DualShapeCloud& Image::Keypoints::getShape() const {
+    return shape;
+}
+
+const std::vector<cv::KeyPoint>& Image::Keypoints::getColor() const {
+    if (color.empty() && !shape.empty() && !projection.empty())
+        color = convertShapeToColorKeypoints(*shape.host(), *projection.host());
+    return color;
+}
+
+void Image::Keypoints::set(DualShapeCloud &&keypoints) {
+    shape = std::move(keypoints);
+}
+
+void Image::Keypoints::set(std::vector<cv::KeyPoint> &&keypoints) {
+    color = std::move(keypoints);
+}
+
+void Image::Keypoints::initPerspective(const descry::Perspective &proj) {
+    if (projection.empty())
+        projection.reset(std::make_unique<descry::Perspective>(proj));
 }
 
 }

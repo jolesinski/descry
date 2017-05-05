@@ -91,7 +91,7 @@ bool Describer<D>::configure(const Config& config) {
         if (pcl_describer_parser<D>::is_config_matching(est_type)) {
             auto descr = config.as<typename pcl_describer_parser<D>::describer_t>();
             _descr = [ descr{std::move(descr)} ] (const Image &image) mutable {
-                descr.setInputCloud(image.getShapeKeypoints().host());
+                descr.setInputCloud(image.getKeypoints().getShape().host());
                 descr.setSearchSurface(image.getShapeCloud().host());
                 descr.setInputNormals(image.getNormals().host());
                 pcl_describer_parser<D>::add_rfs_if_supported(descr, image);

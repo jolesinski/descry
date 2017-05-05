@@ -12,6 +12,7 @@ public:
     const DualConstFullCloud& getFullCloud() const;
     const DualPerpective& getProjection() const;
     const DualShapeCloud& getShapeCloud() const;
+    const cv::Mat& getColorMat() const;
 
     const DualNormals& getNormals() const;
     void setNormals(DualNormals&& normals);
@@ -19,16 +20,41 @@ public:
     const DualRefFrames& getRefFrames() const;
     void setRefFrames(DualRefFrames&& ref_frames);
 
-    const DualShapeCloud& getShapeKeypoints() const;
-    void setShapeKeypoints(DualShapeCloud&& keypoints);
+    class Keypoints {
+    public:
+        void set(DualShapeCloud&& keypoints);
+        void set(std::vector<cv::KeyPoint>&& keypoints);
+
+        void initPerspective(const descry::Perspective& proj);
+
+        const DualShapeCloud& getShape() const;
+        const std::vector<cv::KeyPoint>& getColor() const;
+    private:
+        DualShapeCloud shape;
+        mutable std::vector<cv::KeyPoint> color;
+
+        DualPerpective projection;
+    };
+
+    const Keypoints& getKeypoints() const;
+
+    void setKeypoints(Keypoints&& keypoints) {
+        keys = std::move(keypoints);
+    }
+
+    template <class KeyType>
+    void setKeypoints(KeyType&& keypoints) {
+        keys.set(std::forward<KeyType>(keypoints));
+    }
 
 private:
     DualConstFullCloud full;
     mutable DualPerpective projection;
     mutable DualShapeCloud shape;
+    mutable cv::Mat color;
     DualNormals normals;
     DualRefFrames ref_frames;
-    DualShapeCloud shape_keypoints;
+    mutable Keypoints keys;
 };
 
 }

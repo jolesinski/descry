@@ -28,7 +28,7 @@ static void BM_Keypoints_Time(benchmark::State& state, descry::Config&& cfg) {
     std::cout << "Model prepared" << std::endl;
 
     auto image = descry::Image(descry::test::loadSceneCloud());
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
 
     if(!kdet.configure(cfg))
         state.SkipWithError("Configuration failed");

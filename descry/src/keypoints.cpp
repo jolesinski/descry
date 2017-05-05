@@ -1,10 +1,14 @@
 #include <descry/keypoints.h>
+
+#include <descry/cupcl/iss.h>
+
+#include <opencv2/features2d.hpp>
+
 #include <pcl/filters/uniform_sampling.h>
-#include <pcl/keypoints/iss_3d.h>
 #include <pcl/keypoints/harris_3d.h>
+#include <pcl/keypoints/iss_3d.h>
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/keypoints/susan.h>
-#include <descry/cupcl/iss.h>
 
 using namespace descry::config::keypoints;
 
@@ -237,6 +241,73 @@ struct convert<KDetSUSAN> {
 };
 
 template<>
+struct convert<cv::Ptr<cv::ORB>> {
+    static bool decode(const Node &node, cv::Ptr<cv::ORB> &rhs) {
+        if (!node.IsMap())
+            return false;
+
+        rhs = cv::ORB::create();
+
+        // optionals
+        {
+            auto &elem = node[MAX_FEATURES];
+            if (elem)
+                rhs->setMaxFeatures(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[EDGE_THRESH];
+            if (elem)
+                rhs->setEdgeThreshold(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[FAST_THRESH];
+            if (elem)
+                rhs->setFastThreshold(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[FIRST_LEVEL];
+            if (elem)
+                rhs->setFirstLevel(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[NUM_LEVELS];
+            if (elem)
+                rhs->setNLevels(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[PATCH_SIZE];
+            if (elem)
+                rhs->setPatchSize(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[SCALE_FACTOR];
+            if (elem)
+                rhs->setScaleFactor(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[SCORE_TYPE];
+            if (elem)
+                rhs->setScoreType(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[WTA_K];
+            if (elem)
+                rhs->setWTA_K(elem.as<int>());
+        }
+
+        return true;
+    }
+};
+
+template<>
 struct convert<descry::cupcl::ISSConfig> {
     static bool decode(const Node& node, descry::cupcl::ISSConfig& rhs) {
         if(!node.IsMap())
@@ -280,7 +351,7 @@ struct convert<descry::cupcl::ISSConfig> {
 
 namespace descry {
 
-bool ShapeKeypointDetector::configure(const Config& config) {
+bool KeypointDetector::configure(const Config& config) {
     if (!config["type"])
         return false;
 
@@ -291,9 +362,13 @@ bool ShapeKeypointDetector::configure(const Config& config) {
             auto nest = config.as<KDetUniform>();
             nest_ = [ nest{std::move(nest)} ] (const Image &image) mutable {
                 nest.setInputCloud(image.getShapeCloud().host());
-                auto keypoints = make_cloud<pcl::PointXYZ>();
-                nest.filter(*keypoints);
-                return ShapeKeypoints{keypoints};
+                auto shape_keys = make_cloud<pcl::PointXYZ>();
+                nest.filter(*shape_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(DualShapeCloud{shape_keys});
+
+                return keys;
             };
         } else if (est_type == config::keypoints::ISS_TYPE) {
             auto nest = config.as<KDetISS>();
@@ -301,9 +376,13 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
-                auto keypoints = make_cloud<pcl::PointXYZ>();
-                nest.compute(*keypoints);
-                return ShapeKeypoints{keypoints};
+                auto shape_keys = make_cloud<pcl::PointXYZ>();
+                nest.compute(*shape_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(DualShapeCloud{shape_keys});
+
+                return keys;
             };
         } else if (est_type == config::keypoints::HARRIS_TYPE) {
             auto nest = config.as<KDetHarris>();
@@ -313,9 +392,13 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                     nest.setNormals(image.getNormals().host());
                 auto intensity_keys = make_cloud<pcl::PointXYZI>();
                 nest.compute(*intensity_keys);
-                auto keypoints = make_cloud<pcl::PointXYZ>();
-                pcl::copyPointCloud(*intensity_keys, *keypoints);
-                return ShapeKeypoints{keypoints};
+                auto shape_keys = make_cloud<pcl::PointXYZ>();
+                pcl::copyPointCloud(*intensity_keys, *shape_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(DualShapeCloud{shape_keys});
+
+                return keys;
             };
         } else if (est_type == config::keypoints::SIFT_PCL_TYPE) {
             auto nest = config.as<KDetSIFT>();
@@ -325,9 +408,13 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(point_normals);
                 auto intensity_keys = make_cloud<pcl::PointXYZI>();
                 nest.compute(*intensity_keys);
-                auto keypoints = make_cloud<pcl::PointXYZ>();
-                pcl::copyPointCloud(*intensity_keys, *keypoints);
-                return ShapeKeypoints{keypoints};
+                auto shape_keys = make_cloud<pcl::PointXYZ>();
+                pcl::copyPointCloud(*intensity_keys, *shape_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(DualShapeCloud{shape_keys});
+
+                return keys;
             };
         } else if (est_type == config::keypoints::SUSAN_PCL_TYPE) {
             auto nest = config.as<KDetSUSAN>();
@@ -335,13 +422,34 @@ bool ShapeKeypointDetector::configure(const Config& config) {
                 nest.setInputCloud(image.getShapeCloud().host());
                 if (!image.getNormals().empty())
                     nest.setNormals(image.getNormals().host());
-                auto keypoints = make_cloud<pcl::PointXYZ>();
-                nest.compute(*keypoints);
-                return ShapeKeypoints{keypoints};
+                auto shape_keys = make_cloud<pcl::PointXYZ>();
+                nest.compute(*shape_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(DualShapeCloud{shape_keys});
+
+                return keys;
+            };
+        }
+        else if (est_type == config::keypoints::ORB_TYPE) {
+            auto kdet = config.as<cv::Ptr<cv::ORB>>();
+            nest_ = [ kdet{std::move(kdet)} ] (const Image &image) mutable {
+                auto color_keys = std::vector<cv::KeyPoint>{};
+                kdet->detect(image.getColorMat(), color_keys);
+
+                auto keys = Image::Keypoints{};
+                keys.set(std::move(color_keys));
+
+                return keys;
             };
         } else if (est_type == config::keypoints::ISS_CUPCL_TYPE) {
             nest_ = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
-                return cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
+                auto shape_keys = cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
+
+                auto keys = Image::Keypoints{};
+                keys.set(std::move(shape_keys));
+
+                return keys;
             };
         } else
             return false;
@@ -352,9 +460,9 @@ bool ShapeKeypointDetector::configure(const Config& config) {
     return true;
 }
 
-ShapeKeypoints ShapeKeypointDetector::compute(const Image& image) const {
+Image::Keypoints KeypointDetector::compute(const Image& image) const {
     if (!nest_)
-        DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
+    DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
     return nest_(image);
 }
 

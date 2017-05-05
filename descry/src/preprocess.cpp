@@ -21,13 +21,13 @@ bool Preprocess::configure(const Config& cfg) {
 
     auto& keys_cfg = cfg[config::keypoints::NODE_NAME];
     if (keys_cfg) {
-        auto kdet = descry::ShapeKeypointDetector{};
+        auto kdet = descry::KeypointDetector{};
 
         if(!kdet.configure(keys_cfg))
             return false;
 
         steps_.emplace_back( [kdet{std::move(kdet)}]
-                (Image& image) { image.setShapeKeypoints(kdet.compute(image)); }
+                (Image& image) { image.setKeypoints(kdet.compute(image)); }
         );
     }
 

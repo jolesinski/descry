@@ -7,6 +7,8 @@
 #include <pcl/point_types.h>
 #include <yaml-cpp/yaml.h>
 
+#include <opencv2/core.hpp>
+
 #include <descry/cupcl/memory.h>
 #include <descry/exceptions.h>
 

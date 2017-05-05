@@ -11,15 +11,15 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 
-#include <pcl/common/transforms.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/filters/crop_box.h>
 #include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
+#include <pcl/filters/crop_box.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 std::vector<int> gt_filter(const descry::FullCloud::ConstPtr& model,
                            const descry::Pose& pose,
-                           const descry::ShapeKeypoints& keys, double rad) {
+                           const descry::DualShapeCloud& keys, double rad) {
     std::vector<int> model_keys;
 
     pcl::PointXYZRGBA min_p, max_p;
@@ -45,7 +45,7 @@ std::vector<int> gt_filter(const descry::FullCloud::ConstPtr& model,
 }
 
 void eval(const descry::Model& model,
-          const descry::ShapeKeypoints& scene,
+          const descry::DualShapeCloud& scene,
           const descry::AlignedVector<descry::Pose>& gt, double rad) {
 
     auto gt_indices = gt_filter(model.getFullCloud(), gt.front(), scene, rad);
@@ -59,8 +59,8 @@ void eval(const descry::Model& model,
     auto match_cloud = descry::make_cloud<pcl::PointXYZ>();
 
     for (const auto& view : model.getViews()) {
-        model_keys += view.image.getShapeKeypoints().size();
-        for (auto key : view.image.getShapeKeypoints().host()->points) {
+        model_keys += view.image.getKeypoints().getShape().size();
+        for (auto key : view.image.getKeypoints().getShape().host()->points) {
             std::vector<float> dist;
             std::vector<int> ind;
             key.getVector4fMap() = gt.front() * view.viewpoint * key.getVector4fMap();
@@ -124,7 +124,7 @@ float eval_gt_distance(const descry::Config& cfg) {
 
     std::cout << "Model " << model_name << " found in " << test_name << std::endl;
 
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
     if(!kdet.configure(scene_cfg["keypoints"]))
         DESCRY_THROW(descry::InvalidConfigException, "Invalid keypoints config");
     std::cout << "Keypoints configured" << std::endl;
@@ -139,48 +139,15 @@ float eval_gt_distance(const descry::Config& cfg) {
     model.prepare(prep);
     auto keys = kdet.compute(image);
 
-    eval(model, keys, gt_handle->second, eval_rad);
+    eval(model, keys.getShape(), gt_handle->second, eval_rad);
 
     return 0.0f;
 }
 
-cv::Mat get_color_mat(const pcl::PointCloud<pcl::PointXYZRGBA>& cloud) {
-    using Pixel = cv::Point3_<uint8_t>;
-    cv::Mat frame = cv::Mat::zeros(cloud.height, cloud.width, CV_8UC3);
-    frame.forEach<Pixel>([&](Pixel& pixel, const int position[]) -> void {
-        const auto& point = cloud.at(position[1], position[0]);
-        pixel.x = point.b;
-        pixel.y = point.g;
-        pixel.z = point.r;
-    });
-
-    return frame;
-}
-
-cv::Mat get_color_mat(const descry::Image& image) {
-    return get_color_mat(*image.getFullCloud().host());
-}
-
-std::vector<cv::KeyPoint> get_cv_keys(const descry::Image& image) {
-    auto keys = image.getShapeKeypoints().host();
-
-    std::vector<cv::KeyPoint> kp;
-    for (auto key : keys->points) {
-        Eigen::Vector4f vec = key.getArray4fMap();
-        key.getArray3fMap() = (*image.getProjection().host()) * vec;
-        kp.emplace_back(key.x/key.z, key.y/key.z, -1);
-    }
-
-    return kp;
-}
-
 void view_keys(const descry::Image& image, std::string window_name) {
-    //auto keys = compute_harris_3d(image);
-    //auto keys = compute_iss_3d(image);
-
     //copy to opencv mat
-    auto frame = get_color_mat(image);
-    auto keys = get_cv_keys(image);
+    auto frame = image.getColorMat();
+    auto keys = image.getKeypoints().getColor();
 
     std::cout << "Detected " << keys.size() << std::endl;
 
@@ -196,12 +163,12 @@ void view_keys(const descry::Model& model, std::string window_name) {
 
     //copy to opencv mat
     for (const auto& view : model.getViews()) {
-        auto frame = get_color_mat(view.image);
-        auto keys = get_cv_keys(view.image);
+        auto frame = view.image.getColorMat();
+        auto keys = view.image.getKeypoints().getColor();
 
         std::cout << "Detected " << keys.size() << std::endl;
         view_keys(view.image, "model");
-        cv::waitKey(100);
+        cv::waitKey();
     }
 }
 
@@ -216,15 +183,18 @@ void compute_keys(const descry::Config& cfg) {
     auto test_data = willow.loadSingleTest(test_name, 1);
     auto image = descry::Image(test_data.front().first);
 
-    auto nest = descry::NormalEstimation{};
-    nest.configure(cfg["scene"][descry::config::normals::NODE_NAME]);
-    auto kdet = descry::ShapeKeypointDetector{};
+    if (cfg["scene"][descry::config::normals::NODE_NAME]) {
+        auto nest = descry::NormalEstimation{};
+        nest.configure(cfg["scene"][descry::config::normals::NODE_NAME]);
+        image.setNormals(nest.compute(image));
+    }
+
+    auto kdet = descry::KeypointDetector{};
 
     auto keys_cfg = cfg["scene"][descry::config::keypoints::NODE_NAME];
     kdet.configure(keys_cfg);
 
-    image.setNormals(nest.compute(image));
-    image.setShapeKeypoints(kdet.compute(image));
+    image.setKeypoints(kdet.compute(image));
     view_keys(image, "scene");
 
     // load
@@ -239,47 +209,6 @@ void compute_keys(const descry::Config& cfg) {
     // compute
     model.prepare(prep);
     view_keys(model, "model");
-}
-
-void compute_color_keys() {
-    cv::Ptr<cv::ORB> orb = cv::ORB::create();
-    auto image = descry::Image(descry::test::loadSceneCloud());
-    const auto& full = image.getFullCloud().host();
-
-    //copy to opencv mat
-    typedef cv::Point3_<uint8_t> Pixel;
-    cv::Mat frame = cv::Mat::zeros(full->width, full->height, CV_8UC3);
-    frame.forEach<Pixel>([&](Pixel& pixel, const int position[]) -> void {
-        const auto& point = full->at(full->width - position[0] - 1, position[1]);
-        pixel.x = point.b;
-        pixel.y = point.g;
-        pixel.z = point.r;
-    });
-
-    // compute orb
-    std::vector<cv::KeyPoint> kp;
-    cv::Mat desc;
-    std::cout << "Max Features " << orb->getMaxFeatures() << std::endl;
-    std::cout << "Edge thresh " << orb->getEdgeThreshold() << std::endl;
-    std::cout << "Fast thresh " << orb->getFastThreshold() << std::endl;
-    std::cout << "First level " << orb->getFirstLevel() << std::endl;
-    std::cout << "N Levels " << orb->getNLevels() << std::endl;
-    std::cout << "Patch size " << orb->getPatchSize() << std::endl;
-    std::cout << "Scale factor " << orb->getScaleFactor() << std::endl;
-    std::cout << "Score type " << orb->getScoreType() << std::endl;
-    std::cout << "WTA K " << orb->getWTA_K() << std::endl;
-
-    orb->setMaxFeatures(1000);
-
-    orb->detectAndCompute(frame, cv::noArray(), kp, desc);
-
-    std::cout << "Detected " << kp.size() << std::endl;
-
-    cv::drawKeypoints(frame, kp, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
-
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    cv::imshow( "Display window", frame );
-    cv::waitKey(0);
 }
 
 int main(int argc, char * argv[]) {
@@ -300,8 +229,7 @@ int main(int argc, char * argv[]) {
     }
 
     compute_keys(cfg);
-    compute_color_keys();
-    //auto eval_keys = eval_gt_distance(cfg);
+    cv::waitKey();
 
     return EXIT_SUCCESS;
 }

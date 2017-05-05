@@ -91,7 +91,7 @@ public:
         clust_.resize(model.getViews().size(), clust_.front());
 
         for (auto idx = 0u; idx < clust_.size(); ++idx)
-            clust_[idx].setInputCloud(model.getViews()[idx].image.getShapeKeypoints().host());
+            clust_[idx].setInputCloud(model.getViews()[idx].image.getKeypoints().getShape().host());
 
         setModelRefFrames(model);
 
@@ -109,7 +109,7 @@ public:
 
         auto poses = AlignedVector<Pose>{};
         for (auto idx = 0u; idx < corrs.size(); ++idx) {
-            clust_[idx].setSceneCloud(image.getShapeKeypoints().host());
+            clust_[idx].setSceneCloud(image.getKeypoints().getShape().host());
             setSceneRefFrames(image, idx);
             clust_[idx].setModelSceneCorrespondences(corrs[idx]);
             clust_[idx].recognize(poses);

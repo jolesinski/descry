@@ -7,7 +7,7 @@
 #include <algorithm>
 
 TEST_CASE( "Configuring uniform keypoints", "[keypoints]" ) {
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
     auto cfg = YAML::Load("");
 
     REQUIRE(!kdet.configure(cfg));
@@ -23,7 +23,7 @@ TEST_CASE( "Configuring uniform keypoints", "[keypoints]" ) {
 }
 
 TEST_CASE( "Configuring iss keypoints", "[keypoints]" ) {
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
     auto cfg = YAML::Load("");
 
     REQUIRE(!kdet.configure(cfg));
@@ -51,7 +51,7 @@ TEST_CASE( "Configuring iss keypoints", "[keypoints]" ) {
 }
 
 TEST_CASE( "Keypoint duetection on real cloud", "[keypoints]") {
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
 
     SECTION("Uniform") {
         REQUIRE(kdet.configure(descry::test::keypoints::loadConfigUniform()));

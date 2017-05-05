@@ -61,6 +61,19 @@ static constexpr auto USE_VALIDATION = "use-validation";
 //static constexpr auto USE_NONMAX = "use_nonmax";
 //static constexpr auto THREADS = "threads";
 
+// ORB
+static constexpr auto ORB_TYPE = "orb";
+// Params:
+static constexpr auto MAX_FEATURES = "max-features";
+static constexpr auto EDGE_THRESH = "edge-thresh";
+static constexpr auto FAST_THRESH = "fast-thresh";
+static constexpr auto FIRST_LEVEL = "first-level";
+static constexpr auto NUM_LEVELS = "num-levels";
+static constexpr auto PATCH_SIZE = "patch-size";
+static constexpr auto SCALE_FACTOR = "scale-factor";
+static constexpr auto SCORE_TYPE = "score-type";
+static constexpr auto WTA_K = "wta-k";
+
 }}}
 
 #endif //DESCRY_CONFIG_KEYPOINTS_H

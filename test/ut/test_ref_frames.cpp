@@ -30,7 +30,7 @@ TEST_CASE( "Configuring reference frames", "[ref_frames]" ) {
 TEST_CASE( "Reference frames estimation on cloud", "[ref_frames]") {
     auto nest = descry::NormalEstimation{};
     nest.configure(descry::test::normals::loadConfigCupcl());
-    auto kdet = descry::ShapeKeypointDetector{};
+    auto kdet = descry::KeypointDetector{};
     kdet.configure(descry::test::keypoints::loadConfigCupcl());
     auto rfest = descry::RefFramesEstimation{};
     auto cfg = YAML::Load("");
@@ -44,11 +44,11 @@ TEST_CASE( "Reference frames estimation on cloud", "[ref_frames]") {
     SECTION("Real cloud") {
         auto image = descry::Image(descry::test::loadSceneCloud());
         image.setNormals(nest.compute(image));
-        image.setShapeKeypoints(kdet.compute(image));
+        image.setKeypoints(kdet.compute(image));
 
         auto rfs = rfest.compute(image);
         REQUIRE(!rfs.empty());
-        REQUIRE(rfs.size() == image.getShapeKeypoints().size());
+        REQUIRE(rfs.size() == image.getKeypoints().getShape().size());
         WARN(rfs.size());
 
         REQUIRE(std::all_of(rfs.host()->begin(), rfs.host()->end(),

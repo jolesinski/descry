@@ -6,15 +6,13 @@
 
 namespace descry {
 
-using ShapeKeypoints = DualShapeCloud;
-
-class ShapeKeypointDetector {
+class KeypointDetector {
 public:
     bool configure(const Config &config);
-    ShapeKeypoints compute(const Image &image) const;
+    Image::Keypoints compute(const Image &image) const;
 
 private:
-    std::function<ShapeKeypoints( const Image& )> nest_;
+    std::function<Image::Keypoints( const Image& )> nest_;
 };
 
 }
