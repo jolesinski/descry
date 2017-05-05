@@ -184,7 +184,7 @@ void view_keys(const descry::Image& image, std::string window_name) {
 
     std::cout << "Detected " << keys.size() << std::endl;
 
-    cv::drawKeypoints(frame, keys, frame, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
+    cv::drawKeypoints(frame, keys, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
 
     cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE );
     cv::imshow( window_name, frame );
@@ -203,27 +203,6 @@ void view_keys(const descry::Model& model, std::string window_name) {
         view_keys(view.image, "model");
         cv::waitKey(100);
     }
-}
-
-#include <pcl/keypoints/harris_3d.h>
-
-descry::DualShapeCloud compute_harris_3d(const descry::Image& image) {
-    auto keys = descry::make_cloud<pcl::PointXYZI>();
-    auto keys_out = descry::make_cloud<pcl::PointXYZ>();
-
-    auto method = pcl::HarrisKeypoint3D<pcl::PointXYZRGBA, pcl::PointXYZI>::HARRIS;
-    auto kdet = pcl::HarrisKeypoint3D<pcl::PointXYZRGBA, pcl::PointXYZI>(method, 0.01, 1e-6);
-    kdet.setInputCloud(image.getFullCloud().host());
-    kdet.setNormals(image.getNormals().host());
-    kdet.setNonMaxSupression (true);
-    kdet.setRefine(true);
-    kdet.setNumberOfThreads(8);
-
-    kdet.compute(*keys);
-
-    pcl::copyPointCloud(*keys, *keys_out);
-
-    return keys_out;
 }
 
 void compute_keys(const descry::Config& cfg) {
@@ -245,7 +224,7 @@ void compute_keys(const descry::Config& cfg) {
     kdet.configure(keys_cfg);
 
     image.setNormals(nest.compute(image));
-    image.setShapeKeypoints(compute_harris_3d(image));
+    image.setShapeKeypoints(kdet.compute(image));
     view_keys(image, "scene");
 
     // load
@@ -296,7 +275,7 @@ void compute_color_keys() {
 
     std::cout << "Detected " << kp.size() << std::endl;
 
-    cv::drawKeypoints(frame, kp, frame, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
+    cv::drawKeypoints(frame, kp, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
 
     cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
     cv::imshow( "Display window", frame );
