@@ -1,5 +1,7 @@
 #include <descry/descriptors.h>
 
+#include <opencv2/features2d.hpp>
+
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/fpfh_omp.h>
 
@@ -36,6 +38,75 @@ template<>
 struct convert<FPFH_PCL> {
     static bool decode(const Node &node, FPFH_PCL &rhs) {
         return decode_pcl_omp_describer<FPFH_PCL>(node, rhs);
+    }
+};
+
+template<>
+struct convert<cv::Ptr<cv::ORB>> {
+    static bool decode(const Node &node, cv::Ptr<cv::ORB> &rhs) {
+        namespace cfg = descry::config::descriptors;
+
+        if (!node.IsMap())
+            return false;
+
+        rhs = cv::ORB::create();
+
+        // optionals
+        {
+            auto &elem = node[cfg::MAX_FEATURES];
+            if (elem)
+                rhs->setMaxFeatures(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::EDGE_THRESH];
+            if (elem)
+                rhs->setEdgeThreshold(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::FAST_THRESH];
+            if (elem)
+                rhs->setFastThreshold(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::FIRST_LEVEL];
+            if (elem)
+                rhs->setFirstLevel(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::NUM_LEVELS];
+            if (elem)
+                rhs->setNLevels(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::PATCH_SIZE];
+            if (elem)
+                rhs->setPatchSize(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::SCALE_FACTOR];
+            if (elem)
+                rhs->setScaleFactor(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::SCORE_TYPE];
+            if (elem)
+                rhs->setScoreType(elem.as<int>());
+        }
+
+        {
+            auto &elem = node[cfg::WTA_K];
+            if (elem)
+                rhs->setWTA_K(elem.as<int>());
+        }
+
+        return true;
     }
 };
 
@@ -106,6 +177,34 @@ bool Describer<D>::configure(const Config& config) {
     }
 
     return true;
+}
+
+bool Describer<CvDescription>::configure(const Config& config) {
+    if (!config["type"])
+        return false;
+
+    auto est_type = config["type"].as<std::string>();
+    try {
+        if (est_type == config::descriptors::ORB_TYPE) {
+            auto descr = config.as<cv::Ptr<cv::ORB>>();
+            _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
+                auto d = CvDescription{};
+                descr->detectAndCompute(image.getColorMat(), cv::noArray(), d.keypoints, d.descriptors);
+                return d;
+            };
+        } else
+            return false;
+    } catch ( const YAML::BadConversion& e) {
+        return false;
+    }
+
+    return true;
+}
+
+CvDescription Describer<CvDescription>::compute(const Image& image) {
+    if (!_descr)
+        DESCRY_THROW(NotConfiguredException, "Describer not configured");
+    return _descr(image);
 }
 
 template

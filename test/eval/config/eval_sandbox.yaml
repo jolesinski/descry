@@ -6,9 +6,9 @@ model:
 
 scene:
     name: T_07_willow_dataset
-    keypoints:
+    descriptors:
         type: orb
-        max-features: 10000
+        max-features: 5000
 
 metrics:
     radius: 0.01
