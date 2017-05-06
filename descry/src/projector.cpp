@@ -94,20 +94,23 @@ View SphericalProjector::project(const FullCloud::ConstPtr& full, const Pose& vi
     partial->points.resize(partial->width * partial->height);
     partial->is_dense = false;
 
+    auto indices = std::vector<int>{};
     for (auto v = 0u; v < partial->height; ++v)
         for (auto u = 0u; u < partial->width; ++u)
         {
             descry::FullPoint& point = partial->at(u, v);
             auto uv = std::make_pair(u + min_uv.first, v + min_uv.second);
-            if ( plane_to_space.count(uv) )
+            if ( plane_to_space.count(uv) ) {
+                indices.emplace_back(u + v * partial->height);
                 point = plane_to_space.at(uv);
+            }
             else
                 std::fill(std::begin(point.data), std::end(point.data),
                           std::numeric_limits<float>::quiet_NaN());
         }
 
     //TODO: add radial filter
-    return View{ Image{partial}, viewpoint };
+    return View{ Image{partial}, indices, viewpoint };
 }
 
 }

@@ -10,6 +10,7 @@ namespace descry {
 struct View
 {
     Image image;
+    std::vector<int> mask;
     Pose viewpoint;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

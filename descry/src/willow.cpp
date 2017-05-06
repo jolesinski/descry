@@ -5,7 +5,6 @@
 #include <boost/range/iterator_range.hpp>
 
 #include <pcl/io/pcd_io.h>
-#include <pcl/filters/extract_indices.h>
 
 #include <algorithm>
 
@@ -76,18 +75,17 @@ View WillowProjector::loadView(const std::string& cloud_path,
                                const std::string& indices_path,
                                const std::string& pose_path) const {
     auto cloud = loadCloud(cloud_path);
-    auto indices = boost::make_shared<std::vector<int>>(loadIndices(indices_path));
+    auto indices = std::vector<int>(loadIndices(indices_path));
     auto viewpoint = loadPose(pose_path);
 
-    pcl::ExtractIndices<FullPoint> extract;
-    extract.setInputCloud(cloud);
-    extract.setIndices(indices);
-    extract.setNegative(false);
-    extract.setKeepOrganized(true);
+    auto null_point = FullPoint{};
+    null_point.getVector3fMap() = Eigen::Vector3f::Constant(std::numeric_limits<float>::quiet_NaN());
+    auto filtered_cloud = make_cloud<FullPoint>(cloud->width, cloud->height, null_point );
+    for (auto idx : indices) {
+        filtered_cloud->at(idx) = cloud->at(idx);
+    }
 
-    extract.filter(*cloud);
-
-    return View{ Image{cloud}, viewpoint };
+    return View{ Image{filtered_cloud}, indices, viewpoint };
 }
 
 
