@@ -10,25 +10,10 @@ template <class Descriptor>
 class Describer {
 public:
     bool configure(const Config &config);
-    cupcl::DualContainer<Descriptor> compute(const Image& image);
+    DescriptorContainer<Descriptor> compute(const Image& image);
 
 private:
-    std::function<cupcl::DualContainer<Descriptor>( const Image& )> _descr;
-};
-
-struct CvDescription {
-    std::vector<cv::KeyPoint> keypoints;
-    cv::Mat descriptors;
-};
-
-template <>
-class Describer<CvDescription> {
-public:
-    bool configure(const Config &config);
-    CvDescription compute(const Image& image);
-
-private:
-    std::function<CvDescription( const Image& )> _descr;
+    std::function<DescriptorContainer<Descriptor>( const Image& )> _descr;
 };
 
 }

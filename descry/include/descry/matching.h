@@ -13,20 +13,20 @@ namespace descry {
 template <class Descriptor>
 class Matcher {
 public:
-    using DualDescriptors = cupcl::DualContainer<Descriptor>;
-
     class Strategy {
     public:
-        virtual void setModel(const std::vector<DualDescriptors>& model) = 0;
-        virtual std::vector<pcl::CorrespondencesPtr> match(const DualDescriptors& scene) = 0;
+        virtual void setModel(const std::vector<DescriptorContainer<Descriptor>>& model) = 0;
+        virtual void setModel(std::vector<DescriptorContainer<Descriptor>>&& model) = 0;
+        virtual std::vector<pcl::CorrespondencesPtr> match(const DescriptorContainer<Descriptor>& scene) = 0;
         virtual ~Strategy() = default;
     };
 
     bool configure(const Config& config);
 
-    void setModel(const std::vector<DualDescriptors>& model);
+    void setModel(const std::vector<DescriptorContainer<Descriptor>>& model);
+    void setModel(std::vector<DescriptorContainer<Descriptor>>&& model);
 
-    std::vector<pcl::CorrespondencesPtr> match(const DualDescriptors& scene);
+    std::vector<pcl::CorrespondencesPtr> match(const DescriptorContainer<Descriptor>& scene);
 private:
     std::unique_ptr<Strategy> strategy_ = nullptr;
 };

@@ -146,7 +146,7 @@ struct pcl_describer_parser<pcl::FPFHSignature33> {
 }
 
 template<class D>
-cupcl::DualContainer<D> Describer<D>::compute(const Image& image) {
+DescriptorContainer<D> Describer<D>::compute(const Image& image) {
     if (!_descr)
         DESCRY_THROW(NotConfiguredException, "Describer not configured");
     return _descr(image);
@@ -179,7 +179,8 @@ bool Describer<D>::configure(const Config& config) {
     return true;
 }
 
-bool Describer<CvDescription>::configure(const Config& config) {
+template<>
+bool Describer<ColorDescription>::configure(const Config& config) {
     if (!config["type"])
         return false;
 
@@ -188,7 +189,7 @@ bool Describer<CvDescription>::configure(const Config& config) {
         if (est_type == config::descriptors::ORB_TYPE) {
             auto descr = config.as<cv::Ptr<cv::ORB>>();
             _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
-                auto d = CvDescription{};
+                auto d = ColorDescription{};
                 descr->detectAndCompute(image.getColorMat(), cv::noArray(), d.keypoints, d.descriptors);
                 return d;
             };
@@ -201,16 +202,13 @@ bool Describer<CvDescription>::configure(const Config& config) {
     return true;
 }
 
-CvDescription Describer<CvDescription>::compute(const Image& image) {
-    if (!_descr)
-        DESCRY_THROW(NotConfiguredException, "Describer not configured");
-    return _descr(image);
-}
-
 template
 class Describer<pcl::SHOT352>;
 
 template
 class Describer<pcl::FPFHSignature33>;
+
+template
+class Describer<ColorDescription>;
 
 }

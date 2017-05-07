@@ -90,7 +90,7 @@ void drawCorners(const std::vector<cv::Point2f>& obj_corners, cv::Mat H, cv::Inp
     cv::line( result, scene_corners[3], scene_corners[0], cv::Scalar( 0, 255, 0), 4 );
 }
 
-std::vector<cv::DMatch> filter(descry::CvDescription& scene_d, descry::CvDescription& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H) {
+std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H) {
     //const double ransac_thresh = 2.5f; // RANSAC inlier threshold
     cv::Mat inlier_mask;
     std::vector<cv::KeyPoint> inliers1, inliers2;
@@ -125,7 +125,7 @@ std::vector<cv::DMatch> filter(descry::CvDescription& scene_d, descry::CvDescrip
     return inlier_matches;
 }
 
-std::vector<cv::DMatch> match(descry::CvDescription& scene_d, descry::CvDescription& model_d, cv::Mat& H) {
+std::vector<cv::DMatch> match(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, cv::Mat& H) {
     const double nn_match_ratio = 0.8f; // Nearest-neighbour matching ratio
 
     cv::BFMatcher matcher(cv::NORM_HAMMING);
@@ -160,7 +160,7 @@ void recognize(const descry::Config& cfg) {
         image.setNormals(nest.compute(image));
     }
 
-    auto describer = descry::Describer<descry::CvDescription>{};
+    auto describer = descry::Describer<descry::ColorDescription>{};
     describer.configure(cfg["scene"][descry::config::descriptors::NODE_NAME]);
     auto scene_d = describer.compute(image);
 

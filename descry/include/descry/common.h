@@ -47,6 +47,24 @@ using DualShapeCloud = cupcl::DualContainer<pcl::PointXYZ>;
 using DualNormals = cupcl::DualContainer<pcl::Normal>;
 using DualRefFrames = cupcl::DualContainer<pcl::ReferenceFrame>;
 
+struct ColorDescription {
+    std::vector<cv::KeyPoint> keypoints;
+    cv::Mat descriptors;
+};
+
+template <typename Descriptor>
+struct DescriptorContainerTrait {
+    using type = cupcl::DualContainer<Descriptor>;
+};
+
+template<>
+struct DescriptorContainerTrait<ColorDescription> {
+    using type = ColorDescription;
+};
+
+template <typename Descriptor>
+using DescriptorContainer = typename DescriptorContainerTrait<Descriptor>::type;
+
 }
 
 #endif //DESCRY_COMMON_H

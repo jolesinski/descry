@@ -47,7 +47,7 @@ private:
     Describer<Descriptor> model_describer;
 
     Matcher<Descriptor> matcher;
-    std::vector<Model::Description<Descriptor>> model_description;
+    std::vector<DescriptorContainer<Descriptor>> model_description;
     Clusterizer clusterizer;
 };
 
