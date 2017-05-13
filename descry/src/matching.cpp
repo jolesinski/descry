@@ -137,7 +137,7 @@ public:
             max_neighs = config[config::matcher::MAX_NEIGHS].as<unsigned int>();
 
         if (config[config::matcher::USE_LOWE])
-            lowe_ratio = config[config::matcher::USE_LOWE].as<bool>();
+            use_lowe = config[config::matcher::USE_LOWE].as<bool>();
 
         if (config[config::matcher::LOWE_RATIO])
             lowe_ratio = config[config::matcher::LOWE_RATIO].as<double>();
@@ -223,7 +223,7 @@ std::unique_ptr<MatcherStrategy<ColorDescription>> makeStrategy<ColorDescription
 
     try {
         auto descr_type = config["type"].as<std::string>();
-        if (descr_type == config::matcher::KDTREE_FLANN_TYPE)
+        if (descr_type == config::matcher::BRUTE_FORCE_TYPE)
             return std::make_unique<BruteForceMatching>(config);
     } catch ( const YAML::RepresentationException& e) { }
 

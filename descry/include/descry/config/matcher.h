@@ -5,10 +5,10 @@ namespace descry { namespace config { namespace matcher {
 
 static constexpr auto NODE_NAME = "matching";
 
-// PCL kdtree flann
 static constexpr auto KDTREE_FLANN_TYPE = "kdtree-flann";
+static constexpr auto BRUTE_FORCE_TYPE = "brute-force";
 // Params required:
-static constexpr auto NORM_TYPE = "norm-type";
+static constexpr auto NORM_TYPE = "norm";
 static constexpr auto NORM_HAMMING = "hamming";
 static constexpr auto NORM_L2 = "l2";
 // Params optional:

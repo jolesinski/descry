@@ -10,6 +10,15 @@ scene:
         type: orb
         max-features: 5000
 
+matching:
+    type: brute-force
+    norm: hamming
+    use-lowe: true
+    lowe-ratio: 0.8
+
+alignment:
+    ransac-inlier-threshold: 5
+
 metrics:
     radius: 0.01
     visualize: true

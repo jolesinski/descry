@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <descry/descriptors.h>
+#include <descry/matching.h>
 #include <descry/normals.h>
 #include <descry/willow.h>
 #include <descry/test/config.h>
@@ -90,12 +91,16 @@ void drawCorners(const std::vector<cv::Point2f>& obj_corners, cv::Mat H, cv::Inp
     cv::line( result, scene_corners[3], scene_corners[0], cv::Scalar( 0, 255, 0), 4 );
 }
 
-std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H) {
-    //const double ransac_thresh = 2.5f; // RANSAC inlier threshold
-    cv::Mat inlier_mask;
-    std::vector<cv::KeyPoint> inliers1, inliers2;
-    std::vector<cv::DMatch> inlier_matches;
+std::vector<cv::DMatch> convert(const pcl::CorrespondencesPtr& pcl_matches) {
+    std::vector<cv::DMatch> matches;
 
+    for (auto match : *pcl_matches)
+        matches.emplace_back(match.index_match, match.index_query, match.distance);
+
+    return matches;
+}
+
+std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H, double thresh) {
     if (matches.size() < 4) {
         std::cout << "not enough matches" << std::endl;
         return {};
@@ -110,7 +115,10 @@ std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorD
         obj.push_back( model_d.keypoints[ matches[i].trainIdx ].pt );
     }
 
-    H = findHomography(obj, scene, inlier_mask, cv::RANSAC);
+    cv::Mat inlier_mask;
+    std::vector<cv::DMatch> inlier_matches;
+
+    H = findHomography(obj, scene, cv::RANSAC, thresh, inlier_mask);
 
     if (H.empty()) {
         std::cout << "homography not found" << std::endl;
@@ -125,8 +133,14 @@ std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorD
     return inlier_matches;
 }
 
+std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, pcl::CorrespondencesPtr& pcl_matches, cv::Mat& H, double thresh) {
+    auto matches = convert(pcl_matches);
+    return filter(scene_d, model_d, matches, H, thresh);
+}
+
 std::vector<cv::DMatch> match(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, cv::Mat& H) {
     const double nn_match_ratio = 0.8f; // Nearest-neighbour matching ratio
+    const double ransac_thresh = 10.5f; // RANSAC inlier threshold
 
     cv::BFMatcher matcher(cv::NORM_HAMMING);
     std::vector< std::vector<cv::DMatch> > nn_matches;
@@ -142,7 +156,7 @@ std::vector<cv::DMatch> match(descry::ColorDescription& scene_d, descry::ColorDe
             good_matches.emplace_back(first);
     }
 
-    return filter(scene_d, model_d, good_matches, H);
+    return filter(scene_d, model_d, good_matches, H, ransac_thresh);
 }
 
 void recognize(const descry::Config& cfg) {
@@ -174,10 +188,18 @@ void recognize(const descry::Config& cfg) {
     auto model_d = describer.compute(view.image);
 //    view_keys(model, "model");
 
+    auto matcher = descry::Matcher<descry::ColorDescription>{};
+    matcher.configure(cfg[descry::config::matcher::NODE_NAME]);
+    matcher.setModel({model_d});
+
+    auto matches = matcher.match(scene_d);
+
+    std::cout << matches.front()->size() << std::endl;
+
     cv::Mat homography;
-    auto matches = match(scene_d, model_d, homography);
+    auto cv_matches = filter(scene_d, model_d, matches.front(), homography, cfg["alignment"]["ransac-inlier-threshold"].as<double>());
     cv::Mat res;
-    drawMatches(image.getColorMat(), scene_d.keypoints, view.image.getColorMat(), model_d.keypoints, matches, res);
+    drawMatches(image.getColorMat(), scene_d.keypoints, view.image.getColorMat(), model_d.keypoints, cv_matches, res);
     drawCorners(get_corners(view), homography, res);
     cv::namedWindow( "matches", cv::WINDOW_AUTOSIZE );
     cv::imshow( "matches" , res );
