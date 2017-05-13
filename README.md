@@ -12,13 +12,14 @@ Project developed as part of masters thesis:
 * CUDA 8
 
 ### Testing:
-Unit and functional tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework,
-[benchmark](https://github.com/google/benchmark) framework is used for performance benchmarks.
+Unit and functional tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework.
+[Google benchmark](https://github.com/google/benchmark) is used for performance benchmarks.
 
 
 ### Results:
 TBD.
 
 ### References:
+* [OpenCV](https://github.com/opencv/opencv)
 * [Point Cloud Library](https://github.com/PointCloudLibrary/pcl)
 * [Vision 4 Robotics](https://github.com/strands-project/v4r)
