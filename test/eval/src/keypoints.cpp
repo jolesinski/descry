@@ -161,15 +161,32 @@ void view_keys(const descry::Model& model, std::string window_name) {
     //auto keys = compute_harris_3d(image);
     //auto keys = compute_iss_3d(image);
 
-    //copy to opencv mat
-    for (const auto& view : model.getViews()) {
-        auto frame = view.image.getColorMat();
-        auto keys = view.image.getKeypoints().getColor();
+    pcl::visualization::PCLVisualizer viewer("Cloud Viewer");
+    viewer.setBackgroundColor (0, 0, 0);
 
-        std::cout << "Detected " << keys.size() << std::endl;
-        view_keys(view.image, "model");
-        cv::waitKey();
+    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<descry::FullPoint>(model.getFullCloud());
+    viewer.addPointCloud(model.getFullCloud(), rgb, "model");
+
+    viewer.addPointCloud(model.getFullKeypoints(), "keys");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "keys");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 255, 0 , 0, "keys");
+
+    viewer.addCoordinateSystem (.3);
+    viewer.initCameraParameters ();
+
+    while ( cv::waitKey(100) == -1 && !viewer.wasStopped() ) {
+        viewer.spinOnce(100);
     }
+
+    //copy to opencv mat
+//    for (const auto& view : model.getViews()) {
+//        auto frame = view.image.getColorMat();
+//        auto keys = view.image.getKeypoints().getColor();
+//
+//        std::cout << "Detected " << keys.size() << std::endl;
+//        view_keys(view.image, "model");
+//        cv::waitKey();
+//    }
 }
 
 void compute_keys(const descry::Config& cfg) {
