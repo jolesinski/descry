@@ -50,6 +50,20 @@ std::vector<cv::KeyPoint> convertShapeToColorKeypoints(const descry::ShapeCloud&
     return cv_keys;
 }
 
+descry::DualShapeCloud convertColorToShapeKeypoints(const std::vector<cv::KeyPoint>& cv_keys,
+                                                    const descry::DualShapeCloud& full) {
+    auto keys = descry::make_cloud<descry::ShapePoint>();
+
+    keys->points.reserve(cv_keys.size());
+    keys->width = static_cast<uint32_t>(cv_keys.size());
+    keys->height = 1;
+
+    for (auto key : cv_keys)
+        keys->points.emplace_back(full.host()->at(static_cast<int>(key.pt.x), static_cast<int>(key.pt.y)));
+
+    return descry::DualShapeCloud{std::move(keys)};
+}
+
 }
 
 namespace descry {
@@ -99,6 +113,13 @@ const Image::Keypoints& Image::getKeypoints() const {
 }
 
 const DualShapeCloud& Image::Keypoints::getShape() const {
+    return shape;
+}
+
+DualShapeCloud& Image::Keypoints::getShape(const DualShapeCloud& full) {
+    if (shape.empty() && !color.empty() && !full.empty())
+        shape = convertColorToShapeKeypoints(color, full);
+
     return shape;
 }
 

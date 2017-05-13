@@ -28,9 +28,11 @@ public:
         void initPerspective(const descry::Perspective& proj);
 
         const DualShapeCloud& getShape() const;
+        // allows for conversion
+        DualShapeCloud& getShape(const DualShapeCloud& full);
         const std::vector<cv::KeyPoint>& getColor() const;
     private:
-        DualShapeCloud shape;
+        mutable DualShapeCloud shape;
         mutable std::vector<cv::KeyPoint> color;
 
         DualPerpective projection;
