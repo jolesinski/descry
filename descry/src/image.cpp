@@ -51,7 +51,7 @@ std::vector<cv::KeyPoint> convertShapeToColorKeypoints(const descry::ShapeCloud&
 }
 
 descry::DualShapeCloud convertColorToShapeKeypoints(const std::vector<cv::KeyPoint>& cv_keys,
-                                                    const descry::DualShapeCloud& full) {
+                                                    const descry::ShapeCloud& full) {
     auto keys = descry::make_cloud<descry::ShapePoint>();
 
     keys->points.reserve(cv_keys.size());
@@ -59,7 +59,7 @@ descry::DualShapeCloud convertColorToShapeKeypoints(const std::vector<cv::KeyPoi
     keys->height = 1;
 
     for (auto key : cv_keys)
-        keys->points.emplace_back(full.host()->at(static_cast<int>(key.pt.x), static_cast<int>(key.pt.y)));
+        keys->points.emplace_back(full.at(static_cast<int>(key.pt.x), static_cast<int>(key.pt.y)));
 
     return descry::DualShapeCloud{std::move(keys)};
 }
@@ -108,18 +108,13 @@ void Image::setRefFrames(DualRefFrames&& ref_frames) {
 }
 
 const Image::Keypoints& Image::getKeypoints() const {
-    keys.initPerspective(*getProjection().host());
+    keys.init(*getProjection().host(), getShapeCloud().host());
     return keys;
 }
 
 const DualShapeCloud& Image::Keypoints::getShape() const {
-    return shape;
-}
-
-DualShapeCloud& Image::Keypoints::getShape(const DualShapeCloud& full) {
-    if (shape.empty() && !color.empty() && !full.empty())
-        shape = convertColorToShapeKeypoints(color, full);
-
+    if (shape.empty() && !color.empty() && !full->empty())
+        shape = convertColorToShapeKeypoints(color, *full);
     return shape;
 }
 
@@ -137,9 +132,11 @@ void Image::Keypoints::set(std::vector<cv::KeyPoint> &&keypoints) {
     color = std::move(keypoints);
 }
 
-void Image::Keypoints::initPerspective(const descry::Perspective &proj) {
+void Image::Keypoints::init(const descry::Perspective &proj, const descry::ShapeCloud::ConstPtr& full) {
     if (projection.empty())
         projection.reset(std::make_unique<descry::Perspective>(proj));
+
+    this->full = full;
 }
 
 }

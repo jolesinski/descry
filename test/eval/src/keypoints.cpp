@@ -169,7 +169,7 @@ void view_keys(const descry::Model& model, std::string window_name) {
 
     viewer.addPointCloud(model.getFullKeypoints(), "keys");
     viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "keys");
-    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 255, 0 , 0, "keys");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0 , 0, "keys");
 
     viewer.addCoordinateSystem (.3);
     viewer.initCameraParameters ();
