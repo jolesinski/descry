@@ -19,6 +19,11 @@ matching:
 alignment:
     ransac-inlier-threshold: 5
 
+clusters:
+    type: gc
+    gc-size: 0.05
+    gc-threshold: 10
+
 metrics:
     radius: 0.01
     visualize: true

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <descry/clusters.h>
 #include <descry/descriptors.h>
 #include <descry/matching.h>
 #include <descry/normals.h>
@@ -10,6 +11,9 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <pcl/recognition/cg/geometric_consistency.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
 
 void view_keys(const descry::Image& image, std::string window_name) {
     //copy to opencv mat
@@ -81,20 +85,10 @@ void drawViewWithCorners(const descry::View& view) {
     cv::waitKey();
 }
 
-void drawCorners(const std::vector<cv::Point2f>& obj_corners, cv::Mat H, cv::InputOutputArray result) {
-    std::vector<cv::Point2f> scene_corners;
-    perspectiveTransform( obj_corners, scene_corners, H);
-
-    cv::line( result, scene_corners[0], scene_corners[1], cv::Scalar(0, 255, 0), 4 );
-    cv::line( result, scene_corners[1], scene_corners[2], cv::Scalar( 0, 255, 0), 4 );
-    cv::line( result, scene_corners[2], scene_corners[3], cv::Scalar( 0, 255, 0), 4 );
-    cv::line( result, scene_corners[3], scene_corners[0], cv::Scalar( 0, 255, 0), 4 );
-}
-
-std::vector<cv::DMatch> convert(const pcl::CorrespondencesPtr& pcl_matches) {
+std::vector<cv::DMatch> convert(const pcl::Correspondences& pcl_matches) {
     std::vector<cv::DMatch> matches;
 
-    for (auto match : *pcl_matches)
+    for (auto match : pcl_matches)
         matches.emplace_back(match.index_match, match.index_query, match.distance);
 
     return matches;
@@ -134,7 +128,7 @@ std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorD
 }
 
 std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, pcl::CorrespondencesPtr& pcl_matches, cv::Mat& H, double thresh) {
-    auto matches = convert(pcl_matches);
+    auto matches = convert(*pcl_matches);
     return filter(scene_d, model_d, matches, H, thresh);
 }
 
@@ -159,6 +153,26 @@ std::vector<cv::DMatch> match(descry::ColorDescription& scene_d, descry::ColorDe
     return filter(scene_d, model_d, good_matches, H, ransac_thresh);
 }
 
+void view_projection(const descry::Image& scene, const descry::Model& model, const descry::Pose& pose) {
+    pcl::visualization::PCLVisualizer viewer("Cloud Viewer");
+    viewer.setBackgroundColor (0, 0, 0);
+    auto transformed = descry::make_cloud<descry::FullPoint>();
+    pcl::transformPointCloud(*model.getFullCloud(), *transformed, pose);
+
+    viewer.addPointCloud(scene.getFullCloud().host(), "scene");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 0, 1, 0, "scene");
+
+    viewer.addPointCloud(transformed, "model");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "model");
+
+    viewer.addCoordinateSystem (.3);
+    viewer.initCameraParameters ();
+
+    while (!viewer.wasStopped()) {
+        viewer.spinOnce(100);
+    }
+}
+
 void recognize(const descry::Config& cfg) {
     auto scene_cfg = cfg["scene"];
     auto model_cfg = cfg["model"];
@@ -168,14 +182,14 @@ void recognize(const descry::Config& cfg) {
     auto test_data = willow.loadSingleTest(test_name, 1);
     auto image = descry::Image(test_data.front().first);
 
-    if (cfg["scene"][descry::config::normals::NODE_NAME]) {
+    if (scene_cfg[descry::config::normals::NODE_NAME]) {
         auto nest = descry::NormalEstimation{};
-        nest.configure(cfg["scene"][descry::config::normals::NODE_NAME]);
+        nest.configure(scene_cfg[descry::config::normals::NODE_NAME]);
         image.setNormals(nest.compute(image));
     }
 
     auto describer = descry::Describer<descry::ColorDescription>{};
-    describer.configure(cfg["scene"][descry::config::descriptors::NODE_NAME]);
+    describer.configure(scene_cfg[descry::config::descriptors::NODE_NAME]);
     auto scene_d = describer.compute(image);
 
 //    view_keys(image, "scene");
@@ -184,26 +198,70 @@ void recognize(const descry::Config& cfg) {
     auto model = willow.loadModel(model_name);
     auto& view = model.getViews().at(5);
     //drawViewWithCorners(view);
-    describer.configure(cfg["scene"][descry::config::descriptors::NODE_NAME]);
+    describer.configure(model_cfg[descry::config::descriptors::NODE_NAME]);
     auto model_d = describer.compute(view.image);
 //    view_keys(model, "model");
+
+    std::cout << model_d.descriptors.size() << std::endl;
+    std::cout << model_d.keypoints.size() << std::endl;
 
     auto matcher = descry::Matcher<descry::ColorDescription>{};
     matcher.configure(cfg[descry::config::matcher::NODE_NAME]);
     matcher.setModel({model_d});
 
     auto matches = matcher.match(scene_d);
-
     std::cout << matches.front()->size() << std::endl;
 
     cv::Mat homography;
     auto cv_matches = filter(scene_d, model_d, matches.front(), homography, cfg["alignment"]["ransac-inlier-threshold"].as<double>());
     cv::Mat res;
     drawMatches(image.getColorMat(), scene_d.keypoints, view.image.getColorMat(), model_d.keypoints, cv_matches, res);
-    drawCorners(get_corners(view), homography, res);
+    //drawCorners(get_corners(view), homography, res);
     cv::namedWindow( "matches", cv::WINDOW_AUTOSIZE );
     cv::imshow( "matches" , res );
-    cv::waitKey();
+    cv::waitKey(1000);
+
+
+    view.image.setKeypoints(std::move(model_d.keypoints));
+//    model.getViews().erase(model.getViews().begin(), model.getViews().begin() + 5);
+//    model.getViews().erase(model.getViews().begin() + 1, model.getViews().end());
+    image.setKeypoints(std::move(scene_d.keypoints));
+
+    pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
+//    descry::Clusterizer clst;
+//    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
+//    clst.setModel(model);
+//    auto clusters = clst.compute(image, matches);
+
+    pcl::GeometricConsistencyGrouping<descry::ShapePoint, descry::ShapePoint> gc;
+    gc.setGCSize(0.01);
+    gc.setGCThreshold(5);
+    gc.setInputCloud(view.image.getKeypoints().getShape().host());
+    gc.setSceneCloud(image.getKeypoints().getShape().host());
+
+    gc.setModelSceneCorrespondences(matches.front());
+
+    auto clustered_corrs = std::vector<pcl::Correspondences>{};
+    auto poses = descry::AlignedVector<descry::Pose>{};
+
+    gc.recognize(poses, clustered_corrs);
+
+    auto& instance_map = test_data.front().second;
+    std::cout << "Ground truth" << std::endl;
+    std::cout << instance_map[model_name].front() << std::endl;
+    std::cout << "Found" << std::endl;
+    for (auto idx = 0u; idx < poses.size(); ++idx) {
+        std::cout << poses[idx] * view.viewpoint.inverse() << std::endl;
+        view_projection(image, model, poses[idx] * view.viewpoint.inverse());
+
+        cv::Mat res2;
+
+        drawMatches(image.getColorMat(), image.getKeypoints().getColor(), view.image.getColorMat(), view.image.getKeypoints().getColor(), convert(clustered_corrs[idx]), res2);
+
+        cv::namedWindow( "matches2", cv::WINDOW_AUTOSIZE );
+        cv::imshow( "matches2" , res2 );
+        cv::waitKey(1000);
+    }
 }
 
 int main(int argc, char * argv[]) {
@@ -220,7 +278,7 @@ int main(int argc, char * argv[]) {
     }
 
     recognize(cfg);
-    cv::waitKey();
+    cv::waitKey(1000);
 
     return EXIT_SUCCESS;
 }
