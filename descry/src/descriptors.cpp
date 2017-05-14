@@ -179,6 +179,32 @@ bool Describer<D>::configure(const Config& config) {
     return true;
 }
 
+namespace {
+
+bool is_finite_keypoint(const cv::KeyPoint& key, const Image& image) {
+    auto x = static_cast<unsigned int>(key.pt.x);
+    auto y = static_cast<unsigned int>(key.pt.y);
+
+    const auto& shape = image.getShapeCloud().host();
+
+    return pcl::isFinite(shape->at(x, y));
+}
+
+ColorDescription filter_null_keypoints(const ColorDescription& descr, const Image& image) {
+    auto filtered = ColorDescription{};
+
+    for (std::size_t idx = 0; idx < descr.keypoints.size(); ++idx) {
+        if (is_finite_keypoint(descr.keypoints.at(idx), image)) {
+            filtered.keypoints.emplace_back(descr.keypoints.at(idx));
+            filtered.descriptors.push_back(descr.descriptors.row(idx));
+        }
+    }
+
+    return filtered;
+}
+
+}
+
 template<>
 bool Describer<ColorDescription>::configure(const Config& config) {
     if (!config["type"])
@@ -191,7 +217,7 @@ bool Describer<ColorDescription>::configure(const Config& config) {
             _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
                 auto d = ColorDescription{};
                 descr->detectAndCompute(image.getColorMat(), cv::noArray(), d.keypoints, d.descriptors);
-                return d;
+                return filter_null_keypoints(d, image);
             };
         } else
             return false;

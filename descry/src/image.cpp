@@ -58,8 +58,11 @@ descry::DualShapeCloud convertColorToShapeKeypoints(const std::vector<cv::KeyPoi
     keys->width = static_cast<uint32_t>(cv_keys.size());
     keys->height = 1;
 
-    for (auto key : cv_keys)
-        keys->points.emplace_back(full.at(static_cast<int>(key.pt.x), static_cast<int>(key.pt.y)));
+    for (auto key : cv_keys) {
+        auto x = static_cast<unsigned int>(key.pt.x);
+        auto y = static_cast<unsigned int>(key.pt.y);
+        keys->points.emplace_back(full.at(x, y));
+    }
 
     return descry::DualShapeCloud{std::move(keys)};
 }
