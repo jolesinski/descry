@@ -33,6 +33,9 @@ FullCloud::Ptr loadCloud(const std::string& cloud_path) {
     if( pcl::io::loadPCDFile<pcl::PointXYZRGBA>(cloud_path, *cloud_ptr) == -1 )
         throw std::runtime_error("Unable to load pcd from" + cloud_path);
 
+    cloud_ptr->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    cloud_ptr->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
     return cloud_ptr;
 }
 
