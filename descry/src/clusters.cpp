@@ -115,7 +115,7 @@ public:
             clust_[idx].recognize(poses);
 
             for (auto pose : poses)
-                instances.poses.emplace_back(pose * viewpoints_[idx]);
+                instances.poses.emplace_back(pose * viewpoints_[idx].inverse());
         }
 
         return instances;
