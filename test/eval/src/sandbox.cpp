@@ -223,44 +223,23 @@ void recognize(const descry::Config& cfg) {
 
 
     view.image.setKeypoints(std::move(model_d.keypoints));
-//    model.getViews().erase(model.getViews().begin(), model.getViews().begin() + 5);
-//    model.getViews().erase(model.getViews().begin() + 1, model.getViews().end());
+    model.getViews().erase(model.getViews().begin(), model.getViews().begin() + 5);
+    model.getViews().erase(model.getViews().begin() + 1, model.getViews().end());
     image.setKeypoints(std::move(scene_d.keypoints));
 
     pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
-//    descry::Clusterizer clst;
-//    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
-//    clst.setModel(model);
-//    auto clusters = clst.compute(image, matches);
-
-    pcl::GeometricConsistencyGrouping<descry::ShapePoint, descry::ShapePoint> gc;
-    gc.setGCSize(0.01);
-    gc.setGCThreshold(5);
-    gc.setInputCloud(view.image.getKeypoints().getShape().host());
-    gc.setSceneCloud(image.getKeypoints().getShape().host());
-
-    gc.setModelSceneCorrespondences(matches.front());
-
-    auto clustered_corrs = std::vector<pcl::Correspondences>{};
-    auto poses = descry::AlignedVector<descry::Pose>{};
-
-    gc.recognize(poses, clustered_corrs);
+    descry::Clusterizer clst;
+    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
+    clst.setModel(model);
+    auto clusters = clst.compute(image, matches);
 
     auto& instance_map = test_data.front().second;
     std::cout << "Ground truth" << std::endl;
     std::cout << instance_map[model_name].front() << std::endl;
     std::cout << "Found" << std::endl;
-    for (auto idx = 0u; idx < poses.size(); ++idx) {
-        std::cout << poses[idx] * view.viewpoint.inverse() << std::endl;
-        view_projection(image, model, poses[idx] * view.viewpoint.inverse());
-
-        cv::Mat res2;
-
-        drawMatches(image.getColorMat(), image.getKeypoints().getColor(), view.image.getColorMat(), view.image.getKeypoints().getColor(), convert(clustered_corrs[idx]), res2);
-
-        cv::namedWindow( "matches2", cv::WINDOW_AUTOSIZE );
-        cv::imshow( "matches2" , res2 );
-        cv::waitKey(1000);
+    for (auto idx = 0u; idx < clusters.poses.size(); ++idx) {
+        std::cout << clusters.poses[idx] << std::endl;
+        view_projection(image, model, clusters.poses[idx]);
     }
 }
 

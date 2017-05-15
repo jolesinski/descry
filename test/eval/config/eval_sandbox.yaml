@@ -21,8 +21,8 @@ alignment:
 
 clusters:
     type: gc
-    gc-size: 0.05
-    gc-threshold: 10
+    gc-size: 0.01
+    gc-threshold: 5
 
 metrics:
     radius: 0.01
