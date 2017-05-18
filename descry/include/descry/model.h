@@ -4,6 +4,7 @@
 
 #include <descry/projector.h>
 #include <descry/preprocess.h>
+#include <descry/descriptors.h>
 
 namespace descry {
 
@@ -17,7 +18,7 @@ public:
     Model(const FullCloud::ConstPtr& full, AlignedVector<View>&& views);
 
     const FullCloud::ConstPtr& getFullCloud() const { return full_; }
-    ShapeCloud::Ptr getFullKeypoints() const;
+    //ShapeCloud::Ptr getFullKeypoints() const;
     //const RefFrames::ConstPtr& getFullRefFrames() const;
     const AlignedVector<View>& getViews() const { return views_; }
     AlignedVector<View>& getViews() { return views_; }

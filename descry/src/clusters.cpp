@@ -67,33 +67,34 @@ bool Clusterizer::configure(const Config &config) {
     return (strategy_ != nullptr);
 }
 
-void Clusterizer::setModel(const Model& model) {
+void Clusterizer::setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
-    return strategy_->setModel(model);
+    return strategy_->setModel(model, view_keyframes);
 }
 
-Instances Clusterizer::compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs) {
+Instances Clusterizer::compute(const Image& image, const KeyFrameHandle& keyframe,
+                               const std::vector<pcl::CorrespondencesPtr>& corrs) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
-    return strategy_->compute(image, corrs);
+    return strategy_->compute(image, keyframe, corrs);
 }
 
-template <class CG>
+template <typename CG>
 class PCLStrategy : public Clusterizer::Strategy {
 public:
     PCLStrategy(const Config& config) : clust_{config.as<CG>()} {}
 
     ~PCLStrategy() override {};
 
-    void setModel(const Model& model) override {
+    void setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) override {
         model_ = model.getFullCloud();
         clust_.resize(model.getViews().size(), clust_.front());
 
         for (auto idx = 0u; idx < clust_.size(); ++idx)
-            clust_[idx].setInputCloud(model.getViews()[idx].image.getKeypoints().getShape().host());
+            clust_[idx].setInputCloud(view_keyframes.at(idx).keys->getShape().host());
 
-        setModelRefFrames(model);
+        setModelRefFrames(view_keyframes);
 
         for (const auto& view : model.getViews())
             viewpoints_.emplace_back(view.viewpoint);
@@ -101,7 +102,8 @@ public:
         train();
     }
 
-    Instances compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs) override {
+    Instances compute(const Image& /*image*/, const KeyFrameHandle& keyframe,
+                      const std::vector<pcl::CorrespondencesPtr>& corrs) override {
         assert(corrs.size() == clust_.size());
 
         auto instances = Instances{};
@@ -109,8 +111,8 @@ public:
 
         auto poses = AlignedVector<Pose>{};
         for (auto idx = 0u; idx < corrs.size(); ++idx) {
-            clust_[idx].setSceneCloud(image.getKeypoints().getShape().host());
-            setSceneRefFrames(image, idx);
+            clust_[idx].setSceneCloud(keyframe.keys->getShape().host());
+            setSceneRefFrames(keyframe, idx);
             clust_[idx].setModelSceneCorrespondences(corrs[idx]);
             clust_[idx].recognize(poses);
 
@@ -122,8 +124,8 @@ public:
     }
 
     void train() {}
-    void setModelRefFrames(const Model& /*model*/) {}
-    void setSceneRefFrames(const Image& /*image*/, unsigned /*model_idx*/) {}
+    void setModelRefFrames(const std::vector<KeyFrameHandle>& /*model*/) {}
+    void setSceneRefFrames(const KeyFrameHandle& /*image*/, unsigned /*model_idx*/) {}
 
 private:
     FullCloud::ConstPtr model_;
@@ -138,14 +140,14 @@ void PCLStrategy<CG_Hough>::train() {
 }
 
 template<>
-void PCLStrategy<CG_Hough>::setModelRefFrames(const Model& model) {
+void PCLStrategy<CG_Hough>::setModelRefFrames(const std::vector<KeyFrameHandle>& keyframes) {
     for (auto idx = 0u; idx < clust_.size(); ++idx)
-        clust_[idx].setInputRf(model.getViews()[idx].image.getRefFrames().host());
+        clust_[idx].setInputRf(keyframes.at(idx).rfs->host());
 }
 
 template<>
-void PCLStrategy<CG_Hough>::setSceneRefFrames(const Image& image, unsigned model_idx) {
-    clust_.at(model_idx).setSceneRf(image.getRefFrames().host());
+void PCLStrategy<CG_Hough>::setSceneRefFrames(const KeyFrameHandle& keyframe, unsigned model_idx) {
+    clust_.at(model_idx).setSceneRf(keyframe.rfs->host());
 }
 
 std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {
@@ -160,6 +162,5 @@ std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {
     }
     return nullptr;
 }
-
 
 }

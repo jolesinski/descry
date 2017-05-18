@@ -47,7 +47,7 @@ private:
     Describer<Descriptor> model_describer;
 
     Matcher<Descriptor> matcher;
-    std::vector<DescriptorContainer<Descriptor>> model_description;
+    std::vector<Description<Descriptor>> model_description;
     Clusterizer clusterizer;
 };
 
@@ -65,15 +65,19 @@ void SparseShapeMatching<Descriptor>::setModel(const Model& model) {
     for(const auto& view : model.getViews())
         model_description.emplace_back(model_describer.compute(view.image));
     matcher.setModel(model_description);
-    clusterizer.setModel(model);
+
+    auto key_frames = std::vector<KeyFrameHandle>{};
+    for (auto& descr : model_description)
+        key_frames.emplace_back(descr.getKeyFrame());
+    clusterizer.setModel(model, key_frames);
 }
 
 template<class Descriptor>
 Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
-    auto scene_descriptors = scene_describer.compute(image);
-    auto matches_per_view = matcher.match(scene_descriptors);
+    auto scene_description = scene_describer.compute(image);
+    auto matches_per_view = matcher.match(scene_description);
 
-    return clusterizer.compute(image, matches_per_view);
+    return clusterizer.compute(image, scene_description.getKeyFrame(), matches_per_view);
 }
 
 std::unique_ptr<Aligner::AlignmentStrategy> makeSparseStrategy(const Config& config) {

@@ -33,12 +33,12 @@ void DualContainer<H_T, H_C, D_T, D_C>::clearHost() {
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
-bool DualContainer<H_T, H_C, D_T, D_C>::isDeviceSet() const {
+bool DualContainer<H_T, H_C, D_T, D_C>::isDeviceSet() const noexcept {
     return !!d_container;
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
-bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const {
+bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const noexcept {
     return !!h_container;
 }
 
@@ -57,7 +57,7 @@ void DualContainer<H_T, H_C, D_T, D_C>::download() const {
 }
 
 template<class H_T, class H_C, class D_T, class D_C>
-std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const {
+std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const noexcept {
     if (isHostSet())
         return h_container->size();
     if (isDeviceSet())

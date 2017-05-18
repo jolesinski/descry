@@ -127,8 +127,8 @@ struct pcl_describer_parser<pcl::SHOT352> {
         return type_str == config::descriptors::SHOT_PCL_TYPE;
     }
 
-    static void add_rfs_if_supported(describer_t& descr, const Image& image) {
-        descr.setInputReferenceFrames(image.getRefFrames().host());
+    static void add_rfs_if_supported(describer_t& describer, const DualRefFrames& rfs) {
+        describer.setInputReferenceFrames(rfs.host());
     }
 };
 
@@ -140,13 +140,13 @@ struct pcl_describer_parser<pcl::FPFHSignature33> {
         return type_str == config::descriptors::FPFH_PCL_TYPE;
     }
 
-    static void add_rfs_if_supported(describer_t&, const Image&) {}
+    static void add_rfs_if_supported(describer_t& /*describer*/, const DualRefFrames& /*rfs*/) {}
 };
 
 }
 
 template<class D>
-DescriptorContainer<D> Describer<D>::compute(const Image& image) {
+Description<D> Describer<D>::compute(const Image& image) {
     if (!_descr)
         DESCRY_THROW(NotConfiguredException, "Describer not configured");
     return _descr(image);
@@ -157,18 +157,36 @@ bool Describer<D>::configure(const Config& config) {
     if (!config["type"])
         return false;
 
+    auto keys_det = KeypointDetector{};
+    auto& keys_cfg = config[config::keypoints::NODE_NAME];
+    if (!keys_cfg || !keys_det.configure(keys_cfg)) // required
+        return false;
+
+    auto rf_est = RefFramesEstimation{};
+    auto& rf_cfg = config[config::ref_frames::NODE_NAME];
+    if (rf_cfg && !rf_est.configure(rf_cfg)) // optional
+        return false;
+
     auto est_type = config["type"].as<std::string>();
     try {
+
         if (pcl_describer_parser<D>::is_config_matching(est_type)) {
             auto descr = config.as<typename pcl_describer_parser<D>::describer_t>();
-            _descr = [ descr{std::move(descr)} ] (const Image &image) mutable {
-                descr.setInputCloud(image.getKeypoints().getShape().host());
+            _descr = [ descr{std::move(descr)}, keys_det{std::move(keys_det)}, rf_est{std::move(rf_est)} ]
+            (const Image &image) mutable {
+                auto d = Description<D>();
+                d.setKeypoints(keys_det.compute(image));
+                descr.setInputCloud(d.getKeypoints().getShape().host());
                 descr.setSearchSurface(image.getShapeCloud().host());
                 descr.setInputNormals(image.getNormals().host());
-                pcl_describer_parser<D>::add_rfs_if_supported(descr, image);
+                if (rf_est.is_configured()) {
+                    d.setRefFrames(rf_est.compute(image, d.getKeypoints()));
+                    pcl_describer_parser<D>::add_rfs_if_supported(descr, d.getRefFrames());
+                }
                 typename pcl::PointCloud<D>::Ptr features{new pcl::PointCloud<D>{}};
                 descr.compute(*features);
-                return cupcl::DualContainer<D>{features};
+                d.setFeatures(cupcl::DualContainer<D>{features});
+                return d;
             };
         } else
             return false;
@@ -190,6 +208,11 @@ bool is_finite_keypoint(const cv::KeyPoint& key, const Image& image) {
     return pcl::isFinite(shape->at(x, y));
 }
 
+struct ColorDescription {
+    std::vector<cv::KeyPoint> keypoints;
+    cv::Mat descriptors;
+};
+
 ColorDescription filter_null_keypoints(const ColorDescription& descr, const Image& image) {
     auto filtered = ColorDescription{};
 
@@ -206,7 +229,7 @@ ColorDescription filter_null_keypoints(const ColorDescription& descr, const Imag
 }
 
 template<>
-bool Describer<ColorDescription>::configure(const Config& config) {
+bool Describer<cv::Mat>::configure(const Config& config) {
     if (!config["type"])
         return false;
 
@@ -215,9 +238,13 @@ bool Describer<ColorDescription>::configure(const Config& config) {
         if (est_type == config::descriptors::ORB_TYPE) {
             auto descr = config.as<cv::Ptr<cv::ORB>>();
             _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
-                auto d = ColorDescription{};
-                descr->detectAndCompute(image.getColorMat(), cv::noArray(), d.keypoints, d.descriptors);
-                return filter_null_keypoints(d, image);
+                auto color = ColorDescription{};
+                descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
+                auto filtered_color = filter_null_keypoints(color, image);
+                auto d = Description<cv::Mat>{};
+                d.setKeypoints(Keypoints{std::move(filtered_color.keypoints), image});
+                d.setFeatures(std::move(filtered_color.descriptors));
+                return d;
             };
         } else
             return false;
@@ -235,6 +262,6 @@ template
 class Describer<pcl::FPFHSignature33>;
 
 template
-class Describer<ColorDescription>;
+class Describer<cv::Mat>;
 
 }

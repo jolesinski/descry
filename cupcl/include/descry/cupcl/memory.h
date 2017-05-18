@@ -39,8 +39,8 @@ public:
         return h_container;
     }
 
-    std::size_t size() const;
-    bool empty() const { return size() == 0; }
+    std::size_t size() const noexcept;
+    bool empty() const noexcept { return size() == 0; }
 
 private:
     void upload() const;
@@ -49,8 +49,8 @@ private:
     void clearDevice();
     void clearHost();
 
-    bool isDeviceSet() const;
-    bool isHostSet() const;
+    bool isDeviceSet() const noexcept;
+    bool isHostSet() const noexcept;
 
     mutable HostContainer h_container;
     mutable DeviceContainer d_container;

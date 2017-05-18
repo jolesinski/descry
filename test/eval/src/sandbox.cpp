@@ -15,20 +15,20 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
 
-void view_keys(const descry::Image& image, std::string window_name) {
+void view_keys(const descry::Image& image, const descry::Keypoints& keys, std::string window_name) {
     //copy to opencv mat
     auto frame = image.getColorMat();
-    auto keys = image.getKeypoints().getColor();
+    auto& color_keys = keys.getColor();
 
-    std::cout << "Detected " << keys.size() << std::endl;
+    std::cout << "Detected " << color_keys.size() << std::endl;
 
-    cv::drawKeypoints(frame, keys, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
+    cv::drawKeypoints(frame, color_keys, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
 
     cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE );
     cv::imshow( window_name, frame );
 }
 
-void view_keys(const descry::Model& model, std::string window_name) {
+void view_keys(const descry::Model& model, const descry::Keypoints& keys, std::string window_name) {
     //auto keys = compute_harris_3d(image);
     //auto keys = compute_iss_3d(image);
 
@@ -36,11 +36,8 @@ void view_keys(const descry::Model& model, std::string window_name) {
     //for (const auto& view : model.getViews()) {
     {
         const auto& view = model.getViews().at(5);
-        auto frame = view.image.getColorMat();
-        auto keys = view.image.getKeypoints().getColor();
 
-        std::cout << "Detected " << keys.size() << std::endl;
-        view_keys(view.image, "model");
+        view_keys(view.image, keys, "model");
         cv::waitKey();
     }
 }
@@ -94,7 +91,7 @@ std::vector<cv::DMatch> convert(const pcl::Correspondences& pcl_matches) {
     return matches;
 }
 
-std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H, double thresh) {
+std::vector<cv::DMatch> filter(descry::Description<cv::Mat>& scene_d, descry::Description<cv::Mat>& model_d, std::vector<cv::DMatch>& matches, cv::Mat& H, double thresh) {
     if (matches.size() < 4) {
         std::cout << "not enough matches" << std::endl;
         return {};
@@ -105,8 +102,8 @@ std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorD
 
     for( int i = 0; i < matches.size(); i++ )
     {
-        scene.push_back( scene_d.keypoints[ matches[i].queryIdx ].pt );
-        obj.push_back( model_d.keypoints[ matches[i].trainIdx ].pt );
+        scene.push_back( scene_d.getKeypoints().getColor()[ matches[i].queryIdx ].pt );
+        obj.push_back( model_d.getKeypoints().getColor()[ matches[i].trainIdx ].pt );
     }
 
     cv::Mat inlier_mask;
@@ -127,18 +124,18 @@ std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorD
     return inlier_matches;
 }
 
-std::vector<cv::DMatch> filter(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, pcl::CorrespondencesPtr& pcl_matches, cv::Mat& H, double thresh) {
+std::vector<cv::DMatch> filter(descry::Description<cv::Mat>& scene_d, descry::Description<cv::Mat>& model_d, pcl::CorrespondencesPtr& pcl_matches, cv::Mat& H, double thresh) {
     auto matches = convert(*pcl_matches);
     return filter(scene_d, model_d, matches, H, thresh);
 }
 
-std::vector<cv::DMatch> match(descry::ColorDescription& scene_d, descry::ColorDescription& model_d, cv::Mat& H) {
+std::vector<cv::DMatch> match(descry::Description<cv::Mat>& scene_d, descry::Description<cv::Mat>& model_d, cv::Mat& H) {
     const double nn_match_ratio = 0.8f; // Nearest-neighbour matching ratio
     const double ransac_thresh = 10.5f; // RANSAC inlier threshold
 
     cv::BFMatcher matcher(cv::NORM_HAMMING);
     std::vector< std::vector<cv::DMatch> > nn_matches;
-    matcher.knnMatch(scene_d.descriptors, model_d.descriptors, nn_matches, 2);
+    matcher.knnMatch(scene_d.getFeatures(), model_d.getFeatures(), nn_matches, 2);
 
     std::vector<cv::DMatch> good_matches;
     for(size_t i = 0; i < nn_matches.size(); i++) {
@@ -188,7 +185,7 @@ void recognize(const descry::Config& cfg) {
         image.setNormals(nest.compute(image));
     }
 
-    auto describer = descry::Describer<descry::ColorDescription>{};
+    auto describer = descry::Describer<cv::Mat>{};
     describer.configure(scene_cfg[descry::config::descriptors::NODE_NAME]);
     auto scene_d = describer.compute(image);
 
@@ -199,15 +196,18 @@ void recognize(const descry::Config& cfg) {
     auto& view = model.getViews().at(5);
     //drawViewWithCorners(view);
     describer.configure(model_cfg[descry::config::descriptors::NODE_NAME]);
-    auto model_d = describer.compute(view.image);
+
+    auto views_description = std::vector<descry::Description<cv::Mat>>();
+    views_description.emplace_back(describer.compute(view.image));
+    auto& model_d = views_description.front();
 //    view_keys(model, "model");
 
-    std::cout << model_d.descriptors.size() << std::endl;
-    std::cout << model_d.keypoints.size() << std::endl;
+    std::cout << model_d.getFeatures().size() << std::endl;
+    std::cout << model_d.getKeypoints().getColor().size() << std::endl;
 
-    auto matcher = descry::Matcher<descry::ColorDescription>{};
+    auto matcher = descry::Matcher<cv::Mat>{};
     matcher.configure(cfg[descry::config::matcher::NODE_NAME]);
-    matcher.setModel({model_d});
+    matcher.setModel(views_description);
 
     auto matches = matcher.match(scene_d);
     std::cout << matches.front()->size() << std::endl;
@@ -215,23 +215,27 @@ void recognize(const descry::Config& cfg) {
     cv::Mat homography;
     auto cv_matches = filter(scene_d, model_d, matches.front(), homography, cfg["alignment"]["ransac-inlier-threshold"].as<double>());
     cv::Mat res;
-    drawMatches(image.getColorMat(), scene_d.keypoints, view.image.getColorMat(), model_d.keypoints, cv_matches, res);
+    drawMatches(image.getColorMat(), scene_d.getKeypoints().getColor(), view.image.getColorMat(), model_d.getKeypoints().getColor(), cv_matches, res);
     //drawCorners(get_corners(view), homography, res);
     cv::namedWindow( "matches", cv::WINDOW_AUTOSIZE );
     cv::imshow( "matches" , res );
-    cv::waitKey(1000);
+    cv::waitKey();
 
 
-    view.image.setKeypoints(std::move(model_d.keypoints));
     model.getViews().erase(model.getViews().begin(), model.getViews().begin() + 5);
     model.getViews().erase(model.getViews().begin() + 1, model.getViews().end());
-    image.setKeypoints(std::move(scene_d.keypoints));
+
 
     pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
     descry::Clusterizer clst;
     clst.configure(cfg[descry::config::clusters::NODE_NAME]);
-    clst.setModel(model);
-    auto clusters = clst.compute(image, matches);
+
+    auto key_frames = std::vector<descry::KeyFrameHandle>{};
+    for (auto& descr : views_description)
+        key_frames.emplace_back(descr.getKeyFrame());
+
+    clst.setModel(model, key_frames);
+    auto clusters = clst.compute(image, scene_d.getKeyFrame(), matches);
 
     auto& instance_map = test_data.front().second;
     std::cout << "Ground truth" << std::endl;
@@ -240,6 +244,7 @@ void recognize(const descry::Config& cfg) {
     for (auto idx = 0u; idx < clusters.poses.size(); ++idx) {
         std::cout << clusters.poses[idx] << std::endl;
         view_projection(image, model, clusters.poses[idx]);
+
     }
 }
 

@@ -12,15 +12,17 @@ class Clusterizer {
 public:
     class Strategy {
     public:
-        virtual void setModel(const Model& model) = 0;
-        virtual Instances compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs) = 0;
+        virtual void setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) = 0;
+        virtual Instances compute(const Image& image, const KeyFrameHandle& keyframe,
+                                  const std::vector<pcl::CorrespondencesPtr>& corrs) = 0;
         virtual ~Strategy() = default;
     };
 
     bool configure(const Config &config);
-    void setModel(const Model& image);
 
-    Instances compute(const Image& image, const std::vector<pcl::CorrespondencesPtr>& corrs);
+    void setModel(const Model& image, const std::vector<KeyFrameHandle>& view_keyframes);
+    Instances compute(const Image& image, const KeyFrameHandle& keyframe,
+                      const std::vector<pcl::CorrespondencesPtr>& corrs);
 
 private:
     std::unique_ptr<Strategy> strategy_ = nullptr;

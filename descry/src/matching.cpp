@@ -18,21 +18,21 @@ bool Matcher<D>::configure(const Config& config) {
 }
 
 template<class D>
-void Matcher<D>::setModel(const std::vector<DescriptorContainer<D>>& model) {
+void Matcher<D>::setModel(const std::vector<Description<D>>& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Matcher not configured");
     return strategy_->setModel(model);
 }
 
 template<class D>
-void Matcher<D>::setModel(std::vector<DescriptorContainer<D>>&& model) {
+void Matcher<D>::setModel(std::vector<Description<D>>&& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Matcher not configured");
     return strategy_->setModel(std::move(model));
 }
 
 template<class D>
-std::vector<pcl::CorrespondencesPtr> Matcher<D>::match(const DescriptorContainer<D>& scene) {
+std::vector<pcl::CorrespondencesPtr> Matcher<D>::match(const Description<D>& scene) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Matcher not configured");
     return strategy_->match(scene);
@@ -62,22 +62,22 @@ public:
 
     ~KDTreeFlannMatching() override {};
 
-    void setModel(const std::vector<DescriptorContainer<Descriptor>>& model) override {
+    void setModel(const std::vector<Description<Descriptor>>& model) override {
         trees.resize(model.size());
         for (auto idx = 0u; idx < model.size(); ++idx)
-            trees[idx].setInputCloud(model[idx].host());
+            trees[idx].setInputCloud(model[idx].getFeatures().host());
     }
 
-    void setModel(std::vector<DescriptorContainer<Descriptor>>&& model) override {
+    void setModel(std::vector<Description<Descriptor>>&& model) override {
         trees.resize(model.size());
         for (auto idx = 0u; idx < model.size(); ++idx)
-            trees[idx].setInputCloud(model[idx].host());
+            trees[idx].setInputCloud(model[idx].getFeatures().host());
     }
 
-    std::vector<pcl::CorrespondencesPtr> match(const DescriptorContainer<Descriptor>& scene) override {
+    std::vector<pcl::CorrespondencesPtr> match(const Description<Descriptor>& scene) override {
         std::vector<pcl::CorrespondencesPtr> view_corrs;
         for (const auto& tree : trees)
-            view_corrs.emplace_back(match_view(scene, tree));
+            view_corrs.emplace_back(match_view(scene.getFeatures(), tree));
 
         return view_corrs;
     }
@@ -119,7 +119,7 @@ private:
     double max_distance = 0.0;
 };
 
-class BruteForceMatching : public MatcherStrategy<ColorDescription> {
+class BruteForceMatching : public MatcherStrategy<cv::Mat> {
 public:
     BruteForceMatching(const Config& config) {
         auto norm_type_str = config[config::matcher::NORM_TYPE].as<std::string>();
@@ -143,15 +143,20 @@ public:
             lowe_ratio = config[config::matcher::LOWE_RATIO].as<double>();
     }
 
-    void setModel(const std::vector<ColorDescription>& model) override {
-        model_ = model;
+    void setModel(const std::vector<Description<cv::Mat>>& model) override {
+        for (auto& view : model) {
+            auto d = Description<cv::Mat>();
+            d.setFeatures(view.getFeatures().clone());
+            d.setKeypoints(view.getKeypoints());
+            model_.emplace_back(std::move(d));
+        }
     }
 
-    void setModel(std::vector<ColorDescription>&& model) override {
+    void setModel(std::vector<Description<cv::Mat>>&& model) override {
         model_ = std::move(model);
     }
 
-    std::vector<pcl::CorrespondencesPtr> match(const ColorDescription& scene) override {
+    std::vector<pcl::CorrespondencesPtr> match(const Description<cv::Mat>& scene) override {
         std::vector<pcl::CorrespondencesPtr> view_corrs;
         for (const auto& view_descr : model_)
             view_corrs.emplace_back(match_view(scene, view_descr));
@@ -159,14 +164,14 @@ public:
         return view_corrs;
     }
 
-    pcl::CorrespondencesPtr match_view(const ColorDescription& scene, const ColorDescription& model) {
+    pcl::CorrespondencesPtr match_view(const Description<cv::Mat>& scene, const Description<cv::Mat>& model) {
         pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
 
         cv::BFMatcher matcher(norm_type);
         std::vector< std::vector<cv::DMatch> > nn_matches;
 
         if (use_lowe) {
-            matcher.knnMatch(scene.descriptors, model.descriptors, nn_matches, 2);
+            matcher.knnMatch(scene.getFeatures(), model.getFeatures(), nn_matches, 2);
 
             for(size_t i = 0; i < nn_matches.size(); i++) {
                 cv::DMatch first = nn_matches[i][0];
@@ -177,7 +182,7 @@ public:
                     model_scene_corrs->emplace_back(first.trainIdx, first.queryIdx, first.distance);
             }
         } else {
-            matcher.knnMatch(scene.descriptors, model.descriptors, nn_matches, max_neighs);
+            matcher.knnMatch(scene.getFeatures(), model.getFeatures(), nn_matches, max_neighs);
 
             for(size_t i = 0; i < nn_matches.size(); ++i) {
                 for (unsigned int nn = 0; nn < max_neighs; ++nn) {
@@ -193,7 +198,7 @@ public:
 
     ~BruteForceMatching() override {};
 private:
-    std::vector<ColorDescription> model_;
+    std::vector<Description<cv::Mat>> model_;
     cv::NormTypes norm_type;
     bool use_lowe = false;
     double lowe_ratio = 0.8;
@@ -217,7 +222,7 @@ std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config) 
 
 
 template <>
-std::unique_ptr<MatcherStrategy<ColorDescription>> makeStrategy<ColorDescription>(const Config& config) {
+std::unique_ptr<MatcherStrategy<cv::Mat>> makeStrategy<cv::Mat>(const Config& config) {
     if(!config.IsMap() || !config["type"])
         return nullptr;
 
@@ -237,6 +242,6 @@ template
 class Matcher<pcl::FPFHSignature33>;
 
 template
-class Matcher<ColorDescription>;
+class Matcher<cv::Mat>;
 
 }

@@ -11,6 +11,7 @@
 
 #include <descry/cupcl/memory.h>
 #include <descry/exceptions.h>
+#include <pcl/correspondence.h>
 
 namespace descry {
 
@@ -47,19 +48,14 @@ using DualShapeCloud = cupcl::DualContainer<pcl::PointXYZ>;
 using DualNormals = cupcl::DualContainer<pcl::Normal>;
 using DualRefFrames = cupcl::DualContainer<pcl::ReferenceFrame>;
 
-struct ColorDescription {
-    std::vector<cv::KeyPoint> keypoints;
-    cv::Mat descriptors;
-};
-
 template <typename Descriptor>
 struct DescriptorContainerTrait {
     using type = cupcl::DualContainer<Descriptor>;
 };
 
 template<>
-struct DescriptorContainerTrait<ColorDescription> {
-    using type = ColorDescription;
+struct DescriptorContainerTrait<cv::Mat> {
+    using type = cv::Mat;
 };
 
 template <typename Descriptor>

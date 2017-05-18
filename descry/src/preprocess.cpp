@@ -19,30 +19,6 @@ bool Preprocess::configure(const Config& cfg) {
         );
     }
 
-    auto& keys_cfg = cfg[config::keypoints::NODE_NAME];
-    if (keys_cfg) {
-        auto kdet = descry::KeypointDetector{};
-
-        if(!kdet.configure(keys_cfg))
-            return false;
-
-        steps_.emplace_back( [kdet{std::move(kdet)}]
-                (Image& image) { image.setKeypoints(kdet.compute(image)); }
-        );
-    }
-
-    auto& rfs_cfg = cfg[config::ref_frames::NODE_NAME];
-    if (rfs_cfg) {
-        auto rfest = descry::RefFramesEstimation{};
-
-        if(!rfest.configure(rfs_cfg))
-            return false;
-
-        steps_.emplace_back( [rfest{std::move(rfest)}]
-                (Image& image) { image.setRefFrames(rfest.compute(image)); }
-        );
-    }
-
     return true;
 }
 

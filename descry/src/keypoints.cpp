@@ -365,10 +365,7 @@ bool KeypointDetector::configure(const Config& config) {
                 auto shape_keys = make_cloud<pcl::PointXYZ>();
                 nest.filter(*shape_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(DualShapeCloud{shape_keys});
-
-                return keys;
+                return Keypoints{DualShapeCloud{shape_keys}, image};
             };
         } else if (est_type == config::keypoints::ISS_TYPE) {
             auto nest = config.as<KDetISS>();
@@ -379,10 +376,7 @@ bool KeypointDetector::configure(const Config& config) {
                 auto shape_keys = make_cloud<pcl::PointXYZ>();
                 nest.compute(*shape_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(DualShapeCloud{shape_keys});
-
-                return keys;
+                return Keypoints{DualShapeCloud{shape_keys}, image};
             };
         } else if (est_type == config::keypoints::HARRIS_TYPE) {
             auto nest = config.as<KDetHarris>();
@@ -395,10 +389,7 @@ bool KeypointDetector::configure(const Config& config) {
                 auto shape_keys = make_cloud<pcl::PointXYZ>();
                 pcl::copyPointCloud(*intensity_keys, *shape_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(DualShapeCloud{shape_keys});
-
-                return keys;
+                return Keypoints{DualShapeCloud{shape_keys}, image};
             };
         } else if (est_type == config::keypoints::SIFT_PCL_TYPE) {
             auto nest = config.as<KDetSIFT>();
@@ -411,10 +402,7 @@ bool KeypointDetector::configure(const Config& config) {
                 auto shape_keys = make_cloud<pcl::PointXYZ>();
                 pcl::copyPointCloud(*intensity_keys, *shape_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(DualShapeCloud{shape_keys});
-
-                return keys;
+                return Keypoints{DualShapeCloud{shape_keys}, image};
             };
         } else if (est_type == config::keypoints::SUSAN_PCL_TYPE) {
             auto nest = config.as<KDetSUSAN>();
@@ -425,10 +413,7 @@ bool KeypointDetector::configure(const Config& config) {
                 auto shape_keys = make_cloud<pcl::PointXYZ>();
                 nest.compute(*shape_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(DualShapeCloud{shape_keys});
-
-                return keys;
+                return Keypoints{DualShapeCloud{shape_keys}, image};
             };
         }
         else if (est_type == config::keypoints::ORB_TYPE) {
@@ -437,19 +422,11 @@ bool KeypointDetector::configure(const Config& config) {
                 auto color_keys = std::vector<cv::KeyPoint>{};
                 kdet->detect(image.getColorMat(), color_keys);
 
-                auto keys = Image::Keypoints{};
-                keys.set(std::move(color_keys));
-
-                return keys;
+                return Keypoints{std::move(color_keys), image};
             };
         } else if (est_type == config::keypoints::ISS_CUPCL_TYPE) {
             nest_ = [ iss_cfg{config.as<cupcl::ISSConfig>()} ] (const Image &image) {
-                auto shape_keys = cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg);
-
-                auto keys = Image::Keypoints{};
-                keys.set(std::move(shape_keys));
-
-                return keys;
+                return Keypoints{cupcl::computeISS(image.getShapeCloud(), image.getProjection(), iss_cfg), image};
             };
         } else
             return false;
@@ -460,7 +437,11 @@ bool KeypointDetector::configure(const Config& config) {
     return true;
 }
 
-Image::Keypoints KeypointDetector::compute(const Image& image) const {
+bool KeypointDetector::is_configured() const noexcept {
+    return !!nest_;
+}
+
+Keypoints KeypointDetector::compute(const Image& image) const {
     if (!nest_)
     DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
     return nest_(image);
