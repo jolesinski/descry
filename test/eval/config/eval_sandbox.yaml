@@ -1,29 +1,28 @@
-model:
-    name: object_13
-    keypoints:
-        type: orb
-        max-features: 1000
+model: object_13
+scene: T_07_willow_dataset
 
-scene:
-    name: T_07_willow_dataset
-    descriptors:
-        type: orb
-        max-features: 5000
+descriptors:
+  model:
+    type: orb
+    max-features: 500
+  scene:
+    type: orb
+    max-features: 5000
 
 matching:
-    type: brute-force
-    norm: hamming
-    use-lowe: true
-    lowe-ratio: 0.8
+  type: brute-force
+  norm: hamming
+  use-lowe: true
+  lowe-ratio: 0.8
 
 alignment:
-    ransac-inlier-threshold: 5
+  ransac-inlier-threshold: 5
 
 clusters:
-    type: gc
-    gc-size: 0.01
-    gc-threshold: 5
+  type: gc
+  gc-size: 0.01
+  gc-threshold: 5
 
 metrics:
-    radius: 0.01
-    visualize: true
+  radius: 0.01
+  visualize: true

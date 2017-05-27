@@ -3,25 +3,28 @@ recognizer:
     type: omp
     support-radius: 30
     threads: 4
-  keypoints:
-    type: iss
-    salient-radius: 0.03
-    non-max-radius: 0.03
-    border-radius: 0.03
-    normal-radius: 0.03
-    threshold-21: 0.975
-    threshold-32: 0.975
-    min-neighbours: 5
-    threads: 4
-  reference-frames:
-    type: board
-    find-holes: true
-    support-radius: 0.015
   aligner:
     type: sparse
     descriptors:
-      type: fpfh
-      support-radius: 0.015
+      model: &model-descriptor
+        type: fpfh
+        support-radius: 0.015
+        keypoints: &iss-keys
+          type: iss
+          salient-radius: 0.03
+          non-max-radius: 0.03
+          border-radius: 0.03
+          normal-radius: 0.03
+          threshold-21: 0.975
+          threshold-32: 0.975
+          min-neighbours: 5
+          threads: 4
+        reference-frames:
+          type: board
+          find-holes: true
+          support-radius: 0.015
+      scene: *model-descriptor
+
     matching:
       type: kdtree-flann
       max-neighs: 1

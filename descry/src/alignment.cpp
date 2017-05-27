@@ -53,8 +53,8 @@ private:
 
 template<class Descriptor>
 SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& config) {
-    scene_describer.configure(config[config::descriptors::NODE_NAME]);
-    model_describer.configure(config[config::descriptors::NODE_NAME]);
+    model_describer.configure(config[config::descriptors::NODE_NAME]["model"]);
+    scene_describer.configure(config[config::descriptors::NODE_NAME]["scene"]);
 
     matcher.configure(config[config::matcher::NODE_NAME]);
     clusterizer.configure(config[config::clusters::NODE_NAME]);
@@ -80,11 +80,34 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
     return clusterizer.compute(image, scene_description.getKeyFrame(), matches_per_view);
 }
 
+namespace {
+
+std::string getDescriptorName(const Config& config) {
+    if (!config["model"] || !config["scene"])
+        DESCRY_THROW(InvalidConfigException, "missing descriptors config");
+
+    auto& model_type_node = config["model"]["type"];
+    auto& scene_type_node = config["scene"]["type"];
+
+    if (!model_type_node || !scene_type_node)
+        DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing type");
+
+    auto model_type_name = config["model"]["type"].as<std::string>();
+    auto scene_type_name = config["scene"]["type"].as<std::string>();
+
+    if (model_type_name != scene_type_name)
+        DESCRY_THROW(InvalidConfigException, "model and scene descriptor types differ");
+
+    return model_type_name;
+}
+
+}
+
 std::unique_ptr<Aligner::AlignmentStrategy> makeSparseStrategy(const Config& config) {
-    if(!config[config::descriptors::NODE_NAME]["type"])
+    if(!config[config::descriptors::NODE_NAME])
         return nullptr;
 
-    auto descr_type = config[config::descriptors::NODE_NAME]["type"].as<std::string>();
+    auto descr_type = getDescriptorName(config[config::descriptors::NODE_NAME]);
     if (descr_type == config::descriptors::SHOT_PCL_TYPE)
         return std::make_unique<SparseShapeMatching<pcl::SHOT352>>(config);
     else if (descr_type == config::descriptors::FPFH_PCL_TYPE)
