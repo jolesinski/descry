@@ -1,8 +1,7 @@
 #include <chrono>
 #include <iostream>
 
-#include <descry/clusters.h>
-#include <descry/matching.h>
+#include <descry/alignment.h>
 #include <descry/normals.h>
 #include <descry/willow.h>
 #include <descry/test/config.h>
@@ -174,79 +173,68 @@ void recognize(const descry::Config& cfg) {
     auto willow = descry::WillowTestSet(descry::test::loadDBConfig());
     auto test_name = cfg["scene"].as<std::string>();
     auto model_name = cfg["model"].as<std::string>();
-    auto descr_config = cfg[descry::config::descriptors::NODE_NAME];
+    auto aligner_config = cfg[descry::config::aligner::NODE_NAME];
     auto test_data = willow.loadSingleTest(test_name, 1);
 
     auto model = willow.loadModel(model_name);
 
-    auto describer = descry::Describer<cv::Mat>{};
-    describer.configure(descr_config["model"]);
-    auto views_description = std::vector<descry::Description<cv::Mat>>();
-    for (auto& view : model.getViews()) {
-        views_description.emplace_back(describer.compute(view.image));
-        std::cout << "Model features " << views_description.back().getFeatures().size() << std::endl;
-    }
+    auto aligner = descry::Aligner{};
+    aligner.configure(aligner_config);
+    aligner.setModel(model);
+
+//  TODO: spdlog
+//    auto describer = descry::Describer<cv::Mat>{};
+//    describer.configure(descr_config["model"]);
+//    auto views_description = std::vector<descry::Description<cv::Mat>>();
+//    for (auto& view : model.getViews()) {
+//        views_description.emplace_back(describer.compute(view.image));
+//        std::cout << "Model features " << views_description.back().getFeatures().size() << std::endl;
+//    }
 
     auto image = descry::Image(test_data.front().first);
     auto start = std::chrono::steady_clock::now();
-    if (descr_config[descry::config::normals::NODE_NAME]) {
+
+    if (cfg[descry::config::normals::NODE_NAME]) {
         auto nest = descry::NormalEstimation{};
-        nest.configure(descr_config[descry::config::normals::NODE_NAME]);
+        nest.configure(cfg[descry::config::normals::NODE_NAME]);
         image.setNormals(nest.compute(image));
     }
 
-    describer.configure(descr_config["scene"]);
-    auto scene_d = describer.compute(image);
+    auto instances = aligner.compute(image);
 
-    auto matcher = descry::Matcher<cv::Mat>{};
-    matcher.configure(cfg[descry::config::matcher::NODE_NAME]);
-    matcher.setModel(views_description);
-
-    auto matches = matcher.match(scene_d);
-    for (auto view_matches : matches) {
-        std::cout << "Matches size " << view_matches->size() << std::endl;
-    }
-
-//    cv::Mat homography;
-//    auto cv_matches = filter(scene_d, model_d, matches.front(), homography, cfg["alignment"]["ransac-inlier-threshold"].as<double>());
-//    cv::Mat res;
-//    drawMatches(image.getColorMat(), scene_d.getKeypoints().getColor(), view.image.getColorMat(), model_d.getKeypoints().getColor(), cv_matches, res);
-//    //drawCorners(get_corners(view), homography, res);
-//    cv::namedWindow( "matches", cv::WINDOW_AUTOSIZE );
-//    cv::imshow( "matches" , res );
-//    cv::waitKey();
+//  TODO: spdlog
+//    auto matches = matcher.match(scene_d);
+//    for (auto view_matches : matches) {
+//        std::cout << "Matches size " << view_matches->size() << std::endl;
+//    }
 
     //pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
-    descry::Clusterizer clst;
-    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
+//    descry::Clusterizer clst;
+//    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
 
-    auto key_frames = std::vector<descry::KeyFrameHandle>{};
-    for (auto& descr : views_description)
-        key_frames.emplace_back(descr.getKeyFrame());
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
+            (std::chrono::steady_clock::now() - start);
 
-    clst.setModel(model, key_frames);
-    auto clusters = clst.compute(image, scene_d.getKeyFrame(), matches);
+    std::cout << "Recognition took " << duration.count() << "ms" << std::endl;
 
     auto& instance_map = test_data.front().second;
     auto ground_truth = instance_map[model_name].front();
     Eigen::Vector4f test;
     std::cout << "Ground truth" << std::endl;
     std::cout << ground_truth << std::endl;
-    std::cout << "Found " << clusters.poses.size() << std::endl;
-    for (auto idx = 0u; idx < clusters.poses.size(); ++idx) {
-        std::cout << clusters.poses[idx] << std::endl;
-        //view_projection(image, model, clusters.poses[idx]);
+    std::cout << "Found " << instances.poses.size() << std::endl;
+    for (auto idx = 0u; idx < instances.poses.size(); ++idx) {
+        auto pose = instances.poses[idx];
+        std::cout << pose << std::endl;
         test << 1, 1, 1, 0;
-        std::cout << "Rotation metric: " << (clusters.poses[idx] * test - ground_truth * test).norm() << std::endl;
+        std::cout << "Rotation metric: " << (pose * test - ground_truth * test).norm() << std::endl;
         test << 0, 0, 0, 1;
-        std::cout << "Translation metric: " << (clusters.poses[idx] * test - ground_truth * test).norm() << std::endl;
+        std::cout << "Translation metric: " << (pose * test - ground_truth * test).norm() << std::endl;
         test << 0.1, 0.1, 0.1, 1;
-        std::cout << "Combined metric: " << (clusters.poses[idx] * test - ground_truth * test).norm() << std::endl;
+        std::cout << "Combined metric: " << (pose * test - ground_truth * test).norm() << std::endl;
+        if (cfg["metrics"]["visualize"].as<bool>())
+            view_projection(image, model, pose);
     }
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::steady_clock::now() - start);
-
-    std::cout << "Recognition took " << duration.count() << "ms" << std::endl;
 }
 
 int main(int argc, char * argv[]) {
