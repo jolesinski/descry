@@ -16,7 +16,7 @@ public:
         virtual ~AlignmentStrategy() = default;
     };
 
-    bool configure(const Config& config);
+    void configure(const Config& config);
     void setModel(const Model& model);
 
     Instances compute(const Image& image);

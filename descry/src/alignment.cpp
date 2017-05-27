@@ -7,19 +7,17 @@ namespace descry {
 
 std::unique_ptr<Aligner::AlignmentStrategy> makeSparseStrategy(const Config& config);
 
-bool Aligner::configure(const Config& config) {
+void Aligner::configure(const Config& config) {
     if (!config["type"])
-        return false;
+        DESCRY_THROW(InvalidConfigException, "missing aligner type");
 
     try {
         auto est_type = config["type"].as<std::string>();
         if (est_type == config::aligner::SPARSE_TYPE)
             strategy_ = makeSparseStrategy(config);
     } catch ( const YAML::RepresentationException& e) {
-        return false;
+        DESCRY_THROW(InvalidConfigException, e.what());
     }
-
-    return (strategy_ != nullptr);
 }
 
 void Aligner::setModel(const Model& model) {
@@ -105,15 +103,17 @@ std::string getDescriptorName(const Config& config) {
 
 std::unique_ptr<Aligner::AlignmentStrategy> makeSparseStrategy(const Config& config) {
     if(!config[config::descriptors::NODE_NAME])
-        return nullptr;
+        DESCRY_THROW(InvalidConfigException, "missing descriptor type");
 
     auto descr_type = getDescriptorName(config[config::descriptors::NODE_NAME]);
     if (descr_type == config::descriptors::SHOT_PCL_TYPE)
         return std::make_unique<SparseShapeMatching<pcl::SHOT352>>(config);
     else if (descr_type == config::descriptors::FPFH_PCL_TYPE)
         return std::make_unique<SparseShapeMatching<pcl::SHOT352>>(config);
+    else if (descr_type == config::descriptors::ORB_TYPE)
+        return std::make_unique<SparseShapeMatching<cv::Mat>>(config);
     else
-        return nullptr;
+        DESCRY_THROW(InvalidConfigException, "unsupported descriptor type");
 }
 
 }
