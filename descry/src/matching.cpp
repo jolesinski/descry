@@ -18,17 +18,17 @@ bool Matcher<D>::configure(const Config& config) {
 }
 
 template<class D>
-void Matcher<D>::setModel(const std::vector<Description<D>>& model) {
+void Matcher<D>::train(const std::vector<Description<D>>& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Matcher not configured");
-    return strategy_->setModel(model);
+    return strategy_->train(model);
 }
 
 template<class D>
-void Matcher<D>::setModel(std::vector<Description<D>>&& model) {
+void Matcher<D>::train(std::vector<Description<D>>&& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Matcher not configured");
-    return strategy_->setModel(std::move(model));
+    return strategy_->train(std::move(model));
 }
 
 template<class D>
@@ -62,13 +62,13 @@ public:
 
     ~KDTreeFlannMatching() override {};
 
-    void setModel(const std::vector<Description<Descriptor>>& model) override {
+    void train(const std::vector<Description<Descriptor>>& model) override {
         trees.resize(model.size());
         for (auto idx = 0u; idx < model.size(); ++idx)
             trees[idx].setInputCloud(model[idx].getFeatures().host());
     }
 
-    void setModel(std::vector<Description<Descriptor>>&& model) override {
+    void train(std::vector<Description<Descriptor>>&& model) override {
         trees.resize(model.size());
         for (auto idx = 0u; idx < model.size(); ++idx)
             trees[idx].setInputCloud(model[idx].getFeatures().host());
@@ -143,7 +143,7 @@ public:
             lowe_ratio = config[config::matcher::LOWE_RATIO].as<double>();
     }
 
-    void setModel(const std::vector<Description<cv::Mat>>& model) override {
+    void train(const std::vector<Description<cv::Mat>>& model) override {
         for (auto& view : model) {
             auto d = Description<cv::Mat>();
             d.setFeatures(view.getFeatures().clone());
@@ -152,7 +152,7 @@ public:
         }
     }
 
-    void setModel(std::vector<Description<cv::Mat>>&& model) override {
+    void train(std::vector<Description<cv::Mat>>&& model) override {
         model_ = std::move(model);
     }
 

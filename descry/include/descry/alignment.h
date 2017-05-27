@@ -11,13 +11,13 @@ class Aligner {
 public:
     class AlignmentStrategy {
     public:
-        virtual void setModel(const Model& model) = 0;
+        virtual void train(const Model& model) = 0;
         virtual Instances match(const Image& image) = 0;
         virtual ~AlignmentStrategy() = default;
     };
 
     void configure(const Config& config);
-    void setModel(const Model& model);
+    void train(const Model& model);
 
     Instances compute(const Image& image);
 private:

@@ -33,7 +33,7 @@ SCENARIO( "Find clusters in real cloud", "[clusters]" ) {
             std::vector<descry::Matcher<Descriptor>::DualDescriptors> model_descr;
             for(const auto& view : model.getViews())
                 model_descr.emplace_back(dest.compute(view.image));
-            matcher.setModel(model_descr);
+            matcher.train(model_descr);
 
             auto corrs = matcher.match(scene_descr);
             WARN(corrs.size());
@@ -41,7 +41,7 @@ SCENARIO( "Find clusters in real cloud", "[clusters]" ) {
             THEN("Should find valid instances") {
                 auto clusterer = descry::Clusterizer{};
                 clusterer.configure(descry::test::clusters::loadConfigHough());
-                clusterer.setModel(model);
+                clusterer.train(model);
 
                 auto instances = clusterer.compute(image, corrs);
 

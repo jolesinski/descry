@@ -180,7 +180,7 @@ void recognize(const descry::Config& cfg) {
 
     auto aligner = descry::Aligner{};
     aligner.configure(aligner_config);
-    aligner.setModel(model);
+    aligner.train(model);
 
 //  TODO: spdlog
 //    auto describer = descry::Describer<cv::Mat>{};

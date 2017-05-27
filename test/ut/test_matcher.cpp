@@ -67,7 +67,7 @@ TEST_CASE( "Find correspondences", "[matcher]" ) {
 
     std::vector<descry::Matcher<pcl::SHOT352>::DualDescriptors> model_duals;
     model_duals.emplace_back(model_descr);
-    matcher.setModel(model_duals);
+    matcher.train(model_duals);
 
     for (auto idx = 0u; idx < scene_size - 1; ++idx) {
         scene_descr->push_back(random_point());
@@ -89,7 +89,7 @@ TEST_CASE( "Find correspondences", "[matcher]" ) {
     REQUIRE(corrs[0]->size() == 2);
 
     model_descr->push_back(base);
-    matcher.setModel(model_duals);
+    matcher.train(model_duals);
     corrs = matcher.match(scene);
 
     REQUIRE(corrs.size() == 1);
@@ -98,14 +98,14 @@ TEST_CASE( "Find correspondences", "[matcher]" ) {
     cfg[descry::config::matcher::MAX_NEIGHS] = 2;
     REQUIRE(matcher.configure(cfg));
 
-    matcher.setModel(model_duals);
+    matcher.train(model_duals);
     corrs = matcher.match(scene);
 
     REQUIRE(corrs.size() == 1);
     REQUIRE(corrs[0]->size() == 4);
 
     model_duals.emplace_back(model_descr);
-    matcher.setModel(model_duals);
+    matcher.train(model_duals);
     corrs = matcher.match(scene);
 
     REQUIRE(corrs.size() == 2);
@@ -141,7 +141,7 @@ SCENARIO( "Find corrs in real cloud", "[matcher]" ) {
                 for(const auto& view : model.getViews())
                     model_descr.emplace_back(dest.compute(view.image));
 
-                matcher.setModel(model_descr);
+                matcher.train(model_descr);
 
                 auto corrs = matcher.match(scene_descr);
 
@@ -176,7 +176,7 @@ SCENARIO( "Find corrs in real cloud", "[matcher]" ) {
                 for(const auto& view : model.getViews())
                     model_descr.emplace_back(dest.compute(view.image));
 
-                matcher.setModel(model_descr);
+                matcher.train(model_descr);
 
                 auto corrs = matcher.match(scene_descr);
 

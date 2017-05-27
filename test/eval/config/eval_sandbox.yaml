@@ -22,4 +22,4 @@ aligner:
 
 metrics:
   radius: 0.01
-  visualize: true
+  visualize: false

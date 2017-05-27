@@ -20,10 +20,10 @@ void Aligner::configure(const Config& config) {
     }
 }
 
-void Aligner::setModel(const Model& model) {
+void Aligner::train(const Model& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Aligner not configured");
-    return strategy_->setModel(model);
+    return strategy_->train(model);
 }
 
 Instances Aligner::compute(const Image& image) {
@@ -38,7 +38,7 @@ public:
     SparseShapeMatching(const Config& config);
     ~SparseShapeMatching() override {};
 
-    void setModel(const Model& model);
+    void train(const Model& model);
     Instances match(const Image& image) override;
 private:
     Describer<Descriptor> scene_describer;
@@ -59,15 +59,15 @@ SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& config) {
 }
 
 template<class Descriptor>
-void SparseShapeMatching<Descriptor>::setModel(const Model& model) {
+void SparseShapeMatching<Descriptor>::train(const Model& model) {
     for(const auto& view : model.getViews())
         model_description.emplace_back(model_describer.compute(view.image));
-    matcher.setModel(model_description);
+    matcher.train(model_description);
 
     auto key_frames = std::vector<KeyFrameHandle>{};
     for (auto& descr : model_description)
         key_frames.emplace_back(descr.getKeyFrame());
-    clusterizer.setModel(model, key_frames);
+    clusterizer.train(model, key_frames);
 }
 
 template<class Descriptor>

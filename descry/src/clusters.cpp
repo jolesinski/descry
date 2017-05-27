@@ -67,10 +67,10 @@ bool Clusterizer::configure(const Config &config) {
     return (strategy_ != nullptr);
 }
 
-void Clusterizer::setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) {
+void Clusterizer::train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
-    return strategy_->setModel(model, view_keyframes);
+    return strategy_->train(model, view_keyframes);
 }
 
 Instances Clusterizer::compute(const Image& image, const KeyFrameHandle& keyframe,
@@ -87,7 +87,7 @@ public:
 
     ~PCLStrategy() override {};
 
-    void setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) override {
+    void train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) override {
         model_ = model.getFullCloud();
         clust_.resize(model.getViews().size(), clust_.front());
 

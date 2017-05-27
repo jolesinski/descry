@@ -29,7 +29,7 @@ SCENARIO( "Sparse alignment", "[alignment]" ) {
 
             REQUIRE(aligner.configure(align_cfg));
 
-            aligner.setModel(model);
+            aligner.train(model);
 
             THEN("At least one instance should be found") {
                 auto instances = aligner.compute(image);

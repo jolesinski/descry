@@ -12,7 +12,7 @@ class Clusterizer {
 public:
     class Strategy {
     public:
-        virtual void setModel(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) = 0;
+        virtual void train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) = 0;
         virtual Instances compute(const Image& image, const KeyFrameHandle& keyframe,
                                   const std::vector<pcl::CorrespondencesPtr>& corrs) = 0;
         virtual ~Strategy() = default;
@@ -20,7 +20,7 @@ public:
 
     bool configure(const Config &config);
 
-    void setModel(const Model& image, const std::vector<KeyFrameHandle>& view_keyframes);
+    void train(const Model& image, const std::vector<KeyFrameHandle>& view_keyframes);
     Instances compute(const Image& image, const KeyFrameHandle& keyframe,
                       const std::vector<pcl::CorrespondencesPtr>& corrs);
 
