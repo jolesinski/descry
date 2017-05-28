@@ -1,4 +1,7 @@
 #include <descry/clusters.h>
+
+// using precompiled correspondence rejector causes stack smashing in umeyama jacobi svd (?)
+#define PCL_NO_PRECOMPILE
 #include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 
