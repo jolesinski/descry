@@ -20,6 +20,34 @@ aligner:
     gc-size: 0.01
     gc-threshold: 5
 
+refinement:
+  type: icp
+  max-iterations: 5
+  max-corr-distance: 0.005
+  transform-epsilon: 1e-5
+  euclidean-fitness: 1
+  use-reciprocal: false
+
+verification:
+  type: ghv
+  # squared? radius of in scene model inliers
+  inlier-threshold: 0.1
+  # this is only for unorganized scenes?
+  occlusion-threshold: 0.01
+  regularizer: 3.0
+  radius-clutter: 0.03
+  clutter-regularizer: 5.0
+  detect-clutter: true
+  radius-normals: 0.05
+  # papazov
+  resolution: 0.001
+  # min scene indices that are neighbours to visible model to full model ratio
+  support-threshold: 0.0005
+  # max visible model outliers (no scene neighbour) to full model size
+  penalty-threshold: 0.5
+  # number of scene indices that are neighbours to both models to either full model ratio
+  conflict-threshold: 0.001
+
 metrics:
   radius: 0.01
   visualize: false
