@@ -23,8 +23,8 @@ aligner:
 refinement:
   type: icp
   max-iterations: 5
-  max-corr-distance: 0.005
-  transform-epsilon: 1e-5
+  max-correspondence-distance: 0.006
+  transformation-epsilon: 1e-5
   euclidean-fitness: 1
   use-reciprocal: false
 

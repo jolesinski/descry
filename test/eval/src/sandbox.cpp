@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <descry/alignment.h>
+#include <descry/refinement.h>
 #include <descry/normals.h>
 #include <descry/willow.h>
 #include <descry/test/config.h>
@@ -237,39 +238,24 @@ void recognize(const descry::Config& cfg) {
 
     // Refinement
     std::cout << "ICP Refinement" << std::endl;
-    auto shape_model = descry::make_cloud<descry::ShapePoint>();
-    pcl::copyPointCloud(*instances.cloud, *shape_model);
-    auto refined_instances = std::vector<descry::ShapeCloud::ConstPtr>{};
-    for (auto& pose : instances.poses) {
-        pcl::IterativeClosestPoint<descry::ShapePoint, descry::ShapePoint> icp;
-        icp.setMaxCorrespondenceDistance(cfg["refinement"]["max-corr-distance"].as<double>());
-        icp.setMaximumIterations(cfg["refinement"]["max-iterations"].as<int>());
-        icp.setTransformationEpsilon(cfg["refinement"]["transform-epsilon"].as<double>());
-        icp.setEuclideanFitnessEpsilon(cfg["refinement"]["euclidean-fitness"].as<double>());
-        icp.setUseReciprocalCorrespondences(cfg["refinement"]["use-reciprocal"].as<bool>());
-        icp.setInputSource(shape_model);
-        icp.setInputTarget(image.getShapeCloud().host());
-        auto refined = descry::make_cloud<descry::ShapePoint>();
-        icp.align(*refined, pose);
-        if (icp.hasConverged()) {
-//            std::cout << "\n\nICP converged\n";
-//            log_pose_metrics(pose, ground_truth);
+    auto refiner = descry::Refiner{};
+    refiner.configure(cfg["refinement"]);
+    refiner.train(model);
+    auto refined_instances = refiner.compute(image, instances);
 
-            //view_projection(image, model, pose);
-//            auto refined_pose = icp.getFinalTransformation();
-//            log_pose_metrics(refined_pose, ground_truth);
-
-            refined_instances.push_back(refined);
-            //view_projection(image, model, refined_pose);
-        } //else {
-//            std::cout << "ICP failed\n";
-//            log_pose_metrics(pose, ground_truth);
-//        }
-    }
 
     duration = std::chrono::duration_cast<std::chrono::milliseconds>
             (std::chrono::steady_clock::now() - start);
     std::cout << "Refinement took " << duration.count() << "ms" << std::endl;
+
+    auto aligned_models = std::vector<descry::ShapeCloud::ConstPtr>{};
+    auto shape_model = descry::make_cloud<descry::ShapePoint>();
+    pcl::copyPointCloud(*model.getFullCloud(), *shape_model);
+    for (auto pose : refined_instances.poses) {
+        auto transformed = descry::make_cloud<descry::ShapePoint>();
+        pcl::transformPointCloud(*shape_model, *transformed, pose);
+        aligned_models.emplace_back(transformed);
+    }
 
 //    for (auto instance : refined_instances) {
 //        view_projection<descry::ShapePoint>(image, instance, Eigen::Matrix4f::Identity());
@@ -301,8 +287,8 @@ void recognize(const descry::Config& cfg) {
 
     ghv.setSceneCloud(image.getShapeCloud().host());
 
-    std::cout << "refined instances " << refined_instances.size() << std::endl;
-    ghv.addModels(refined_instances, true);
+    std::cout << "refined instances " << aligned_models.size() << std::endl;
+    ghv.addModels(aligned_models, true);
 
     ghv.verify();
     std::vector<bool> hypotheses_mask;

@@ -1,37 +1,41 @@
-recognizer:
-  normals:
-    type: omp
-    support-radius: 30
-    threads: 4
-  aligner:
-    type: sparse
-    descriptors:
-      model: &model-descriptor
-        type: fpfh
+normals:
+  type: omp
+  support-radius: 30
+  threads: 4
+aligner:
+  type: sparse
+  descriptors:
+    model: &model-descriptor
+      type: fpfh
+      support-radius: 0.015
+      keypoints: &iss-keys
+        type: iss
+        salient-radius: 0.03
+        non-max-radius: 0.03
+        border-radius: 0.03
+        normal-radius: 0.03
+        threshold-21: 0.975
+        threshold-32: 0.975
+        min-neighbours: 5
+        threads: 4
+      reference-frames:
+        type: board
+        find-holes: true
         support-radius: 0.015
-        keypoints: &iss-keys
-          type: iss
-          salient-radius: 0.03
-          non-max-radius: 0.03
-          border-radius: 0.03
-          normal-radius: 0.03
-          threshold-21: 0.975
-          threshold-32: 0.975
-          min-neighbours: 5
-          threads: 4
-        reference-frames:
-          type: board
-          find-holes: true
-          support-radius: 0.015
-      scene: *model-descriptor
-
-    matching:
-      type: kdtree-flann
-      max-neighs: 1
-      max-distance: 0.25
-    clusters:
-      type: hough
-      bin-size: 0.01
-      threshold: 5.0
-  refinement: icp
-  verification: ghv
+    scene: *model-descriptor
+  matching:
+    type: kdtree-flann
+    max-neighs: 1
+    max-distance: 0.25
+  clusters:
+    type: hough
+    bin-size: 0.01
+    threshold: 5.0
+refinement:
+  type: icp
+  max-iterations: 5
+  max-correspondence-distance: 0.005
+  transformation-epsilon: 1e-5
+  euclidean-fitness: 1
+  use-reciprocal: false
+verification: ghv
