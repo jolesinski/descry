@@ -38,4 +38,10 @@ refinement:
   transformation-epsilon: 1e-5
   euclidean-fitness: 1
   use-reciprocal: false
-verification: ghv
+verification:
+  type: papazov
+  resolution: 0.001
+  inlier-threshold: 0.1
+  support-threshold: 0.0005
+  penalty-threshold: 0.5
+  conflict-threshold: 0.001

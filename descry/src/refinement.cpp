@@ -50,10 +50,10 @@ struct convert<descry::BasicICP> {
 namespace descry {
 
 void Refiner::configure(const Config& config) {
-    if (!config["type"])
+    if (!config[config::TYPE_NODE])
         DESCRY_THROW(InvalidConfigException, "missing type config");
 
-    auto type_name = config["type"].as<std::string>();
+    auto type_name = config[config::TYPE_NODE].as<std::string>();
 
     try {
         if (type_name == config::refiner::ICP_TYPE) {

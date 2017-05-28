@@ -12,7 +12,8 @@ add_library(descry SHARED
         src/recognizer.cpp
         src/ref_frames.cpp
         src/refinement.cpp
-        src/willow.cpp)
+        src/willow.cpp
+        src/verification.cpp)
 
 target_include_directories(descry
         PUBLIC include

@@ -3,6 +3,7 @@
 
 #include <descry/alignment.h>
 #include <descry/refinement.h>
+#include <descry/verification.h>
 #include <descry/normals.h>
 #include <descry/willow.h>
 #include <descry/test/config.h>
@@ -14,10 +15,6 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
-#define PCL_NO_PRECOMPILE
-#include <pcl/recognition/hv/hv_go.h>
-#include <pcl/recognition/hv/hv_papazov.h>
-#include <pcl/registration/icp.h>
 
 void view_keys(const descry::Image& image, const descry::Keypoints& keys, std::string window_name) {
     //copy to opencv mat
@@ -209,15 +206,6 @@ void recognize(const descry::Config& cfg) {
     aligner.configure(aligner_config);
     aligner.train(model);
 
-//  TODO: spdlog
-//    auto describer = descry::Describer<cv::Mat>{};
-//    describer.configure(descr_config["model"]);
-//    auto views_description = std::vector<descry::Description<cv::Mat>>();
-//    for (auto& view : model.getViews()) {
-//        views_description.emplace_back(describer.compute(view.image));
-//        std::cout << "Model features " << views_description.back().getFeatures().size() << std::endl;
-//    }
-
     auto image = descry::Image(test_data.front().first);
     auto start = std::chrono::steady_clock::now();
 
@@ -243,29 +231,17 @@ void recognize(const descry::Config& cfg) {
     refiner.train(model);
     auto refined_instances = refiner.compute(image, instances);
 
-
     duration = std::chrono::duration_cast<std::chrono::milliseconds>
             (std::chrono::steady_clock::now() - start);
     std::cout << "Refinement took " << duration.count() << "ms" << std::endl;
-
-    auto aligned_models = std::vector<descry::ShapeCloud::ConstPtr>{};
-    auto shape_model = descry::make_cloud<descry::ShapePoint>();
-    pcl::copyPointCloud(*model.getFullCloud(), *shape_model);
-    for (auto pose : refined_instances.poses) {
-        auto transformed = descry::make_cloud<descry::ShapePoint>();
-        pcl::transformPointCloud(*shape_model, *transformed, pose);
-        aligned_models.emplace_back(transformed);
-    }
-
-//    for (auto instance : refined_instances) {
-//        view_projection<descry::ShapePoint>(image, instance, Eigen::Matrix4f::Identity());
-//    }
-
     start = std::chrono::steady_clock::now();
 
-    // GHV
-    std::cout << "\n\nGHV" << std::endl;
-    auto ghv_cfg = cfg["verification"];
+    // Verification
+    std::cout << "\n\nVerification" << std::endl;
+    auto hv = descry::Verifier{};
+    hv.configure(cfg["verification"]);
+    auto verified_instances = hv.compute(image, refined_instances);
+
 //    auto ghv = pcl::GlobalHypothesesVerification<descry::ShapePoint, descry::ShapePoint>{};
 //
 //    ghv.setInlierThreshold(ghv_cfg["inlier-threshold"].as<float>());
@@ -274,52 +250,19 @@ void recognize(const descry::Config& cfg) {
 //    ghv.setRadiusClutter(ghv_cfg["radius-clutter"].as<float>());
 //    ghv.setClutterRegularizer(ghv_cfg["clutter-regularizer"].as<float>());
 //    ghv.setDetectClutter(ghv_cfg["detect-clutter"].as<bool>());
-//    //TODO: remove
 //    ghv.setRadiusNormals(ghv_cfg["radius-normals"].as<float>());
-
-    pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
-    auto ghv = pcl::PapazovHV<descry::ShapePoint, descry::ShapePoint>{};
-    ghv.setResolution (ghv_cfg["resolution"].as<float>());
-    ghv.setInlierThreshold(ghv_cfg["inlier-threshold"].as<float>());
-    ghv.setSupportThreshold (ghv_cfg["support-threshold"].as<float>());
-    ghv.setPenaltyThreshold (ghv_cfg["penalty-threshold"].as<float>());
-    ghv.setConflictThreshold (ghv_cfg["conflict-threshold"].as<float>());
-
-    ghv.setSceneCloud(image.getShapeCloud().host());
-
-    std::cout << "refined instances " << aligned_models.size() << std::endl;
-    ghv.addModels(aligned_models, true);
-
-    ghv.verify();
-    std::vector<bool> hypotheses_mask;
-    ghv.getMask(hypotheses_mask);
-
-    int idx = 0;
-    for (auto verified : hypotheses_mask) {
-        idx++;
-        if (verified) std::cout << "FOUND!!! " << idx << std::endl;
-    }
 
     duration = std::chrono::duration_cast<std::chrono::milliseconds>
             (std::chrono::steady_clock::now() - start);
 
     std::cout << "Verification took " << duration.count() << "ms" << std::endl;
 
-//  TODO: spdlog
-//    auto matches = matcher.match(scene_d);
-//    for (auto view_matches : matches) {
-//        std::cout << "Matches size " << view_matches->size() << std::endl;
-//    }
-
-    //pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
-//    descry::Clusterizer clst;
-//    clst.configure(cfg[descry::config::clusters::NODE_NAME]);
     std::cout << "Ground truth" << std::endl;
     std::cout << ground_truth << std::endl;
     std::cout << "Found overall: " << instances.poses.size() << std::endl;
-    std::cout << "with verified positives: " << std::count(std::begin(hypotheses_mask), std::end(hypotheses_mask), true) << std::endl;
-    for (const auto& pose : instances.poses) {
-        //log_pose_metrics(pose, ground_truth);
+    std::cout << "with verified positives: " << verified_instances.poses.size() << std::endl;
+    for (const auto& pose : verified_instances.poses) {
+        log_pose_metrics(pose, ground_truth);
         if (cfg["metrics"]["visualize"].as<bool>()) {
             view_projection(image, model, pose);
         }

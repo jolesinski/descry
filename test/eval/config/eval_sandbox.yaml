@@ -29,7 +29,7 @@ refinement:
   use-reciprocal: false
 
 verification:
-  type: ghv
+  type: papazov
   # squared? radius of in scene model inliers
   inlier-threshold: 0.1
   # this is only for unorganized scenes?
@@ -50,4 +50,4 @@ verification:
 
 metrics:
   radius: 0.01
-  visualize: false
+  visualize: true
