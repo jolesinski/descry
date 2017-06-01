@@ -58,6 +58,7 @@ public:
         pcl->width = this->width;
         pcl->height = this->height;
         pcl->points.resize(this->size());
+        pcl->is_dense = false;
         thrust::copy(this->points.begin(), this->points.end(), pcl->points.begin());
         return pcl;
     }
