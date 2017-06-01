@@ -240,17 +240,8 @@ void recognize(const descry::Config& cfg) {
     std::cout << "\n\nVerification" << std::endl;
     auto hv = descry::Verifier{};
     hv.configure(cfg["verification"]);
+    pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
     auto verified_instances = hv.compute(image, refined_instances);
-
-//    auto ghv = pcl::GlobalHypothesesVerification<descry::ShapePoint, descry::ShapePoint>{};
-//
-//    ghv.setInlierThreshold(ghv_cfg["inlier-threshold"].as<float>());
-//    ghv.setOcclusionThreshold(ghv_cfg["occlusion-threshold"].as<float>());
-//    ghv.setRegularizer(ghv_cfg["regularizer"].as<float>());
-//    ghv.setRadiusClutter(ghv_cfg["radius-clutter"].as<float>());
-//    ghv.setClutterRegularizer(ghv_cfg["clutter-regularizer"].as<float>());
-//    ghv.setDetectClutter(ghv_cfg["detect-clutter"].as<bool>());
-//    ghv.setRadiusNormals(ghv_cfg["radius-normals"].as<float>());
 
     duration = std::chrono::duration_cast<std::chrono::milliseconds>
             (std::chrono::steady_clock::now() - start);
