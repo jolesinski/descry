@@ -51,8 +51,8 @@ private:
 
 template<class Descriptor>
 SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& config) {
-    model_describer.configure(config[config::descriptors::NODE_NAME]["model"]);
-    scene_describer.configure(config[config::descriptors::NODE_NAME]["scene"]);
+    model_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::aligner::MODEL_NODE]);
+    scene_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::aligner::SCENE_NODE]);
 
     matcher.configure(config[config::matcher::NODE_NAME]);
     clusterizer.configure(config[config::clusters::NODE_NAME]);
@@ -81,17 +81,23 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
 namespace {
 
 std::string getDescriptorName(const Config& config) {
-    if (!config["model"] || !config["scene"])
+    if (!config[config::aligner::MODEL_NODE] || !config[config::aligner::SCENE_NODE])
         DESCRY_THROW(InvalidConfigException, "missing descriptors config");
 
-    auto& model_type_node = config["model"]["type"];
-    auto& scene_type_node = config["scene"]["type"];
+    auto& model_feats_node = config[config::aligner::MODEL_NODE][config::features::NODE_NAME];
+    auto& scene_feats_node = config[config::aligner::SCENE_NODE][config::features::NODE_NAME];
+
+    if (!model_feats_node || !scene_feats_node)
+        DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing features");
+
+    auto& model_type_node = model_feats_node[config::TYPE_NODE];
+    auto& scene_type_node = scene_feats_node[config::TYPE_NODE];
 
     if (!model_type_node || !scene_type_node)
         DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing type");
 
-    auto model_type_name = config["model"]["type"].as<std::string>();
-    auto scene_type_name = config["scene"]["type"].as<std::string>();
+    auto model_type_name = model_type_node.as<std::string>();
+    auto scene_type_name = scene_type_node.as<std::string>();
 
     if (model_type_name != scene_type_name)
         DESCRY_THROW(InvalidConfigException, "model and scene descriptor types differ");
@@ -102,15 +108,15 @@ std::string getDescriptorName(const Config& config) {
 }
 
 std::unique_ptr<Aligner::AlignmentStrategy> makeSparseStrategy(const Config& config) {
-    if(!config[config::descriptors::NODE_NAME])
+    if(!config[config::aligner::DESCRIPTION_NODE])
         DESCRY_THROW(InvalidConfigException, "missing descriptor type");
 
-    auto descr_type = getDescriptorName(config[config::descriptors::NODE_NAME]);
-    if (descr_type == config::descriptors::SHOT_PCL_TYPE)
+    auto descr_type = getDescriptorName(config[config::aligner::DESCRIPTION_NODE]);
+    if (descr_type == config::features::SHOT_PCL_TYPE)
         return std::make_unique<SparseShapeMatching<pcl::SHOT352>>(config);
-    else if (descr_type == config::descriptors::FPFH_PCL_TYPE)
+    else if (descr_type == config::features::FPFH_PCL_TYPE)
         return std::make_unique<SparseShapeMatching<pcl::SHOT352>>(config);
-    else if (descr_type == config::descriptors::ORB_TYPE)
+    else if (descr_type == config::features::ORB_TYPE)
         return std::make_unique<SparseShapeMatching<cv::Mat>>(config);
     else
         DESCRY_THROW(InvalidConfigException, "unsupported descriptor type");

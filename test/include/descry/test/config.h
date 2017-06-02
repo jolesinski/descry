@@ -7,7 +7,7 @@
 
 #include <descry/common.h>
 #include <descry/config/clusters.h>
-#include <descry/config/descriptors.h>
+#include <descry/config/features.h>
 #include <descry/config/keypoints.h>
 #include <descry/config/matcher.h>
 #include <descry/config/normals.h>
@@ -120,16 +120,16 @@ namespace descriptors {
 
 inline descry::Config loadConfigFPFH() {
     auto cfg = Config();
-    cfg["type"] = config::descriptors::FPFH_PCL_TYPE;
-    cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
-    cfg[config::descriptors::THREADS] = 4;
+    cfg[config::TYPE_NODE] = config::features::FPFH_PCL_TYPE;
+    cfg[config::features::SUPPORT_RAD] = 0.015f;
+    cfg[config::features::THREADS] = 4;
     return cfg;
 }
 
 inline descry::Config loadConfigSHOT() {
     auto cfg = Config();
-    cfg["type"] = config::descriptors::SHOT_PCL_TYPE;
-    cfg[config::descriptors::SUPPORT_RAD] = 0.015f;
+    cfg[config::TYPE_NODE] = config::features::SHOT_PCL_TYPE;
+    cfg[config::features::SUPPORT_RAD] = 0.015f;
     return cfg;
 }
 

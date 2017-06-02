@@ -13,16 +13,17 @@ namespace YAML {
 template <class DescriberPCL>
 bool decode_pcl_omp_describer(const YAML::Node& node, DescriberPCL& rhs)
 {
+    namespace cfg = descry::config::features;
     if (!node.IsMap())
         return false;
 
-    if (node[descry::config::descriptors::SUPPORT_RAD])
-        rhs.setRadiusSearch(node[descry::config::descriptors::SUPPORT_RAD].as<double>());
+    if (node[cfg::SUPPORT_RAD])
+        rhs.setRadiusSearch(node[cfg::SUPPORT_RAD].as<double>());
     else
         return false;
 
-    if (node[descry::config::descriptors::THREADS])
-        rhs.setNumberOfThreads(node[descry::config::descriptors::THREADS].as<unsigned>());
+    if (node[cfg::THREADS])
+        rhs.setNumberOfThreads(node[cfg::THREADS].as<unsigned>());
 
     return true;
 }
@@ -44,7 +45,7 @@ struct convert<FPFH_PCL> {
 template<>
 struct convert<cv::Ptr<cv::ORB>> {
     static bool decode(const Node &node, cv::Ptr<cv::ORB> &rhs) {
-        namespace cfg = descry::config::descriptors;
+        namespace cfg = descry::config::features;
 
         if (!node.IsMap())
             return false;
@@ -124,7 +125,7 @@ struct pcl_describer_parser<pcl::SHOT352> {
     using describer_t = SHOT_PCL;
 
     static bool is_config_matching(const std::string& type_str) {
-        return type_str == config::descriptors::SHOT_PCL_TYPE;
+        return type_str == config::features::SHOT_PCL_TYPE;
     }
 
     static void add_rfs_if_supported(describer_t& describer, const DualRefFrames& rfs) {
@@ -137,7 +138,7 @@ struct pcl_describer_parser<pcl::FPFHSignature33> {
     using describer_t = FPFH_PCL;
 
     static bool is_config_matching(const std::string& type_str) {
-        return type_str == config::descriptors::FPFH_PCL_TYPE;
+        return type_str == config::features::FPFH_PCL_TYPE;
     }
 
     static void add_rfs_if_supported(describer_t& /*describer*/, const DualRefFrames& /*rfs*/) {}
@@ -154,9 +155,6 @@ Description<D> Describer<D>::compute(const Image& image) {
 
 template<class D>
 bool Describer<D>::configure(const Config& config) {
-    if (!config["type"])
-        return false;
-
     auto keys_det = KeypointDetector{};
     auto& keys_cfg = config[config::keypoints::NODE_NAME];
     if (!keys_cfg || !keys_det.configure(keys_cfg)) // required
@@ -167,11 +165,17 @@ bool Describer<D>::configure(const Config& config) {
     if (rf_cfg && !rf_est.configure(rf_cfg)) // optional
         return false;
 
-    auto est_type = config["type"].as<std::string>();
+    auto features_config = config[config::features::NODE_NAME];
+    if (!features_config)
+        DESCRY_THROW(InvalidConfigException, "missing features node");
+
+    if (!features_config[config::TYPE_NODE])
+        return false;
+    auto est_type = features_config[config::TYPE_NODE].as<std::string>();
     try {
 
         if (pcl_describer_parser<D>::is_config_matching(est_type)) {
-            auto descr = config.as<typename pcl_describer_parser<D>::describer_t>();
+            auto descr = features_config.as<typename pcl_describer_parser<D>::describer_t>();
             _descr = [ descr{std::move(descr)}, keys_det{std::move(keys_det)}, rf_est{std::move(rf_est)} ]
             (const Image &image) mutable {
                 auto d = Description<D>();
@@ -230,13 +234,16 @@ ColorDescription filter_null_keypoints(const ColorDescription& descr, const Imag
 
 template<>
 bool Describer<cv::Mat>::configure(const Config& config) {
-    if (!config["type"])
-        return false;
+    auto features_config = config[config::features::NODE_NAME];
+    if (!features_config)
+        DESCRY_THROW(InvalidConfigException, "missing features node");
 
-    auto est_type = config["type"].as<std::string>();
+    if (!features_config[config::TYPE_NODE])
+        return false;
+    auto est_type = features_config[config::TYPE_NODE].as<std::string>();
     try {
-        if (est_type == config::descriptors::ORB_TYPE) {
-            auto descr = config.as<cv::Ptr<cv::ORB>>();
+        if (est_type == config::features::ORB_TYPE) {
+            auto descr = features_config.as<cv::Ptr<cv::ORB>>();
             _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
                 auto color = ColorDescription{};
                 descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);

@@ -1,9 +1,11 @@
-#ifndef DESCRY_CONFIG_DESCRIPTORS_H
-#define DESCRY_CONFIG_DESCRIPTORS_H
+#ifndef DESCRY_CONFIG_FEATURES_H
+#define DESCRY_CONFIG_FEATURES_H
 
-namespace descry { namespace config { namespace descriptors {
+#include <descry/config/common.h>
 
-static constexpr auto NODE_NAME = "descriptors";
+namespace descry { namespace config { namespace features {
+
+static constexpr auto NODE_NAME = "features";
 
 // SHOT PCL implentation
 static constexpr auto SHOT_PCL_TYPE = "shot";
@@ -28,4 +30,4 @@ static constexpr auto WTA_K = "wta-k";
 
 }}}
 
-#endif //DESCRY_CONFIG_DESCRIPTORS_H
+#endif //DESCRY_CONFIG_FEATURES_H

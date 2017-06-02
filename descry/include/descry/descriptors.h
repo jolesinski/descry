@@ -4,7 +4,7 @@
 #include <descry/image.h>
 #include <descry/keypoints.h>
 #include <descry/ref_frames.h>
-#include <descry/config/descriptors.h>
+#include <descry/config/features.h>
 
 namespace descry {
 

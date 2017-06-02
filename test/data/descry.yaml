@@ -1,47 +1,108 @@
-normals:
-  type: omp
-  support-radius: 30
-  threads: 4
-aligner:
-  type: sparse
-  descriptors:
-    model: &model-descriptor
-      type: fpfh
-      support-radius: 0.015
-      keypoints: &iss-keys
-        type: iss
-        salient-radius: 0.03
-        non-max-radius: 0.03
-        border-radius: 0.03
-        normal-radius: 0.03
-        threshold-21: 0.975
-        threshold-32: 0.975
-        min-neighbours: 5
-        threads: 4
-      reference-frames:
-        type: board
-        find-holes: true
-        support-radius: 0.015
-    scene: *model-descriptor
-  matching:
+normal-estimators:
+  - &normals-omp
+    type: omp
+    support-radius: 0.05
+    threads: 4
+  - &normals-integral
+    type: integral-image
+    integral-method:
+    smoothing-size:
+    max-depth-change:
+  - &normals-cupcl
+    type: cupcl
+    support-radius: 0.05
+
+keypoint-detectors:
+  - &iss
+    type: iss
+    salient-radius: 0.03
+    non-max-radius: 0.03
+    border-radius: 0.03
+    normal-radius: 0.03
+    threshold-21: 0.975
+    threshold-32: 0.975
+    min-neighbours: 5
+    threads: 4
+
+rf-estimators:
+  - &board
+    type: board
+    find-holes: true
+    support-radius: 0.015
+
+feature-estimators:
+  - &fpfh
+    type: fpfh
+    support-radius: 0.015
+    threads: 4
+  - &shot
+    type: shot
+    support-radius: 0.015
+    threads: 4
+  - &orb
+    type: orb
+    max-features: 5000
+
+matchers:
+  - &brute-force
+    type: brute-force
+    norm: hamming
+    use-lowe: true
+    lowe-ratio: 0.8
+  - &kdtree-flann
     type: kdtree-flann
     max-neighs: 1
     max-distance: 0.25
-  clusters:
+
+clusterers:
+  - &hough
     type: hough
     bin-size: 0.01
     threshold: 5.0
-refinement:
-  type: icp
-  max-iterations: 5
-  max-correspondence-distance: 0.005
-  transformation-epsilon: 1e-5
-  euclidean-fitness: 1
-  use-reciprocal: false
-verification:
-  type: papazov
-  resolution: 0.001
-  inlier-threshold: 0.1
-  support-threshold: 0.0005
-  penalty-threshold: 0.5
-  conflict-threshold: 0.001
+  - &gc
+    type: gc
+    gc-size: 0.01
+    gc-threshold: 5
+
+refiners:
+  - &icp
+    type: icp
+    max-iterations: 5
+    max-correspondence-distance: 0.005
+    transformation-epsilon: 1e-5
+    euclidean-fitness: 1
+    use-reciprocal: false
+
+verifiers:
+  - &papazov
+    type: papazov
+    resolution: 0.001
+    inlier-threshold: 0.1
+    support-threshold: 0.0005
+    penalty-threshold: 0.5
+    conflict-threshold: 0.001
+  - &global
+    type: global
+    resolution: 0.001
+    inlier-threshold: 0.1
+    occlusion-threshold: 0.01
+    regularizer: 3.0
+    radius-clutter: 0.03
+    clutter-regularizer: 5.0
+    detect-clutter: true
+    radius-normals: 0.05
+
+recognizer:
+  normals: *cupcl
+  aligner:
+    type: sparse
+    description:
+      model: &model-description
+        keypoints: *iss
+        reference-frames: *board
+        features: *fpfh
+      scene: *model-description
+    matching: *kdtree-flann
+    clusters: *hough
+  refinement: *icp
+  verification: *papazov
