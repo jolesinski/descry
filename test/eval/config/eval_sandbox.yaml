@@ -1,16 +1,25 @@
 model: object_13
 scene: T_07_willow_dataset
 
+refiners:
+  - &icp
+    type: icp
+    max-iterations: 5
+    max-correspondence-distance: 0.005
+    transformation-epsilon: 1e-5
+    euclidean-fitness: 1
+    use-reciprocal: false
+
 verifiers:
   - &papazov
     type: papazov
-    resolution: 0.001
+    resolution: 0.005
   # squared? radius of in scene model inliers
-    inlier-threshold: 0.1
+    inlier-threshold: 0.01
   # min scene indices that are neighbours to visible model to full model ratio
-    support-threshold: 0.0005
+    support-threshold: 0.2
   # max visible model outliers (no scene neighbour) to full model size
-    penalty-threshold: 0.5
+    penalty-threshold: 0.1
   # number of scene indices that are neighbours to both models to either full model ratio
     conflict-threshold: 0.001
   - &global
@@ -24,34 +33,29 @@ verifiers:
     clutter-regularizer: 5.0
     radius-normals: 0.05
 
-aligner:
-  type: sparse
-  description:
-    model:
-      features:
-        type: orb
-        max-features: 500
-    scene:
-      features:
-        type: orb
-        max-features: 5000
-  matching:
-    type: brute-force
-    norm: hamming
-    use-lowe: true
-    lowe-ratio: 0.8
-  clusters:
-    type: gc
-    gc-size: 0.01
-    gc-threshold: 5
-refinement:
-  type: icp
-  max-iterations: 5
-  max-correspondence-distance: 0.006
-  transformation-epsilon: 1e-5
-  euclidean-fitness: 1
-  use-reciprocal: false
-verification: *global
+recognizer:
+  aligner:
+    type: sparse
+    description:
+      model:
+        features:
+          type: orb
+          max-features: 500
+      scene:
+        features:
+          type: orb
+          max-features: 5000
+    matching:
+      type: brute-force
+      norm: hamming
+      use-lowe: true
+      lowe-ratio: 0.8
+    clusters:
+      type: gc
+      gc-size: 0.01
+      gc-threshold: 5
+#  refinement: *icp
+  verification: *papazov
 
 metrics:
   radius: 0.01

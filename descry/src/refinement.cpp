@@ -92,7 +92,7 @@ void Refiner::train(const Model& model) {
 
 Instances Refiner::compute(const Image& scene, const Instances& instances) {
     if (!refiner_)
-        DESCRY_THROW(NotConfiguredException, "Refinement not configured");
+        DESCRY_THROW(NotConfiguredException, "Refinement not trained");
     return refiner_(scene, instances);
 }
 

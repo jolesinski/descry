@@ -11,7 +11,9 @@ namespace descry {
 class Refiner {
 public:
     void configure(const Config& config);
+    bool is_configured() const noexcept { return !!model_feed_; }
     void train(const Model& model);
+    bool is_trained() const noexcept { return !!refiner_; }
     Instances compute(const Image& scene, const Instances& instances);
 private:
     std::function<Instances( const Image&, const Instances& )> refiner_;

@@ -11,6 +11,7 @@ namespace descry {
 class Verifier {
 public:
     void configure(const Config& config);
+    bool is_configured() const noexcept { return !!verifier_; }
     Instances compute(const Image& scene, const Instances& instances);
 private:
     std::function<Instances( const Image&, const Instances& )> verifier_;

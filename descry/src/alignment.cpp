@@ -51,8 +51,8 @@ private:
 
 template<class Descriptor>
 SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& config) {
-    model_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::aligner::MODEL_NODE]);
-    scene_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::aligner::SCENE_NODE]);
+    model_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::MODEL_NODE]);
+    scene_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::SCENE_NODE]);
 
     matcher.configure(config[config::matcher::NODE_NAME]);
     clusterizer.configure(config[config::clusters::NODE_NAME]);
@@ -81,11 +81,11 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
 namespace {
 
 std::string getDescriptorName(const Config& config) {
-    if (!config[config::aligner::MODEL_NODE] || !config[config::aligner::SCENE_NODE])
+    if (!config[config::MODEL_NODE] || !config[config::SCENE_NODE])
         DESCRY_THROW(InvalidConfigException, "missing descriptors config");
 
-    auto& model_feats_node = config[config::aligner::MODEL_NODE][config::features::NODE_NAME];
-    auto& scene_feats_node = config[config::aligner::SCENE_NODE][config::features::NODE_NAME];
+    auto& model_feats_node = config[config::MODEL_NODE][config::features::NODE_NAME];
+    auto& scene_feats_node = config[config::SCENE_NODE][config::features::NODE_NAME];
 
     if (!model_feats_node || !scene_feats_node)
         DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing features");

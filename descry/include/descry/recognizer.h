@@ -5,13 +5,23 @@
 #include <descry/common.h>
 #include <descry/model.h>
 
+#include <descry/alignment.h>
+#include <descry/normals.h>
+#include <descry/refinement.h>
+#include <descry/verification.h>
+
 namespace descry {
 
 class Recognizer {
 public:
     bool configure(const Config& config);
     void train(const Model& model);
-    Instances recognize(const FullCloud::ConstPtr& scene);
+    Instances compute(const FullCloud::ConstPtr &scene);
+private:
+    NormalEstimation nest_;
+    Aligner aligner_;
+    Refiner refiner_;
+    Verifier verifier_;
 };
 
 }
