@@ -9,6 +9,7 @@ refiners:
     transformation-epsilon: 1e-5
     euclidean-fitness: 1
     use-reciprocal: false
+#    viewer: true
 
 verifiers:
   - &papazov
@@ -22,6 +23,7 @@ verifiers:
     penalty-threshold: 0.1
   # number of scene indices that are neighbours to both models to either full model ratio
     conflict-threshold: 0.001
+    viewer: true
   - &global
     type: global
     resolution: 0.01
@@ -32,6 +34,7 @@ verifiers:
     clutter-radius: 0.05
     clutter-regularizer: 5.0
     radius-normals: 0.05
+    viewer: true
 
 recognizer:
   aligner:
@@ -54,7 +57,8 @@ recognizer:
       type: gc
       gc-size: 0.01
       gc-threshold: 5
-#  refinement: *icp
+    #viewer: true
+  refinement: *icp
   verification: *papazov
 
 metrics:

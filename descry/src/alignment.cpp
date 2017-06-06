@@ -2,6 +2,7 @@
 #include <descry/clusters.h>
 #include <descry/descriptors.h>
 #include <descry/matching.h>
+#include <descry/viewer.h>
 
 namespace descry {
 
@@ -47,15 +48,18 @@ private:
     Matcher<Descriptor> matcher;
     std::vector<Description<Descriptor>> model_description;
     Clusterizer clusterizer;
+    Viewer<Aligner> viewer;
 };
 
 template<class Descriptor>
-SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& config) {
-    model_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::MODEL_NODE]);
-    scene_describer.configure(config[config::aligner::DESCRIPTION_NODE][config::SCENE_NODE]);
+SparseShapeMatching<Descriptor>::SparseShapeMatching(const Config& cfg) {
+    viewer.configure(cfg);
 
-    matcher.configure(config[config::matcher::NODE_NAME]);
-    clusterizer.configure(config[config::clusters::NODE_NAME]);
+    model_describer.configure(cfg[config::aligner::DESCRIPTION_NODE][config::MODEL_NODE]);
+    scene_describer.configure(cfg[config::aligner::DESCRIPTION_NODE][config::SCENE_NODE]);
+
+    matcher.configure(cfg[config::matcher::NODE_NAME]);
+    clusterizer.configure(cfg[config::clusters::NODE_NAME]);
 }
 
 template<class Descriptor>
@@ -75,7 +79,9 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
     auto scene_description = scene_describer.compute(image);
     auto matches_per_view = matcher.match(scene_description);
 
-    return clusterizer.compute(image, scene_description.getKeyFrame(), matches_per_view);
+    auto instances = clusterizer.compute(image, scene_description.getKeyFrame(), matches_per_view);
+    viewer.show(image.getFullCloud().host(), instances);
+    return instances;
 }
 
 namespace {

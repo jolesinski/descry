@@ -1,5 +1,6 @@
 #include <descry/refinement.h>
 
+#include <descry/viewer.h>
 #include <pcl/registration/icp_nl.h>
 
 namespace descry {
@@ -57,14 +58,16 @@ void Refiner::configure(const Config& config) {
 
     try {
         if (type_name == config::refiner::ICP_TYPE) {
+            auto viewer = Viewer<Aligner>{};
+            viewer.configure(config);
             auto icp = config.as<BasicICP>();
-            model_feed_ = [ icp{std::move(icp)} ] (const Model &model) mutable {
+            model_feed_ = [ icp{std::move(icp)}, viewer ] (const Model &model) mutable {
                 auto shape_model = descry::make_cloud<descry::ShapePoint>();
                 pcl::copyPointCloud(*model.getFullCloud(), *shape_model);
 
                 icp.setInputSource(shape_model);
 
-                return [icp{std::move(icp)}] (const Image& scene, const Instances& instances) mutable {
+                return [icp{std::move(icp)}, viewer ] (const Image& scene, const Instances& instances) mutable {
                     auto refined_instances = Instances{ instances.cloud, {} };
                     icp.setInputTarget(scene.getShapeCloud().host());
 
@@ -74,6 +77,9 @@ void Refiner::configure(const Config& config) {
                         if (icp.hasConverged())
                             refined_instances.poses.emplace_back(icp.getFinalTransformation());
                     }
+
+                    viewer.show(scene.getFullCloud().host(), refined_instances);
+
                     return refined_instances;
                 };
             };

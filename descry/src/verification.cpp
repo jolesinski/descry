@@ -1,5 +1,6 @@
 #include <descry/verification.h>
 
+#include <descry/viewer.h>
 // speedup
 #define PCL_NO_PRECOMPILE
 #include <pcl/recognition/hv/hv_go.h>
@@ -125,7 +126,9 @@ std::vector<descry::ShapeCloud::ConstPtr> instantiate(const Instances& instances
 template <typename HV>
 std::function<Instances( const Image&, const Instances& )>  make_verifier(const Config& config) {
     auto hv = config.as<HV>();
-    return [ hv{std::move(hv)} ] (const Image &image, const Instances& instances) mutable {
+    auto viewer = Viewer<Aligner>{};
+    viewer.configure(config);
+    return [ hv{std::move(hv)}, viewer ] (const Image &image, const Instances& instances) mutable {
         hv.setSceneCloud(image.getShapeCloud().host());
 
         auto aligned_models = instantiate(instances);
@@ -140,6 +143,8 @@ std::function<Instances( const Image&, const Instances& )>  make_verifier(const 
             if (mask[idx])
                 verified_instances.poses.emplace_back(instances.poses.at(idx));
         }
+
+        viewer.show(image.getFullCloud().host(), verified_instances);
 
         return verified_instances;
     };

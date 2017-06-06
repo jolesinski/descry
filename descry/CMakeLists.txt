@@ -13,7 +13,8 @@ add_library(descry SHARED
         src/ref_frames.cpp
         src/refinement.cpp
         src/willow.cpp
-        src/verification.cpp)
+        src/verification.cpp
+        src/viewer.cpp)
 
 target_include_directories(descry
         PUBLIC include
