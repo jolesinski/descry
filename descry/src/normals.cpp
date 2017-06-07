@@ -97,13 +97,19 @@ bool NormalEstimation::configure(const Config& config) {
     } else
         return false;
 
+    viewer_.configure(config);
+
     return true;
 }
 
 DualNormals NormalEstimation::compute(const Image& image) const {
     if (!nest_)
         DESCRY_THROW(NotConfiguredException, "Normals not configured");
-    return nest_(image);
+    auto normals = nest_(image);
+
+    viewer_.show(image.getFullCloud().host(), normals.host());
+
+    return normals;
 }
 
 }

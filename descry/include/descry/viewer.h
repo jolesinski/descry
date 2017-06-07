@@ -1,7 +1,6 @@
 #ifndef DESCRY_VIEWER_H
 #define DESCRY_VIEWER_H
 
-#include <descry/normals.h>
 #include <descry/alignment.h>
 #include <descry/matching.h>
 #include <descry/clusters.h>
@@ -9,28 +8,38 @@
 
 namespace descry {
 
+
 template <typename Step>
-class Viewer {};
-
-template <>
-class Viewer<NormalEstimation> {
-public:
-    void show(const Image& image);
+class Viewer {
 };
 
-template <>
-class Viewer<KeypointDetector> {
+template <typename Step>
+class ConfigurableViewer {
 public:
-    void show(const Image& image, const Keypoints& keypoints);
-};
-
-template <>
-class Viewer<Aligner> {
-public:
-    void configure(const Config& cfg);
-    void show(const FullCloud::ConstPtr& scene, const Instances& instances);
-private:
+    void configure(const Config& cfg) {
+        if (cfg[config::viewer::NODE_NAME])
+            cfg_ = cfg[config::viewer::NODE_NAME];
+    }
+protected:
     Config cfg_;
+};
+
+template <>
+class Viewer<Normals> : public ConfigurableViewer<Normals> {
+public:
+    void show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const;
+};
+
+template <>
+class Viewer<KeypointDetector> : public ConfigurableViewer<KeypointDetector> {
+public:
+    void show(const Image& image, const Keypoints& keypoints) const;
+};
+
+template <>
+class Viewer<Aligner> : public ConfigurableViewer<Aligner> {
+public:
+    void show(const FullCloud::ConstPtr& scene, const Instances& instances) const;
 };
 
 }

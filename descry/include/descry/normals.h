@@ -2,8 +2,9 @@
 #ifndef DESCRY_NORMALS_H
 #define DESCRY_NORMALS_H
 
-#include <descry/image.h>
 #include <descry/config/normals.h>
+#include <descry/image.h>
+#include <descry/viewer.h>
 
 namespace descry {
 
@@ -14,6 +15,7 @@ public:
     DualNormals compute(const Image& image) const;
 private:
     std::function<DualNormals(const Image&)> nest_;
+    Viewer<Normals> viewer_;
 };
 
 }

@@ -1,20 +1,47 @@
 #include <descry/viewer.h>
+#include <descry/config/normals.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 namespace descry {
 
-void Viewer<Aligner>::configure(const Config& cfg) {
-    if (cfg[config::viewer::NODE_NAME])
-        cfg_ = cfg[config::viewer::NODE_NAME];
-}
-
-void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) {
+void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const {
+    // scalar only for now
     if (!cfg_.IsScalar())
         return;
 
-    auto viewer = pcl::visualization::PCLVisualizer{"Alignment"};
+    auto viewer = pcl::visualization::PCLVisualizer{config::normals::NODE_NAME};
+    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image};
+    viewer.setBackgroundColor(0, 0, 0);
+    viewer.addPointCloud(image, rgb, config::SCENE_NODE);
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, config::SCENE_NODE);
+    viewer.addPointCloudNormals<FullPoint, pcl::Normal> (image, normals, 10, 0.05, config::normals::NODE_NAME);
+    viewer.addCoordinateSystem(.3);
+    viewer.initCameraParameters();
+
+}
+
+void Viewer<KeypointDetector>::show(const Image& image, const Keypoints& keypoints) const {
+    if (!cfg_.IsScalar())
+        return;
+
+    auto viewer = pcl::visualization::PCLVisualizer{config::keypoints::NODE_NAME};
+    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
+    viewer.setBackgroundColor(0, 0, 0);
+    viewer.addPointCloud(image.getFullCloud().host(), rgb, config::SCENE_NODE);
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, config::SCENE_NODE);
+    viewer.addPointCloud(keypoints.getShape().host(), config::keypoints::NODE_NAME);
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, config::SCENE_NODE);
+    viewer.addCoordinateSystem(.3);
+    viewer.initCameraParameters();
+}
+
+void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {
+    if (!cfg_.IsScalar())
+        return;
+
+    auto viewer = pcl::visualization::PCLVisualizer{config::aligner::NODE_NAME};
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addPointCloud(scene, config::SCENE_NODE);
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.33, 0.33, 0.33, config::SCENE_NODE);

@@ -23,7 +23,7 @@ verifiers:
     penalty-threshold: 0.1
   # number of scene indices that are neighbours to both models to either full model ratio
     conflict-threshold: 0.001
-    viewer: true
+  #  viewer: true
   - &global
     type: global
     resolution: 0.01
@@ -34,9 +34,12 @@ verifiers:
     clutter-radius: 0.05
     clutter-regularizer: 5.0
     radius-normals: 0.05
-    viewer: true
+  #  viewer: true
 
 recognizer:
+#  normals:
+#    type: cupcl
+#    support-radius: 0.05
   aligner:
     type: sparse
     description:
