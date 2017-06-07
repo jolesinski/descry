@@ -33,8 +33,13 @@ void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
     if (!cfg_.IsMap())
         return;
 
+    ++show_count_;
     auto show_once = cfg_[config::viewer::SHOW_ONCE].as<bool>(false);
-    if (show_once && ++show_count_ > 1)
+    if (show_once && show_count_ > 1)
+        return;
+
+    auto show_only = cfg_[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
+    if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), show_count_) == 0)
         return;
 
     auto viewer = pcl::visualization::PCLVisualizer{config::keypoints::NODE_NAME};

@@ -49,14 +49,12 @@ recognizer:
           type: orb
           max-features: 500
         viewer:
-          enabled: true
-          show-once: true
+          show-only: [1, 2, 3]
       scene:
         features:
           type: orb
           max-features: 5000
         viewer:
-          enabled: true
           show-once: true
 #          keypoint-size: 1
     matching:
