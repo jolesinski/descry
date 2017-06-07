@@ -83,7 +83,10 @@ View WillowProjector::loadView(const std::string& cloud_path,
 
     auto null_point = FullPoint{};
     null_point.getVector3fMap() = Eigen::Vector3f::Constant(std::numeric_limits<float>::quiet_NaN());
+    null_point.rgba = 0;
+    null_point.a = 255;
     auto filtered_cloud = make_cloud<FullPoint>(cloud->width, cloud->height, null_point );
+    filtered_cloud->is_dense = false;
     for (auto idx : indices) {
         filtered_cloud->at(idx) = cloud->at(idx);
     }

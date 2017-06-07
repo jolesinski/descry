@@ -32,7 +32,9 @@ class Keypoints;
 template <>
 class Viewer<Keypoints> : public ConfigurableViewer<Keypoints> {
 public:
-    void show(const Image& image, const Keypoints& keypoints) const;
+    void show(const Image& image, const Keypoints& keypoints);
+private:
+    unsigned int show_count_ = 0u;
 };
 
 class Aligner;

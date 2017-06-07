@@ -112,7 +112,7 @@ public:
     bool configure(const Config &config);
     bool is_configured() const noexcept;
 
-    Keypoints compute(const Image &image) const;
+    Keypoints compute(const Image &image);
 
 private:
     std::function<Keypoints( const Image& )> nest_;

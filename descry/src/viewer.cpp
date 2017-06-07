@@ -29,15 +29,19 @@ void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::Cons
     }
 }
 
-void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) const {
+void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
     if (!cfg_.IsMap())
         return;
 
-    auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
-    std::cout << " keypoint size " << keypoint_size << std::endl;
+    auto show_once = cfg_[config::viewer::SHOW_ONCE].as<bool>(false);
+    if (show_once && ++show_count_ > 1)
+        return;
+
     auto viewer = pcl::visualization::PCLVisualizer{config::keypoints::NODE_NAME};
-    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
     viewer.setBackgroundColor(0, 0, 0);
+
+    auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
+    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
     viewer.addPointCloud(image.getFullCloud().host(), rgb, config::SCENE_NODE);
     viewer.addPointCloud(keypoints.getShape().host(), config::keypoints::NODE_NAME);
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, config::keypoints::NODE_NAME);

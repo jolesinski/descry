@@ -443,7 +443,7 @@ bool KeypointDetector::is_configured() const noexcept {
     return !!nest_;
 }
 
-Keypoints KeypointDetector::compute(const Image& image) const {
+Keypoints KeypointDetector::compute(const Image& image) {
     if (!nest_)
         DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
     auto keys = nest_(image);
