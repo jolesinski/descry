@@ -1,10 +1,11 @@
 #ifndef DESCRY_DESCRIBER_H
 #define DESCRY_DESCRIBER_H
 
+#include <descry/config/features.h>
 #include <descry/image.h>
 #include <descry/keypoints.h>
 #include <descry/ref_frames.h>
-#include <descry/config/features.h>
+#include <descry/viewer.h>
 
 namespace descry {
 
@@ -62,6 +63,7 @@ public:
 
 private:
     std::function<Description<Descriptor>( const Image& )> _descr;
+    Viewer<Keypoints> viewer_;
 };
 
 }

@@ -1,13 +1,11 @@
 #ifndef DESCRY_VIEWER_H
 #define DESCRY_VIEWER_H
 
-#include <descry/alignment.h>
-#include <descry/matching.h>
-#include <descry/clusters.h>
+#include <descry/common.h>
 #include <descry/config/viewer.h>
+#include <descry/image.h>
 
 namespace descry {
-
 
 template <typename Step>
 class Viewer {
@@ -30,12 +28,14 @@ public:
     void show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const;
 };
 
+class Keypoints;
 template <>
-class Viewer<KeypointDetector> : public ConfigurableViewer<KeypointDetector> {
+class Viewer<Keypoints> : public ConfigurableViewer<Keypoints> {
 public:
     void show(const Image& image, const Keypoints& keypoints) const;
 };
 
+class Aligner;
 template <>
 class Viewer<Aligner> : public ConfigurableViewer<Aligner> {
 public:

@@ -1,5 +1,9 @@
 #include <descry/viewer.h>
+#include <descry/config/aligner.h>
+#include <descry/config/common.h>
 #include <descry/config/normals.h>
+#include <descry/config/keypoints.h>
+#include <descry/keypoints.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -20,21 +24,31 @@ void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::Cons
     viewer.addCoordinateSystem(.3);
     viewer.initCameraParameters();
 
+    while (!viewer.wasStopped()) {
+        viewer.spinOnce(100);
+    }
 }
 
-void Viewer<KeypointDetector>::show(const Image& image, const Keypoints& keypoints) const {
-    if (!cfg_.IsScalar())
+void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) const {
+    if (!cfg_.IsMap())
         return;
 
+    auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
+    std::cout << " keypoint size " << keypoint_size << std::endl;
     auto viewer = pcl::visualization::PCLVisualizer{config::keypoints::NODE_NAME};
     auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addPointCloud(image.getFullCloud().host(), rgb, config::SCENE_NODE);
-    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, config::SCENE_NODE);
     viewer.addPointCloud(keypoints.getShape().host(), config::keypoints::NODE_NAME);
-    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, config::SCENE_NODE);
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, config::keypoints::NODE_NAME);
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+                                            keypoint_size, config::keypoints::NODE_NAME);
     viewer.addCoordinateSystem(.3);
     viewer.initCameraParameters();
+
+    while (!viewer.wasStopped()) {
+        viewer.spinOnce(100);
+    }
 }
 
 void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {

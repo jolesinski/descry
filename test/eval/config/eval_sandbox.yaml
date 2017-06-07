@@ -39,7 +39,8 @@ verifiers:
 recognizer:
 #  normals:
 #    type: cupcl
-#    support-radius: 0.05
+#    support-radius: 0.15
+    #viewer: true
   aligner:
     type: sparse
     description:
@@ -47,10 +48,17 @@ recognizer:
         features:
           type: orb
           max-features: 500
+        viewer:
+          enabled: true
+          show-once: true
       scene:
         features:
           type: orb
           max-features: 5000
+        viewer:
+          enabled: true
+          show-once: true
+#          keypoint-size: 1
     matching:
       type: brute-force
       norm: hamming
@@ -61,7 +69,7 @@ recognizer:
       gc-size: 0.01
       gc-threshold: 5
     #viewer: true
-  refinement: *icp
+  #refinement: *icp
   verification: *papazov
 
 metrics:

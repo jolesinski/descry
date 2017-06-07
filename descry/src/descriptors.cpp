@@ -150,7 +150,9 @@ template<class D>
 Description<D> Describer<D>::compute(const Image& image) {
     if (!_descr)
         DESCRY_THROW(NotConfiguredException, "Describer not configured");
-    return _descr(image);
+    auto description =_descr(image);
+    viewer_.show(image, description.getKeypoints());
+    return description;
 }
 
 template<class D>
@@ -197,6 +199,8 @@ bool Describer<D>::configure(const Config& config) {
     } catch ( const YAML::BadConversion& e) {
         return false;
     }
+
+    viewer_.configure(config);
 
     return true;
 }
@@ -258,6 +262,8 @@ bool Describer<cv::Mat>::configure(const Config& config) {
     } catch ( const YAML::BadConversion& e) {
         return false;
     }
+
+    viewer_.configure(config);
 
     return true;
 }

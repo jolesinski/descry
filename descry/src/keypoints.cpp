@@ -434,6 +434,8 @@ bool KeypointDetector::configure(const Config& config) {
         return false;
     }
 
+    viewer_.configure(config);
+
     return true;
 }
 
@@ -443,8 +445,10 @@ bool KeypointDetector::is_configured() const noexcept {
 
 Keypoints KeypointDetector::compute(const Image& image) const {
     if (!nest_)
-    DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
-    return nest_(image);
+        DESCRY_THROW(NotConfiguredException, "Keypoints not configured");
+    auto keys = nest_(image);
+    viewer_.show(image, keys);
+    return keys;
 }
 
 }

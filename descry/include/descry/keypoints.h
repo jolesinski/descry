@@ -1,8 +1,9 @@
 #ifndef DESCRY_KEYPOINTS_H
 #define DESCRY_KEYPOINTS_H
 
-#include <descry/image.h>
 #include <descry/config/keypoints.h>
+#include <descry/image.h>
+#include <descry/viewer.h>
 
 namespace descry {
 
@@ -115,6 +116,7 @@ public:
 
 private:
     std::function<Keypoints( const Image& )> nest_;
+    Viewer<Keypoints> viewer_;
 };
 
 }
