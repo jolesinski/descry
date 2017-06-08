@@ -48,8 +48,9 @@ recognizer:
         features:
           type: orb
           max-features: 500
-#        viewer:
-#          show-only: [1, 2, 3]
+        viewer:
+          show-only: [7]
+          show-2d: true
       scene:
         features:
           type: orb
@@ -69,6 +70,7 @@ recognizer:
       viewer:
         show-once: false
         show-only: [2, 10, 15]
+        show-2d: true
         keypoint-size: 5
     #viewer: true
   #refinement: *icp

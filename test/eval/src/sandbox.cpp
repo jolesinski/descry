@@ -13,33 +13,6 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
 
-void view_keys(const descry::Image& image, const descry::Keypoints& keys, std::string window_name) {
-    //copy to opencv mat
-    auto frame = image.getColorMat();
-    auto& color_keys = keys.getColor();
-
-    std::cout << "Detected " << color_keys.size() << std::endl;
-
-    cv::drawKeypoints(frame, color_keys, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
-
-    cv::namedWindow( window_name, cv::WINDOW_AUTOSIZE );
-    cv::imshow( window_name, frame );
-}
-
-void view_keys(const descry::Model& model, const descry::Keypoints& keys, std::string window_name) {
-    //auto keys = compute_harris_3d(image);
-    //auto keys = compute_iss_3d(image);
-
-    //copy to opencv mat
-    //for (const auto& view : model.getViews()) {
-    {
-        const auto& view = model.getViews().at(5);
-
-        view_keys(view.image, keys, "model");
-        cv::waitKey();
-    }
-}
-
 std::vector<cv::Point2f> get_corners(const descry::View& view) {
     std::vector<cv::Point2f> corners(4);
     const auto& cloud = view.image.getFullCloud().host();

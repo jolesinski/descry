@@ -8,6 +8,7 @@ static constexpr auto NODE_NAME = "viewer";
 // keypoints
 static constexpr auto SHOW_ONCE = "show-once";
 static constexpr auto SHOW_ONLY = "show-only";
+static constexpr auto SHOW_2D = "show-2d";
 static constexpr auto KEYPOINT_SIZE = "keypoint-size";
 
 }}}

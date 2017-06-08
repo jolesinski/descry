@@ -6,10 +6,13 @@
 #include <descry/config/keypoints.h>
 #include <descry/descriptors.h>
 #include <descry/keypoints.h>
+#include <descry/model.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <descry/model.h>
+
+#include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 namespace descry {
 
@@ -33,6 +36,96 @@ void add_image_with_keypoints(const Image& image, const Keypoints& keys, const d
     vis.addPointCloud(keys.getShape().host(), name+config::keypoints::NODE_NAME);
     vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, name+config::keypoints::NODE_NAME);
     vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, size, name+config::keypoints::NODE_NAME);
+}
+
+void show_keypoints_2d(const Image& image, const Keypoints& keypoints) {
+    auto frame = image.getColorMat();
+    auto& color_keys = keypoints.getColor();
+
+    cv::drawKeypoints(frame, color_keys, frame, cv::Scalar(0,0,128), cv::DrawMatchesFlags::DEFAULT);
+
+    cv::namedWindow( config::keypoints::NODE_NAME, cv::WINDOW_AUTOSIZE );
+    cv::imshow( config::keypoints::NODE_NAME, frame );
+    cv::waitKey();
+}
+
+void show_keypoints_3d(const Image& image, const Keypoints& keypoints, double keypoint_size) {
+    auto viewer = make_viewer(config::keypoints::NODE_NAME);
+    add_image_with_keypoints(image, keypoints, keypoint_size, config::SCENE_NODE, viewer);
+
+    while (!viewer.wasStopped()) {
+        viewer.spinOnce(100);
+    }
+}
+
+void show_matches_3d(const std::vector<FullCloud::ConstPtr>& views,
+                     const std::vector<KeyFrameHandle>& m_keyframes,
+                     const Image& scene, const KeyFrameHandle& keyframe,
+                     const std::vector<pcl::CorrespondencesPtr>& corrs,
+                     const Config& config) {
+    auto viewer = make_viewer(config::clusters::NODE_NAME);
+
+    auto show_once = config[config::viewer::SHOW_ONCE].as<bool>(false);
+    auto show_only = config[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
+    auto keypoint_size = config[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
+    assert(keyframe.keys != nullptr);
+    for (auto idx = 0u; idx < views.size(); ++idx) {
+        if (idx > 0 && show_once)
+            return;
+        if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
+            continue;
+
+        add_image_with_keypoints(scene, *keyframe.keys, keypoint_size, config::SCENE_NODE, viewer);
+        add_image_with_keypoints(views.at(idx), *m_keyframes.at(idx).keys,
+                                 keypoint_size, config::MODEL_NODE, viewer);
+        viewer.addCorrespondences<ShapePoint>(m_keyframes.at(idx).keys->getShape().host(),
+                                              keyframe.keys->getShape().host(), *corrs.at(idx));
+
+        while (!viewer.wasStopped()) {
+            viewer.spinOnce(100);
+        }
+        viewer.removeAllPointClouds();
+        viewer.removeCorrespondences();
+        viewer.resetStoppedFlag();
+    }
+}
+
+std::vector<cv::DMatch> convert(const pcl::Correspondences& pcl_matches) {
+    std::vector<cv::DMatch> matches;
+
+    for (auto match : pcl_matches)
+        matches.emplace_back(match.index_match, match.index_query, match.distance);
+
+    return matches;
+}
+
+void show_matches_2d(const std::vector<FullCloud::ConstPtr>& views,
+                     const std::vector<KeyFrameHandle>& m_keyframes,
+                     const Image& scene, const KeyFrameHandle& keyframe,
+                     const std::vector<pcl::CorrespondencesPtr>& corrs,
+                     const Config& config) {
+    auto show_once = config[config::viewer::SHOW_ONCE].as<bool>(false);
+    auto show_only = config[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
+    assert(keyframe.keys != nullptr);
+    for (auto idx = 0u; idx < views.size(); ++idx) {
+        if (idx > 0 && show_once)
+            return;
+        if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
+            continue;
+
+        auto scene_frame = scene.getColorMat();
+        auto& scene_keys = keyframe.keys->getColor();
+        auto view_image = Image{views.at(idx)};
+        auto& view_frame = view_image.getColorMat();
+        auto& view_keys = m_keyframes.at(idx).keys->getColor();
+
+        cv::Mat display_frame;
+        cv::drawMatches(scene_frame, scene_keys, view_frame, view_keys, convert(*corrs.at(idx)), display_frame);
+
+        cv::namedWindow( config::clusters::NODE_NAME, cv::WINDOW_AUTOSIZE );
+        cv::imshow( config::clusters::NODE_NAME, display_frame );
+        cv::waitKey();
+    }
 }
 
 }
@@ -66,14 +159,13 @@ void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
     if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), show_count_) == 0)
         return;
 
-    auto viewer = make_viewer(config::keypoints::NODE_NAME);
-
     auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
-    add_image_with_keypoints(image, keypoints, keypoint_size, config::SCENE_NODE, viewer);
 
-    while (!viewer.wasStopped()) {
-        viewer.spinOnce(100);
-    }
+    auto show_2d = cfg_[config::viewer::SHOW_2D].as<bool>(false);
+    if (show_2d)
+        show_keypoints_2d(image, keypoints);
+    else
+        show_keypoints_3d(image, keypoints, keypoint_size);
 }
 
 void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFrameHandle>& m_keyframes) {
@@ -90,33 +182,11 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
         if (!cfg_.IsMap())
             return;
 
-        auto viewer = make_viewer(config::clusters::NODE_NAME);
-
-        auto show_once = cfg_[config::viewer::SHOW_ONCE].as<bool>(false);
-        auto show_only = cfg_[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
-        auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
-        assert(keyframe.keys != nullptr);
-
-        for (auto idx = 0u; idx < views.size(); ++idx) {
-            if (idx > 0 && show_once)
-                return;
-            if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
-                continue;
-
-            add_image_with_keypoints(scene, *keyframe.keys, keypoint_size, config::SCENE_NODE, viewer);
-            add_image_with_keypoints(views.at(idx), *m_keyframes.at(idx).keys,
-                                     keypoint_size, config::MODEL_NODE, viewer);
-            viewer.addCorrespondences<ShapePoint>(m_keyframes.at(idx).keys->getShape().host(),
-                                                  keyframe.keys->getShape().host(), *corrs.at(idx));
-
-            while (!viewer.wasStopped()) {
-                viewer.spinOnce(100);
-            }
-            viewer.removeAllPointClouds();
-            viewer.removeCorrespondences();
-            viewer.resetStoppedFlag();
-        }
-
+        auto show_2d = cfg_[config::viewer::SHOW_2D].as<bool>(false);
+        if (show_2d)
+            show_matches_2d(views, m_keyframes, scene, keyframe, corrs, cfg_);
+        else
+            show_matches_3d(views, m_keyframes, scene, keyframe, corrs, cfg_);
     };
 
 }
