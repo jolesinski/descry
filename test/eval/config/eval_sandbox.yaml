@@ -48,15 +48,15 @@ recognizer:
         features:
           type: orb
           max-features: 500
-        viewer:
-          show-only: [1, 2, 3]
+#        viewer:
+#          show-only: [1, 2, 3]
       scene:
         features:
           type: orb
           max-features: 5000
-        viewer:
-          show-once: true
-#          keypoint-size: 1
+#        viewer:
+#          show-once: true
+#          keypoint-size: 5
     matching:
       type: brute-force
       norm: hamming
@@ -66,6 +66,10 @@ recognizer:
       type: gc
       gc-size: 0.01
       gc-threshold: 5
+      viewer:
+        show-once: false
+        show-only: [2, 10, 15]
+        keypoint-size: 5
     #viewer: true
   #refinement: *icp
   verification: *papazov

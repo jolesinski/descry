@@ -1,4 +1,5 @@
 #include <descry/clusters.h>
+#include <descry/viewer.h>
 
 // using precompiled correspondence rejector causes stack smashing in umeyama jacobi svd (?)
 #define PCL_NO_PRECOMPILE
@@ -86,7 +87,7 @@ Instances Clusterizer::compute(const Image& image, const KeyFrameHandle& keyfram
 template <typename CG>
 class PCLStrategy : public Clusterizer::Strategy {
 public:
-    PCLStrategy(const Config& config) : clust_{config.as<CG>()} {}
+    PCLStrategy(const Config& config) : clust_{config.as<CG>()} { viewer_.configure(config); }
 
     ~PCLStrategy() override {};
 
@@ -103,9 +104,11 @@ public:
             viewpoints_.emplace_back(view.viewpoint);
 
         train();
+
+        viewer_.addModel(model, view_keyframes);
     }
 
-    Instances compute(const Image& /*image*/, const KeyFrameHandle& keyframe,
+    Instances compute(const Image& image, const KeyFrameHandle& keyframe,
                       const std::vector<pcl::CorrespondencesPtr>& corrs) override {
         assert(corrs.size() == clust_.size());
 
@@ -123,6 +126,8 @@ public:
                 instances.poses.emplace_back(pose * viewpoints_[idx].inverse());
         }
 
+        viewer_.show(image, keyframe, corrs);
+
         return instances;
     }
 
@@ -134,6 +139,7 @@ private:
     FullCloud::ConstPtr model_;
     AlignedVector<Pose> viewpoints_;
     std::vector<CG> clust_;
+    Viewer<Clusterizer> viewer_;
 };
 
 template<>

@@ -1,28 +1,52 @@
 #include <descry/viewer.h>
 #include <descry/config/aligner.h>
+#include <descry/config/clusters.h>
 #include <descry/config/common.h>
 #include <descry/config/normals.h>
 #include <descry/config/keypoints.h>
+#include <descry/descriptors.h>
 #include <descry/keypoints.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <descry/model.h>
 
 namespace descry {
+
+namespace {
+
+template <typename... Args>
+pcl::visualization::PCLVisualizer make_viewer(Args... args) {
+    auto viewer = pcl::visualization::PCLVisualizer{args...};
+
+    viewer.setBackgroundColor(0, 0, 0);
+    viewer.addCoordinateSystem(.3);
+    viewer.initCameraParameters();
+
+    return viewer;
+}
+
+void add_image_with_keypoints(const Image& image, const Keypoints& keys, const double size, const std::string& name,
+                              pcl::visualization::PCLVisualizer& vis) {
+    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
+    vis.addPointCloud(image.getFullCloud().host(), rgb, name);
+    vis.addPointCloud(keys.getShape().host(), name+config::keypoints::NODE_NAME);
+    vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, name+config::keypoints::NODE_NAME);
+    vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, size, name+config::keypoints::NODE_NAME);
+}
+
+}
 
 void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const {
     // scalar only for now
     if (!cfg_.IsScalar())
         return;
 
-    auto viewer = pcl::visualization::PCLVisualizer{config::normals::NODE_NAME};
+    auto viewer = make_viewer(config::normals::NODE_NAME);
     auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image};
-    viewer.setBackgroundColor(0, 0, 0);
     viewer.addPointCloud(image, rgb, config::SCENE_NODE);
     viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, config::SCENE_NODE);
     viewer.addPointCloudNormals<FullPoint, pcl::Normal> (image, normals, 10, 0.05, config::normals::NODE_NAME);
-    viewer.addCoordinateSystem(.3);
-    viewer.initCameraParameters();
 
     while (!viewer.wasStopped()) {
         viewer.spinOnce(100);
@@ -42,30 +66,74 @@ void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
     if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), show_count_) == 0)
         return;
 
-    auto viewer = pcl::visualization::PCLVisualizer{config::keypoints::NODE_NAME};
-    viewer.setBackgroundColor(0, 0, 0);
+    auto viewer = make_viewer(config::keypoints::NODE_NAME);
 
     auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
-    auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
-    viewer.addPointCloud(image.getFullCloud().host(), rgb, config::SCENE_NODE);
-    viewer.addPointCloud(keypoints.getShape().host(), config::keypoints::NODE_NAME);
-    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, config::keypoints::NODE_NAME);
-    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
-                                            keypoint_size, config::keypoints::NODE_NAME);
-    viewer.addCoordinateSystem(.3);
-    viewer.initCameraParameters();
+    add_image_with_keypoints(image, keypoints, keypoint_size, config::SCENE_NODE, viewer);
 
     while (!viewer.wasStopped()) {
         viewer.spinOnce(100);
     }
 }
 
+void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFrameHandle>& m_keyframes) {
+    if (!cfg_.IsMap())
+        return;
+
+    std::vector<FullCloud::ConstPtr> views;
+    for (const auto& view : model.getViews()) {
+        views.emplace_back(view.image.getFullCloud().host());
+    }
+
+    show_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
+               const std::vector<pcl::CorrespondencesPtr>& corrs){
+        if (!cfg_.IsMap())
+            return;
+
+        auto viewer = make_viewer(config::clusters::NODE_NAME);
+
+        auto show_once = cfg_[config::viewer::SHOW_ONCE].as<bool>(false);
+        auto show_only = cfg_[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
+        auto keypoint_size = cfg_[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
+        assert(keyframe.keys != nullptr);
+
+        for (auto idx = 0u; idx < views.size(); ++idx) {
+            if (idx > 0 && show_once)
+                return;
+            if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
+                continue;
+
+            add_image_with_keypoints(scene, *keyframe.keys, keypoint_size, config::SCENE_NODE, viewer);
+            add_image_with_keypoints(views.at(idx), *m_keyframes.at(idx).keys,
+                                     keypoint_size, config::MODEL_NODE, viewer);
+            viewer.addCorrespondences<ShapePoint>(m_keyframes.at(idx).keys->getShape().host(),
+                                                  keyframe.keys->getShape().host(), *corrs.at(idx));
+
+            while (!viewer.wasStopped()) {
+                viewer.spinOnce(100);
+            }
+            viewer.removeAllPointClouds();
+            viewer.removeCorrespondences();
+            viewer.resetStoppedFlag();
+        }
+
+    };
+
+}
+
+void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyframe,
+                               const std::vector<pcl::CorrespondencesPtr>& corrs) {
+    if (!show_)
+        return;
+
+    show_(scene, keyframe, corrs);
+}
+
 void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {
     if (!cfg_.IsScalar())
         return;
 
-    auto viewer = pcl::visualization::PCLVisualizer{config::aligner::NODE_NAME};
-    viewer.setBackgroundColor(0, 0, 0);
+    auto viewer = make_viewer(config::aligner::NODE_NAME);
     viewer.addPointCloud(scene, config::SCENE_NODE);
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.33, 0.33, 0.33, config::SCENE_NODE);
 
@@ -83,14 +151,9 @@ void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& in
                                                 set_red(idx), set_green(idx), set_blue(idx), instance_id);
     }
 
-    viewer.addCoordinateSystem(.3);
-    viewer.initCameraParameters();
-
     while (!viewer.wasStopped()) {
         viewer.spinOnce(100);
     }
-
-    viewer.close();
 }
 
 }
