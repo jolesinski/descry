@@ -5,6 +5,8 @@
 
 namespace descry { namespace logger {
 
+using handle = std::shared_ptr<spdlog::logger>;
+
 static constexpr auto LOGGER_NAME = "descry";
 
 // TODO: configure

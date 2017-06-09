@@ -1,4 +1,3 @@
-#include <chrono>
 #include <iostream>
 
 #include <descry/recognizer.h>
@@ -9,13 +8,10 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
-#include <pcl/recognition/cg/geometric_consistency.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/common/transforms.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <descry/logger.h>
 
-auto g_log = spdlog::stdout_color_mt("sandbox");
+descry::logger::handle g_log;
 
 std::vector<cv::Point2f> get_corners(const descry::View& view) {
     std::vector<cv::Point2f> corners(4);
@@ -131,7 +127,12 @@ void recognize(const descry::Config& cfg) {
 }
 
 int main(int argc, char * argv[]) {
-    descry::Config cfg;
+    descry::logger::init();
+    g_log = descry::logger::get();
+    if (!g_log)
+        return EXIT_FAILURE;
+
+    auto cfg = descry::Config{};
     try {
         if (argc > 1)
             cfg = YAML::LoadFile(argv[1]);

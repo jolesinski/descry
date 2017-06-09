@@ -67,13 +67,13 @@ recognizer:
       type: gc
       gc-size: 0.01
       gc-threshold: 5
-      viewer:
-        show-clusters: true
-        show-once: false
-        show-empty: true
-#        show-only: [2, 10, 15]
-        show-2d: true
-        keypoint-size: 5
+#      viewer:
+#        show-clusters: true
+#        show-once: false
+#        show-empty: true
+##        show-only: [2, 10, 15]
+#        show-2d: true
+#        keypoint-size: 5
     #viewer: true
   #refinement: *icp
   verification: *papazov
