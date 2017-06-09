@@ -10,6 +10,7 @@ Project developed as part of masters thesis:
 * PCL 1.8 with [fixes](https://github.com/jolesinski/pcl).
 * yaml-cpp 0.53
 * CUDA 8
+* spdlog
 
 ### Testing:
 Unit and functional tests are implemented within the [Catch](https://github.com/philsquared/Catch) framework.

@@ -17,7 +17,7 @@ add_library(descry SHARED
         src/viewer.cpp)
 
 target_include_directories(descry
-        PUBLIC include
+        PUBLIC include ${SPDLOG_INCLUDE_DIR}
         PRIVATE src)
 
 set_target_properties(descry
@@ -31,3 +31,5 @@ target_link_libraries(descry
         ${YAML_CPP_LIBRARIES})
 
 target_compile_options(descry PRIVATE "-Wall" "-Wextra" "-Werror" "--pedantic")
+
+add_dependencies(descry spdlog)
