@@ -128,6 +128,48 @@ void show_matches_2d(const std::vector<FullCloud::ConstPtr>& views,
     }
 }
 
+void show_clusters_3d(const FullCloud::ConstPtr& view, const KeyFrameHandle& m_keyframe,
+                      const Image& scene, const KeyFrameHandle& keyframe,
+                      const std::vector<pcl::Correspondences>& clusters) {
+    assert(m_keyframe.keys != nullptr);
+    assert(keyframe.keys != nullptr);
+
+    auto viewer = make_viewer(config::clusters::NODE_NAME);
+
+    auto count = 0u;
+    add_image_with_keypoints(scene, *keyframe.keys, 5.0, config::SCENE_NODE, viewer);
+    add_image_with_keypoints(view, *m_keyframe.keys, 5.0, config::MODEL_NODE, viewer);
+    for (auto cluster : clusters)
+        viewer.addCorrespondences<ShapePoint>(m_keyframe.keys->getShape().host(),
+                                              keyframe.keys->getShape().host(), cluster, std::to_string(count++));
+
+    while (!viewer.wasStopped())
+        viewer.spinOnce(100);
+}
+
+void show_clusters_2d(const FullCloud::ConstPtr& view, const KeyFrameHandle& m_keyframe,
+                      const Image& scene, const KeyFrameHandle& keyframe,
+                      const std::vector<pcl::Correspondences>& clusters) {
+    assert(m_keyframe.keys != nullptr);
+    assert(keyframe.keys != nullptr);
+
+    auto scene_frame = scene.getColorMat();
+    auto& scene_keys = keyframe.keys->getColor();
+    auto view_image = Image{view};
+    auto& view_frame = view_image.getColorMat();
+    auto& view_keys = m_keyframe.keys->getColor();
+
+    cv::Mat display_frame;
+    auto clusters_2d = std::vector<std::vector<cv::DMatch>>{};
+    for (auto cluster : clusters)
+        clusters_2d.emplace_back(convert(cluster));
+
+    cv::drawMatches(scene_frame, scene_keys, view_frame, view_keys, clusters_2d, display_frame);
+    cv::namedWindow( config::clusters::NODE_NAME, cv::WINDOW_AUTOSIZE );
+    cv::imshow( config::clusters::NODE_NAME, display_frame );
+    cv::waitKey();
+}
+
 }
 
 void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const {
@@ -177,7 +219,7 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
         views.emplace_back(view.image.getFullCloud().host());
     }
 
-    show_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
+    show_matches_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
                const std::vector<pcl::CorrespondencesPtr>& corrs){
         if (!cfg_.IsMap())
             return;
@@ -189,14 +231,46 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
             show_matches_3d(views, m_keyframes, scene, keyframe, corrs, cfg_);
     };
 
+    show_clusters_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
+                                        const std::vector<pcl::Correspondences>& clusters, unsigned int idx){
+        if (!cfg_.IsMap())
+            return;
+
+        auto show_empty = cfg_[config::viewer::SHOW_EMPTY].as<bool>(false);
+        if (clusters.empty() && !show_empty)
+            return;
+
+        auto show_once = cfg_[config::viewer::SHOW_ONCE].as<bool>(false);
+        if (idx > 0 && show_once)
+            return;
+
+        auto show_only = cfg_[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
+        if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
+            return;
+
+        auto show_2d = cfg_[config::viewer::SHOW_2D].as<bool>(false);
+        if (show_2d)
+            show_clusters_2d(views.at(idx), m_keyframes.at(idx), scene, keyframe, clusters);
+        else
+            show_clusters_3d(views.at(idx), m_keyframes.at(idx), scene, keyframe, clusters);
+    };
+
 }
 
 void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyframe,
                                const std::vector<pcl::CorrespondencesPtr>& corrs) {
-    if (!show_)
+    if (!show_matches_ || !cfg_[config::viewer::SHOW_MATCHES].as<bool>(false))
         return;
 
-    show_(scene, keyframe, corrs);
+    show_matches_(scene, keyframe, corrs);
+}
+
+void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyframe,
+                               const std::vector<pcl::Correspondences>& clustered, unsigned int idx) {
+    if (!show_clusters_ || !cfg_[config::viewer::SHOW_CLUSTERS].as<bool>(false))
+        return;
+
+    show_clusters_(scene, keyframe, clustered, idx);
 }
 
 void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {

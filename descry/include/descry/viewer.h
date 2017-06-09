@@ -46,9 +46,13 @@ public:
     void addModel(const Model& model, const std::vector<KeyFrameHandle>& keyframes);
     void show(const Image& scene, const KeyFrameHandle& keyframe,
               const std::vector<pcl::CorrespondencesPtr>& corrs);
+    void show(const Image& scene, const KeyFrameHandle& keyframe,
+              const std::vector<pcl::Correspondences>& clustered, unsigned int idx);
 protected:
     std::function<void(const Image&, const KeyFrameHandle&,
-                       const std::vector<pcl::CorrespondencesPtr>&)> show_;
+                       const std::vector<pcl::CorrespondencesPtr>&)> show_matches_;
+    std::function<void(const Image&, const KeyFrameHandle&,
+                       const std::vector<pcl::Correspondences>&, unsigned int idx)> show_clusters_;
 };
 
 class Aligner;

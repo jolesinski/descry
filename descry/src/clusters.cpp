@@ -115,18 +115,22 @@ public:
         auto instances = Instances{};
         instances.cloud = model_;
 
+        viewer_.show(image, keyframe, corrs);
+
         auto poses = AlignedVector<Pose>{};
         for (auto idx = 0u; idx < corrs.size(); ++idx) {
             clust_[idx].setSceneCloud(keyframe.keys->getShape().host());
             setSceneRefFrames(keyframe, idx);
             clust_[idx].setModelSceneCorrespondences(corrs[idx]);
-            clust_[idx].recognize(poses);
+
+            auto clustered = std::vector<pcl::Correspondences>{};
+            clust_[idx].recognize(poses, clustered);
+
+            viewer_.show(image, keyframe, clustered, idx);
 
             for (auto pose : poses)
                 instances.poses.emplace_back(pose * viewpoints_[idx].inverse());
         }
-
-        viewer_.show(image, keyframe, corrs);
 
         return instances;
     }
