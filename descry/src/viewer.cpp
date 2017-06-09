@@ -19,8 +19,8 @@ namespace descry {
 namespace {
 
 template <typename... Args>
-pcl::visualization::PCLVisualizer make_viewer(Args... args) {
-    auto viewer = pcl::visualization::PCLVisualizer{args...};
+pcl::visualization::PCLVisualizer make_viewer(Args&&... args) {
+    auto viewer = pcl::visualization::PCLVisualizer{std::forward<Args>(args)...};
 
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addCoordinateSystem(.3);

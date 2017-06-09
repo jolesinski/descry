@@ -26,8 +26,8 @@ using Pose = Eigen::Matrix4f;
 using Perspective = Eigen::Matrix<float, 3, 4, Eigen::RowMajor>;
 
 template<typename Point, typename... Args>
-inline typename pcl::PointCloud<Point>::Ptr make_cloud(Args... args) {
-    return (typename pcl::PointCloud<Point>::Ptr)(new pcl::PointCloud<Point>(args...));
+inline typename pcl::PointCloud<Point>::Ptr make_cloud(Args&&... args) {
+    return (typename pcl::PointCloud<Point>::Ptr)(new pcl::PointCloud<Point>(std::forward<Args>(args)...));
 }
 
 template<class T>
