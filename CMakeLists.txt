@@ -15,6 +15,7 @@ include_directories(SYSTEM
         ${PCL_INCLUDE_DIRS}
         ${YAML_CPP_INCLUDE_DIR})
 
+add_subdirectory(extern)
 add_subdirectory(descry)
 add_subdirectory(cupcl)
 add_subdirectory(test)

@@ -2,8 +2,6 @@ set(DESCRY_TEST_DATA_PATH "${CMAKE_CURRENT_LIST_DIR}/data" CACHE PATH "Path to t
 configure_file(data/data_paths.h.in generated/descry/test/data_paths.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
 
-add_subdirectory(catch EXCLUDE_FROM_ALL)
-
 enable_testing()
 
 add_executable(descry_ut
@@ -35,8 +33,6 @@ add_dependencies(descry_ut catch)
 add_test(descry::image descry_ut [image])
 add_test(descry::model descry_ut [model])
 add_test(descry::recognizer descry_ut [recognizer])
-
-add_subdirectory(benchmark EXCLUDE_FROM_ALL)
 
 add_executable(descry_perf
         perf/perf.cpp
