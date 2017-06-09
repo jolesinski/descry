@@ -19,7 +19,8 @@ public:
 
     void log_duration(const std::string& name, time_point started, time_point finished) {
         auto duration = std::chrono::duration_cast<resolution>(finished - started);
-        log_->info("{} took: {}ms", name, duration.count());
+        if (log_)
+            log_->info("{} took: {}ms", name, duration.count());
     }
 
     template <typename NameType>
@@ -53,6 +54,27 @@ Latency measure_latency(NameType&& name) {
     latency.start(std::forward<NameType>(name));
 
     return latency;
+}
+
+class ScopedLatency {
+public:
+    template <typename NameType>
+    explicit ScopedLatency(NameType&& name) {
+        latency_ = measure_latency(std::forward<NameType>(name));
+    }
+
+    ~ScopedLatency() {
+        latency_.finish();
+    }
+
+private:
+    Latency latency_;
+};
+
+
+template <typename NameType>
+ScopedLatency measure_scope_latency(NameType&& name) {
+    return ScopedLatency(std::forward<NameType>(name));
 }
 
 }
