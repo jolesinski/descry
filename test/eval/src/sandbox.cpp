@@ -3,13 +3,14 @@
 #include <descry/recognizer.h>
 #include <descry/willow.h>
 #include <descry/test/config.h>
-#include <descry/test/data.h>
+#include <descry/latency.h>
+#include <descry/logger.h>
 
+#include <descry/test/data.h>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <spdlog/fmt/ostr.h>
-#include <descry/logger.h>
 
 descry::logger::handle g_log;
 
@@ -83,19 +84,13 @@ void recognize(const descry::Config& cfg) {
     auto recognizer = descry::Recognizer{};
     recognizer.configure(cfg[descry::config::RECOGNIZER_NODE]);
 
-    auto start = std::chrono::steady_clock::now();
+    auto latency = descry::measure_latency("Training");
     recognizer.train(model);
+    latency.finish();
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::steady_clock::now() - start);
-    g_log->info("Training took: {}ms", duration.count());
-    start = std::chrono::steady_clock::now();
-
+    latency.start("Recognition");
     auto instances = recognizer.compute(scene);
-
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::steady_clock::now() - start);
-    g_log->info("Recognition took: {}ms", duration.count());
+    latency.finish();
 
 //    auto start = std::chrono::steady_clock::now();
 
