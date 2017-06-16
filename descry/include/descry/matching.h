@@ -11,9 +11,12 @@
 // add thrust reduce min distance strategy
 namespace descry {
 
-struct KeyFrameMatches {
-    pcl::CorrespondencesPtr corrs;
-    KeyFrame::Ptr model;
+struct ModelSceneMatches {
+    struct ViewCorrespondences {
+        pcl::CorrespondencesPtr corrs;
+        KeyFrame::Ptr view;
+    };
+    std::vector<ViewCorrespondences> view_corrs;
     KeyFrame::Ptr scene;
 };
 
@@ -22,14 +25,14 @@ public:
     class Strategy {
     public:
         virtual void train(const Model& model) = 0;
-        virtual std::vector<KeyFrameMatches> match(const Image& image) = 0;
+        virtual ModelSceneMatches match(const Image& image) = 0;
         virtual ~Strategy() = default;
     };
 
     void configure(const Config& config);
     void train(const Model& model);
 
-    std::vector<KeyFrameMatches> match(const Image& image);
+    ModelSceneMatches match(const Image& image);
 private:
     std::unique_ptr<Strategy> strategy_ = nullptr;
 };

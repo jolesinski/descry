@@ -26,7 +26,7 @@ void Matching::train(const Model& model) {
     return strategy_->train(model);
 }
 
-std::vector<KeyFrameMatches> Matching::match(const Image& image) {
+ModelSceneMatches Matching::match(const Image& image) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Aligner not configured");
     return strategy_->match(image);
@@ -66,7 +66,7 @@ public:
     ~SparseMatching() override {};
 
     void train(const Model& model);
-    std::vector<KeyFrameMatches> match(const Image& image) override;
+    ModelSceneMatches match(const Image& image) override;
 private:
     Describer<Descriptor> scene_describer;
     Describer<Descriptor> model_describer;
@@ -94,17 +94,17 @@ void SparseMatching<Descriptor>::train(const Model& model) {
 
 
 template<class Descriptor>
-std::vector<KeyFrameMatches> SparseMatching<Descriptor>::match(const Image& image) {
+ModelSceneMatches SparseMatching<Descriptor>::match(const Image& image) {
     auto scene_description = scene_describer.compute(image);
     auto matches_per_view = matcher.match(scene_description);
 
-    auto key_frame_matches = std::vector<KeyFrameMatches>{};
+    auto model_scene_matches = ModelSceneMatches{};
+    model_scene_matches.scene = scene_description.getKeyFrame();
     for (auto idx = 0u; idx < model_description.size(); ++idx)
-        key_frame_matches.push_back({matches_per_view.at(idx),
-                                     model_description.at(idx).getKeyFrame(),
-                                     scene_description.getKeyFrame()});
+        model_scene_matches.view_corrs.push_back({matches_per_view.at(idx),
+                                             model_description.at(idx).getKeyFrame()});
 
-    return key_frame_matches;
+    return model_scene_matches;
 }
 
 std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config) {

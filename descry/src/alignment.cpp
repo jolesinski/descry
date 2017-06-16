@@ -79,7 +79,13 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
     auto scene_description = scene_describer.compute(image);
     auto matches_per_view = matcher.match(scene_description);
 
-    auto instances = clusterizer.compute(image, *scene_description.getKeyFrame(), matches_per_view);
+    auto model_scene_matches = ModelSceneMatches{};
+    model_scene_matches.scene = scene_description.getKeyFrame();
+    for (auto idx = 0u; idx < model_description.size(); ++idx)
+        model_scene_matches.view_corrs.push_back({matches_per_view.at(idx),
+                                                  model_description.at(idx).getKeyFrame()});
+
+    auto instances = clusterizer.compute(image, model_scene_matches);
     viewer.show(image.getFullCloud().host(), instances);
     return instances;
 }

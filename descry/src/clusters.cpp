@@ -79,11 +79,10 @@ void Clusterizer::train(const Model& model, const std::vector<KeyFrame::Ptr>& vi
     return strategy_->train(model, view_keyframes);
 }
 
-Instances Clusterizer::compute(const Image& image, const KeyFrame& keyframe,
-                               const std::vector<pcl::CorrespondencesPtr>& corrs) {
+Instances Clusterizer::compute(const Image& image, const ModelSceneMatches& matches) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
-    return strategy_->compute(image, keyframe, corrs);
+    return strategy_->compute(image, matches);
 }
 
 namespace {
@@ -112,25 +111,24 @@ public:
         viewer_.addModel(model, view_keyframes);
     }
 
-    Instances compute(const Image& image, const KeyFrame& keyframe,
-                      const std::vector<pcl::CorrespondencesPtr>& corrs) override {
-        assert(corrs.size() == clust_.size());
+    Instances compute(const Image& image, const ModelSceneMatches& matches) override {
+        assert(matches.view_corrs.size() == clust_.size());
 
         auto instances = Instances{};
         instances.cloud = model_;
 
-        viewer_.show(image, keyframe, corrs);
+        viewer_.show(image, matches);
 
         auto poses = AlignedVector<Pose>{};
-        for (auto idx = 0u; idx < corrs.size(); ++idx) {
-            clust_[idx].setSceneCloud(keyframe.keypoints.getShape().host());
-            setSceneRefFrames(keyframe, idx);
-            clust_[idx].setModelSceneCorrespondences(corrs[idx]);
+        for (auto idx = 0u; idx < matches.view_corrs.size(); ++idx) {
+            clust_[idx].setSceneCloud(matches.scene->keypoints.getShape().host());
+            setSceneRefFrames(*matches.scene, idx);
+            clust_[idx].setModelSceneCorrespondences(matches.view_corrs[idx].corrs);
 
             auto clustered = std::vector<pcl::Correspondences>{};
             clust_[idx].recognize(poses, clustered);
 
-            viewer_.show(image, keyframe, clustered, idx);
+            viewer_.show(image, *matches.scene, clustered, idx);
 
             for (auto pose : poses)
                 instances.poses.emplace_back(pose * viewpoints_[idx].inverse());

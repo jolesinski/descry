@@ -39,17 +39,16 @@ protected:
 class Clusterizer;
 class KeyFrame;
 class Model;
-class ViewerStorage;
+class ModelSceneMatches;
 template <>
 class Viewer<Clusterizer> : public ConfigurableViewer {
 public:
     void addModel(const Model& model, const std::vector<std::shared_ptr<KeyFrame>>& keyframes);
-    void show(const Image& scene, const KeyFrame& keyframe,
-              const std::vector<pcl::CorrespondencesPtr>& corrs);
+    void show(const Image& scene, const ModelSceneMatches& matches);
     void show(const Image& scene, const KeyFrame& keyframe,
               const std::vector<pcl::Correspondences>& clustered, unsigned int idx);
 protected:
-    std::function<void(const Image&, const KeyFrame&, const std::vector<pcl::CorrespondencesPtr>&)> show_matches_;
+    std::function<void(const Image&, const ModelSceneMatches&)> show_matches_;
     std::function<void(const Image&, const KeyFrame&, const std::vector<pcl::Correspondences>&, unsigned int idx)> show_clusters_;
 };
 
