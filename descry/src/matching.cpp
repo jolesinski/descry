@@ -1,247 +1,129 @@
 #include <descry/matching.h>
+#include <descry/matcher.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <opencv2/features2d.hpp>
 
 namespace descry {
 
-template <class Descriptor>
-using MatcherStrategy = typename Matcher<Descriptor>::Strategy;
-
-template <class Descriptor>
-std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config);
-
-template<class D>
-bool Matcher<D>::configure(const Config& config) {
-    strategy_ = makeStrategy<D>(config);
-
-    return (strategy_ != nullptr);
+namespace {
+std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config);
 }
 
-template<class D>
-void Matcher<D>::train(const std::vector<Description<D>>& model) {
+void Matching::configure(const Config& config) {
+    if (!config["type"])
+        DESCRY_THROW(InvalidConfigException, "missing aligner type");
+
+    try {
+        strategy_ = makeStrategy(config);
+    } catch ( const YAML::RepresentationException& e) {
+        DESCRY_THROW(InvalidConfigException, e.what());
+    }
+}
+
+void Matching::train(const Model& model) {
     if (!strategy_)
-        DESCRY_THROW(NotConfiguredException, "Matcher not configured");
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
     return strategy_->train(model);
 }
 
-template<class D>
-void Matcher<D>::train(std::vector<Description<D>>&& model) {
+std::vector<KeyFrameMatches> Matching::match(const Image& image) {
     if (!strategy_)
-        DESCRY_THROW(NotConfiguredException, "Matcher not configured");
-    return strategy_->train(std::move(model));
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
+    return strategy_->match(image);
 }
 
-template<class D>
-std::vector<pcl::CorrespondencesPtr> Matcher<D>::match(const Description<D>& scene) {
-    if (!strategy_)
-        DESCRY_THROW(NotConfiguredException, "Matcher not configured");
-    return strategy_->match(scene);
-}
+namespace {
 
-template <class D>
-bool descriptorFinite(const D& descr) {
-    return std::isfinite(descr.histogram[0]);
-}
+std::string getDescriptorName(const Config& config) {
+    if (!config[config::MODEL_NODE] || !config[config::SCENE_NODE])
+    DESCRY_THROW(InvalidConfigException, "missing descriptors config");
 
-template <>
-bool descriptorFinite(const pcl::SHOT352& descr) {
-    return std::isfinite(descr.descriptor[0]);
+    auto& model_feats_node = config[config::MODEL_NODE][config::features::NODE_NAME];
+    auto& scene_feats_node = config[config::SCENE_NODE][config::features::NODE_NAME];
+
+    if (!model_feats_node || !scene_feats_node)
+    DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing features");
+
+    auto& model_type_node = model_feats_node[config::TYPE_NODE];
+    auto& scene_type_node = scene_feats_node[config::TYPE_NODE];
+
+    if (!model_type_node || !scene_type_node)
+    DESCRY_THROW(InvalidConfigException, "malformed descriptors config, missing type");
+
+    auto model_type_name = model_type_node.as<std::string>();
+    auto scene_type_name = scene_type_node.as<std::string>();
+
+    if (model_type_name != scene_type_name)
+    DESCRY_THROW(InvalidConfigException, "model and scene descriptor types differ");
+
+    return model_type_name;
 }
 
 template <class Descriptor>
-class KDTreeFlannMatching : public MatcherStrategy<Descriptor> {
+class SparseMatching : public Matching::Strategy {
 public:
-    using Tree = pcl::KdTreeFLANN<Descriptor>;
+    SparseMatching(const Config& config);
+    ~SparseMatching() override {};
 
-    KDTreeFlannMatching(const Config& config) {
-        max_distance = config[config::matcher::MAX_DISTANCE].as<float>();
-
-        if (config[config::matcher::MAX_NEIGHS])
-            max_neighs = config[config::matcher::MAX_NEIGHS].as<unsigned int>();
-    }
-
-    ~KDTreeFlannMatching() override {};
-
-    void train(const std::vector<Description<Descriptor>>& model) override {
-        trees.resize(model.size());
-        for (auto idx = 0u; idx < model.size(); ++idx)
-            trees[idx].setInputCloud(model[idx].getFeatures().host());
-    }
-
-    void train(std::vector<Description<Descriptor>>&& model) override {
-        trees.resize(model.size());
-        for (auto idx = 0u; idx < model.size(); ++idx)
-            trees[idx].setInputCloud(model[idx].getFeatures().host());
-    }
-
-    std::vector<pcl::CorrespondencesPtr> match(const Description<Descriptor>& scene) override {
-        std::vector<pcl::CorrespondencesPtr> view_corrs;
-        for (const auto& tree : trees)
-            view_corrs.emplace_back(match_view(scene.getFeatures(), tree));
-
-        return view_corrs;
-    }
-
-    pcl::CorrespondencesPtr match_view(const DescriptorContainer<Descriptor>& scene, const Tree& tree) {
-        pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
-
-        // For each scene keypoint descriptor, find nearest neighbor into the model
-        // keypoints descriptor cloud and add it to the correspondences vector.
-        std::vector<int> neigh_indices(max_neighs);
-        std::vector<float> neigh_sqr_dists(max_neighs);
-
-        for (size_t i = 0; i < scene.host()->size (); ++i)
-        {
-            if (!descriptorFinite<Descriptor>(scene.host()->at(i))) //skipping NaNs
-                continue;
-
-            int found_neighs = tree.nearestKSearch(scene.host()->at(i), max_neighs, neigh_indices, neigh_sqr_dists);
-
-            for (int idx = 0; idx < found_neighs; ++idx)
-                if(neigh_sqr_dists[idx] < max_distance)
-                    model_scene_corrs->emplace_back(neigh_indices[idx], static_cast<int>(i), neigh_sqr_dists[idx]);
-        }
-
-        return model_scene_corrs;
-    }
-
-    unsigned int getMaxNeighs() const {
-        return max_neighs;
-    }
-
-    double getMaxDistance() const {
-        return max_distance;
-    }
-
+    void train(const Model& model);
+    std::vector<KeyFrameMatches> match(const Image& image) override;
 private:
-    std::vector<Tree> trees;
-    unsigned int max_neighs = 1;
-    double max_distance = 0.0;
+    Describer<Descriptor> scene_describer;
+    Describer<Descriptor> model_describer;
+
+    Matcher<Descriptor> matcher;
+    std::vector<Description<Descriptor>> model_description;
+    Viewer<Aligner> viewer;
 };
 
-class BruteForceMatching : public MatcherStrategy<cv::Mat> {
-public:
-    BruteForceMatching(const Config& config) {
-        auto norm_type_str = config[config::matcher::NORM_TYPE].as<std::string>();
-        if (norm_type_str == config::matcher::NORM_HAMMING)
-            norm_type = cv::NORM_HAMMING;
-        else if (norm_type_str == config::matcher::NORM_L2)
-            norm_type = cv::NORM_L2;
-        else
-            DESCRY_THROW(InvalidConfigException, "Unsupported norm type");
+template<class Descriptor>
+SparseMatching<Descriptor>::SparseMatching(const Config& cfg) {
+    viewer.configure(cfg);
 
-        if (config[config::matcher::MAX_DISTANCE])
-            max_distance = config[config::matcher::MAX_DISTANCE].as<float>();
+    model_describer.configure(cfg[config::matcher::DESCRIPTION_NODE][config::MODEL_NODE]);
+    scene_describer.configure(cfg[config::matcher::DESCRIPTION_NODE][config::SCENE_NODE]);
+    matcher.configure(cfg[config::matcher::NODE_NAME]);
+}
 
-        if (config[config::matcher::MAX_NEIGHS])
-            max_neighs = config[config::matcher::MAX_NEIGHS].as<unsigned int>();
-
-        if (config[config::matcher::USE_LOWE])
-            use_lowe = config[config::matcher::USE_LOWE].as<bool>();
-
-        if (config[config::matcher::LOWE_RATIO])
-            lowe_ratio = config[config::matcher::LOWE_RATIO].as<double>();
-    }
-
-    void train(const std::vector<Description<cv::Mat>>& model) override {
-        for (auto& view : model) {
-            auto d = Description<cv::Mat>();
-            d.setFeatures(view.getFeatures().clone());
-            d.setKeypoints(view.getKeypoints());
-            model_.emplace_back(std::move(d));
-        }
-    }
-
-    void train(std::vector<Description<cv::Mat>>&& model) override {
-        model_ = std::move(model);
-    }
-
-    std::vector<pcl::CorrespondencesPtr> match(const Description<cv::Mat>& scene) override {
-        std::vector<pcl::CorrespondencesPtr> view_corrs;
-        for (const auto& view_descr : model_)
-            view_corrs.emplace_back(match_view(scene, view_descr));
-
-        return view_corrs;
-    }
-
-    pcl::CorrespondencesPtr match_view(const Description<cv::Mat>& scene, const Description<cv::Mat>& model) {
-        pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
-
-        cv::BFMatcher matcher(norm_type);
-        std::vector< std::vector<cv::DMatch> > nn_matches;
-
-        if (use_lowe) {
-            matcher.knnMatch(scene.getFeatures(), model.getFeatures(), nn_matches, 2);
-
-            for(size_t i = 0; i < nn_matches.size(); i++) {
-                cv::DMatch first = nn_matches[i][0];
-                float dist1 = nn_matches[i][0].distance;
-                float dist2 = nn_matches[i][1].distance;
-
-                if(dist1 < lowe_ratio * dist2)
-                    model_scene_corrs->emplace_back(first.trainIdx, first.queryIdx, first.distance);
-            }
-        } else {
-            matcher.knnMatch(scene.getFeatures(), model.getFeatures(), nn_matches, max_neighs);
-
-            for(size_t i = 0; i < nn_matches.size(); ++i) {
-                for (unsigned int nn = 0; nn < max_neighs; ++nn) {
-                    cv::DMatch match = nn_matches[i][nn];
-                    if(match.distance < max_distance)
-                        model_scene_corrs->emplace_back(match.trainIdx, match.queryIdx, match.distance);
-                }
-            }
-        }
-
-        return model_scene_corrs;
-    }
-
-    ~BruteForceMatching() override {};
-private:
-    std::vector<Description<cv::Mat>> model_;
-    cv::NormTypes norm_type;
-    bool use_lowe = false;
-    double lowe_ratio = 0.8;
-    double max_distance = 0.0;
-    unsigned int max_neighs = 1;
-};
-
-template <class Descriptor>
-std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config) {
-    if(!config.IsMap() || !config["type"])
-        return nullptr;
-
-    try {
-        auto descr_type = config["type"].as<std::string>();
-        if (descr_type == config::matcher::KDTREE_FLANN_TYPE)
-            return std::make_unique<KDTreeFlannMatching<Descriptor>>(config);
-    } catch ( const YAML::RepresentationException& e) { }
-
-    return nullptr;
+template<class Descriptor>
+void SparseMatching<Descriptor>::train(const Model& model) {
+    for(const auto& view : model.getViews())
+        model_description.emplace_back(model_describer.compute(view.image));
+    matcher.train(model_description);
 }
 
 
-template <>
-std::unique_ptr<MatcherStrategy<cv::Mat>> makeStrategy<cv::Mat>(const Config& config) {
-    if(!config.IsMap() || !config["type"])
-        return nullptr;
+template<class Descriptor>
+std::vector<KeyFrameMatches> SparseMatching<Descriptor>::match(const Image& image) {
+    auto scene_description = scene_describer.compute(image);
+    auto matches_per_view = matcher.match(scene_description);
 
-    try {
-        auto descr_type = config["type"].as<std::string>();
-        if (descr_type == config::matcher::BRUTE_FORCE_TYPE)
-            return std::make_unique<BruteForceMatching>(config);
-    } catch ( const YAML::RepresentationException& e) { }
+    auto key_frame_matches = std::vector<KeyFrameMatches>{};
+    for (auto idx = 0u; idx < model_description.size(); ++idx)
+        key_frame_matches.push_back({matches_per_view.at(idx),
+                                     model_description.at(idx).getKeyFrame(),
+                                     scene_description.getKeyFrame()});
 
-    return nullptr;
+    return key_frame_matches;
 }
 
-template
-class Matcher<pcl::SHOT352>;
+std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config) {
+    if (config.IsMap()) {
+        if(!config[config::matcher::DESCRIPTION_NODE])
+        DESCRY_THROW(InvalidConfigException, "missing descriptor type");
+    }
 
-template
-class Matcher<pcl::FPFHSignature33>;
+    auto descr_type = getDescriptorName(config[config::matcher::DESCRIPTION_NODE]);
+    if (descr_type == config::features::SHOT_PCL_TYPE)
+        return std::make_unique<SparseMatching<pcl::SHOT352>>(config);
+    else if (descr_type == config::features::FPFH_PCL_TYPE)
+        return std::make_unique<SparseMatching<pcl::SHOT352>>(config);
+    else if (descr_type == config::features::ORB_TYPE)
+        return std::make_unique<SparseMatching<cv::Mat>>(config);
+    else
+        DESCRY_THROW(InvalidConfigException, "unsupported descriptor type");
+}
 
-template
-class Matcher<cv::Mat>;
+}
 
 }

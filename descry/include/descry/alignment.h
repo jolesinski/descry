@@ -21,7 +21,7 @@ public:
 
     Instances compute(const Image& image);
 private:
-    std::unique_ptr<AlignmentStrategy> strategy_;
+    std::unique_ptr<AlignmentStrategy> strategy_ = nullptr;
 };
 
 }

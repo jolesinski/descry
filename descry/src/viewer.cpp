@@ -59,8 +59,8 @@ void show_keypoints_3d(const Image& image, const Keypoints& keypoints, double ke
 }
 
 void show_matches_3d(const std::vector<FullCloud::ConstPtr>& views,
-                     const std::vector<KeyFrameHandle>& m_keyframes,
-                     const Image& scene, const KeyFrameHandle& keyframe,
+                     const std::vector<KeyFrame::Ptr>& m_keyframes,
+                     const Image& scene, const KeyFrame& keyframe,
                      const std::vector<pcl::CorrespondencesPtr>& corrs,
                      const Config& config) {
     auto viewer = make_viewer(config::clusters::NODE_NAME);
@@ -68,18 +68,18 @@ void show_matches_3d(const std::vector<FullCloud::ConstPtr>& views,
     auto show_once = config[config::viewer::SHOW_ONCE].as<bool>(false);
     auto show_only = config[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
     auto keypoint_size = config[config::viewer::KEYPOINT_SIZE].as<double>(5.0);
-    assert(keyframe.keys != nullptr);
     for (auto idx = 0u; idx < views.size(); ++idx) {
+        assert(m_keyframes.at(idx) != nullptr);
         if (idx > 0 && show_once)
             return;
         if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
             continue;
 
-        add_image_with_keypoints(scene, *keyframe.keys, keypoint_size, config::SCENE_NODE, viewer);
-        add_image_with_keypoints(views.at(idx), *m_keyframes.at(idx).keys,
+        add_image_with_keypoints(scene, keyframe.keypoints, keypoint_size, config::SCENE_NODE, viewer);
+        add_image_with_keypoints(views.at(idx), m_keyframes.at(idx)->keypoints,
                                  keypoint_size, config::MODEL_NODE, viewer);
-        viewer.addCorrespondences<ShapePoint>(m_keyframes.at(idx).keys->getShape().host(),
-                                              keyframe.keys->getShape().host(), *corrs.at(idx));
+        viewer.addCorrespondences<ShapePoint>(m_keyframes.at(idx)->keypoints.getShape().host(),
+                                              keyframe.keypoints.getShape().host(), *corrs.at(idx));
 
         while (!viewer.wasStopped()) {
             viewer.spinOnce(100);
@@ -100,24 +100,24 @@ std::vector<cv::DMatch> convert(const pcl::Correspondences& pcl_matches) {
 }
 
 void show_matches_2d(const std::vector<FullCloud::ConstPtr>& views,
-                     const std::vector<KeyFrameHandle>& m_keyframes,
-                     const Image& scene, const KeyFrameHandle& keyframe,
+                     const std::vector<KeyFrame::Ptr>& m_keyframes,
+                     const Image& scene, const KeyFrame& keyframe,
                      const std::vector<pcl::CorrespondencesPtr>& corrs,
                      const Config& config) {
     auto show_once = config[config::viewer::SHOW_ONCE].as<bool>(false);
     auto show_only = config[config::viewer::SHOW_ONLY].as<std::vector<unsigned int>>(std::vector<unsigned int>{});
-    assert(keyframe.keys != nullptr);
     for (auto idx = 0u; idx < views.size(); ++idx) {
         if (idx > 0 && show_once)
             return;
         if (!show_only.empty() && std::count(show_only.begin(), show_only.end(), idx) == 0)
             continue;
 
+        assert(m_keyframes.at(idx) != nullptr);
         auto scene_frame = scene.getColorMat();
-        auto& scene_keys = keyframe.keys->getColor();
+        auto& scene_keys = keyframe.keypoints.getColor();
         auto view_image = Image{views.at(idx)};
         auto& view_frame = view_image.getColorMat();
-        auto& view_keys = m_keyframes.at(idx).keys->getColor();
+        auto& view_keys = m_keyframes.at(idx)->keypoints.getColor();
 
         cv::Mat display_frame;
         cv::drawMatches(scene_frame, scene_keys, view_frame, view_keys, convert(*corrs.at(idx)), display_frame);
@@ -128,36 +128,30 @@ void show_matches_2d(const std::vector<FullCloud::ConstPtr>& views,
     }
 }
 
-void show_clusters_3d(const FullCloud::ConstPtr& view, const KeyFrameHandle& m_keyframe,
-                      const Image& scene, const KeyFrameHandle& keyframe,
+void show_clusters_3d(const FullCloud::ConstPtr& view, const KeyFrame& m_keyframe,
+                      const Image& scene, const KeyFrame& keyframe,
                       const std::vector<pcl::Correspondences>& clusters) {
-    assert(m_keyframe.keys != nullptr);
-    assert(keyframe.keys != nullptr);
-
     auto viewer = make_viewer(config::clusters::NODE_NAME);
 
     auto count = 0u;
-    add_image_with_keypoints(scene, *keyframe.keys, 5.0, config::SCENE_NODE, viewer);
-    add_image_with_keypoints(view, *m_keyframe.keys, 5.0, config::MODEL_NODE, viewer);
+    add_image_with_keypoints(scene, keyframe.keypoints, 5.0, config::SCENE_NODE, viewer);
+    add_image_with_keypoints(view, m_keyframe.keypoints, 5.0, config::MODEL_NODE, viewer);
     for (auto cluster : clusters)
-        viewer.addCorrespondences<ShapePoint>(m_keyframe.keys->getShape().host(),
-                                              keyframe.keys->getShape().host(), cluster, std::to_string(count++));
+        viewer.addCorrespondences<ShapePoint>(m_keyframe.keypoints.getShape().host(),
+                                              keyframe.keypoints.getShape().host(), cluster, std::to_string(count++));
 
     while (!viewer.wasStopped())
         viewer.spinOnce(100);
 }
 
-void show_clusters_2d(const FullCloud::ConstPtr& view, const KeyFrameHandle& m_keyframe,
-                      const Image& scene, const KeyFrameHandle& keyframe,
+void show_clusters_2d(const FullCloud::ConstPtr& view, const KeyFrame& m_keyframe,
+                      const Image& scene, const KeyFrame& keyframe,
                       const std::vector<pcl::Correspondences>& clusters) {
-    assert(m_keyframe.keys != nullptr);
-    assert(keyframe.keys != nullptr);
-
     auto scene_frame = scene.getColorMat();
-    auto& scene_keys = keyframe.keys->getColor();
+    auto& scene_keys = keyframe.keypoints.getColor();
     auto view_image = Image{view};
     auto& view_frame = view_image.getColorMat();
-    auto& view_keys = m_keyframe.keys->getColor();
+    auto& view_keys = m_keyframe.keypoints.getColor();
 
     cv::Mat display_frame;
     auto clusters_2d = std::vector<std::vector<cv::DMatch>>{};
@@ -210,7 +204,7 @@ void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
         show_keypoints_3d(image, keypoints, keypoint_size);
 }
 
-void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFrameHandle>& m_keyframes) {
+void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFrame::Ptr>& m_keyframes) {
     if (!cfg_.IsMap())
         return;
 
@@ -219,8 +213,8 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
         views.emplace_back(view.image.getFullCloud().host());
     }
 
-    show_matches_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
-               const std::vector<pcl::CorrespondencesPtr>& corrs){
+    show_matches_ = [&, views, m_keyframes](const Image& scene, const KeyFrame& keyframe,
+                                            const std::vector<pcl::CorrespondencesPtr>& corrs){
         if (!cfg_.IsMap())
             return;
 
@@ -231,8 +225,8 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
             show_matches_3d(views, m_keyframes, scene, keyframe, corrs, cfg_);
     };
 
-    show_clusters_ = [&, views, m_keyframes](const Image& scene, const KeyFrameHandle& keyframe,
-                                        const std::vector<pcl::Correspondences>& clusters, unsigned int idx){
+    show_clusters_ = [&, views, m_keyframes](const Image& scene, const KeyFrame& keyframe,
+                                             const std::vector<pcl::Correspondences>& clusters, unsigned int idx){
         if (!cfg_.IsMap())
             return;
 
@@ -250,14 +244,14 @@ void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFram
 
         auto show_2d = cfg_[config::viewer::SHOW_2D].as<bool>(false);
         if (show_2d)
-            show_clusters_2d(views.at(idx), m_keyframes.at(idx), scene, keyframe, clusters);
+            show_clusters_2d(views.at(idx), *m_keyframes.at(idx), scene, keyframe, clusters);
         else
-            show_clusters_3d(views.at(idx), m_keyframes.at(idx), scene, keyframe, clusters);
+            show_clusters_3d(views.at(idx), *m_keyframes.at(idx), scene, keyframe, clusters);
     };
 
 }
 
-void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyframe,
+void Viewer<Clusterizer>::show(const Image& scene, const KeyFrame& keyframe,
                                const std::vector<pcl::CorrespondencesPtr>& corrs) {
     if (!show_matches_ || !cfg_[config::viewer::SHOW_MATCHES].as<bool>(false))
         return;
@@ -265,7 +259,7 @@ void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyfram
     show_matches_(scene, keyframe, corrs);
 }
 
-void Viewer<Clusterizer>::show(const Image& scene, const KeyFrameHandle& keyframe,
+void Viewer<Clusterizer>::show(const Image& scene, const KeyFrame& keyframe,
                                const std::vector<pcl::Correspondences>& clustered, unsigned int idx) {
     if (!show_clusters_ || !cfg_[config::viewer::SHOW_CLUSTERS].as<bool>(false))
         return;

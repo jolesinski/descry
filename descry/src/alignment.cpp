@@ -1,7 +1,7 @@
 #include <descry/alignment.h>
 #include <descry/clusters.h>
 #include <descry/descriptors.h>
-#include <descry/matching.h>
+#include <descry/matcher.h>
 #include <descry/viewer.h>
 
 namespace descry {
@@ -68,7 +68,7 @@ void SparseShapeMatching<Descriptor>::train(const Model& model) {
         model_description.emplace_back(model_describer.compute(view.image));
     matcher.train(model_description);
 
-    auto key_frames = std::vector<KeyFrameHandle>{};
+    auto key_frames = std::vector<KeyFrame::Ptr>{};
     for (auto& descr : model_description)
         key_frames.emplace_back(descr.getKeyFrame());
     clusterizer.train(model, key_frames);
@@ -79,7 +79,7 @@ Instances SparseShapeMatching<Descriptor>::match(const Image& image) {
     auto scene_description = scene_describer.compute(image);
     auto matches_per_view = matcher.match(scene_description);
 
-    auto instances = clusterizer.compute(image, scene_description.getKeyFrame(), matches_per_view);
+    auto instances = clusterizer.compute(image, *scene_description.getKeyFrame(), matches_per_view);
     viewer.show(image.getFullCloud().host(), instances);
     return instances;
 }

@@ -4,6 +4,7 @@
 
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/fpfh_omp.h>
+#include <descry/latency.h>
 
 using SHOT_PCL = pcl::SHOTEstimationOMP<descry::ShapePoint, pcl::Normal, pcl::SHOT352>;
 using FPFH_PCL = pcl::FPFHEstimationOMP<descry::ShapePoint, pcl::Normal, pcl::FPFHSignature33>;
@@ -190,7 +191,10 @@ bool Describer<D>::configure(const Config& config) {
                     pcl_describer_parser<D>::add_rfs_if_supported(descr, d.getRefFrames());
                 }
                 typename pcl::PointCloud<D>::Ptr features{new pcl::PointCloud<D>{}};
-                descr.compute(*features);
+                {
+                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME);
+                    descr.compute(*features);
+                }
                 d.setFeatures(cupcl::DualContainer<D>{features});
                 return d;
             };
@@ -250,7 +254,10 @@ bool Describer<cv::Mat>::configure(const Config& config) {
             auto descr = features_config.as<cv::Ptr<cv::ORB>>();
             _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
                 auto color = ColorDescription{};
-                descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
+                {
+                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME);
+                    descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
+                }
                 auto filtered_color = filter_null_keypoints(color, image);
                 auto d = Description<cv::Mat>{};
                 d.setKeypoints(Keypoints{std::move(filtered_color.keypoints), image});

@@ -63,7 +63,9 @@ struct convert<CG_Hough> {
 
 namespace descry {
 
+namespace {
 std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config);
+}
 
 bool Clusterizer::configure(const Config &config) {
     strategy_ = makeStrategy(config);
@@ -71,32 +73,34 @@ bool Clusterizer::configure(const Config &config) {
     return (strategy_ != nullptr);
 }
 
-void Clusterizer::train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) {
+void Clusterizer::train(const Model& model, const std::vector<KeyFrame::Ptr>& view_keyframes) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
     return strategy_->train(model, view_keyframes);
 }
 
-Instances Clusterizer::compute(const Image& image, const KeyFrameHandle& keyframe,
+Instances Clusterizer::compute(const Image& image, const KeyFrame& keyframe,
                                const std::vector<pcl::CorrespondencesPtr>& corrs) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Clusterer not configured");
     return strategy_->compute(image, keyframe, corrs);
 }
 
-template <typename CG>
+namespace {
+
+template<typename CG>
 class PCLStrategy : public Clusterizer::Strategy {
 public:
     PCLStrategy(const Config& config) : clust_{config.as<CG>()} { viewer_.configure(config); }
 
     ~PCLStrategy() override {};
 
-    void train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) override {
+    void train(const Model& model, const std::vector<KeyFrame::Ptr>& view_keyframes) override {
         model_ = model.getFullCloud();
         clust_.resize(model.getViews().size(), clust_.front());
 
         for (auto idx = 0u; idx < clust_.size(); ++idx)
-            clust_[idx].setInputCloud(view_keyframes.at(idx).keys->getShape().host());
+            clust_[idx].setInputCloud(view_keyframes.at(idx)->keypoints.getShape().host());
 
         setModelRefFrames(view_keyframes);
 
@@ -108,7 +112,7 @@ public:
         viewer_.addModel(model, view_keyframes);
     }
 
-    Instances compute(const Image& image, const KeyFrameHandle& keyframe,
+    Instances compute(const Image& image, const KeyFrame& keyframe,
                       const std::vector<pcl::CorrespondencesPtr>& corrs) override {
         assert(corrs.size() == clust_.size());
 
@@ -119,7 +123,7 @@ public:
 
         auto poses = AlignedVector<Pose>{};
         for (auto idx = 0u; idx < corrs.size(); ++idx) {
-            clust_[idx].setSceneCloud(keyframe.keys->getShape().host());
+            clust_[idx].setSceneCloud(keyframe.keypoints.getShape().host());
             setSceneRefFrames(keyframe, idx);
             clust_[idx].setModelSceneCorrespondences(corrs[idx]);
 
@@ -136,8 +140,10 @@ public:
     }
 
     void train() {}
-    void setModelRefFrames(const std::vector<KeyFrameHandle>& /*model*/) {}
-    void setSceneRefFrames(const KeyFrameHandle& /*image*/, unsigned /*model_idx*/) {}
+
+    void setModelRefFrames(const std::vector<KeyFrame::Ptr>& /*model*/) {}
+
+    void setSceneRefFrames(const KeyFrame& /*image*/, unsigned /*model_idx*/) {}
 
 private:
     FullCloud::ConstPtr model_;
@@ -153,18 +159,18 @@ void PCLStrategy<CG_Hough>::train() {
 }
 
 template<>
-void PCLStrategy<CG_Hough>::setModelRefFrames(const std::vector<KeyFrameHandle>& keyframes) {
+void PCLStrategy<CG_Hough>::setModelRefFrames(const std::vector<KeyFrame::Ptr>& keyframes) {
     for (auto idx = 0u; idx < clust_.size(); ++idx)
-        clust_[idx].setInputRf(keyframes.at(idx).rfs->host());
+        clust_[idx].setInputRf(keyframes.at(idx)->ref_frames.host());
 }
 
 template<>
-void PCLStrategy<CG_Hough>::setSceneRefFrames(const KeyFrameHandle& keyframe, unsigned model_idx) {
-    clust_.at(model_idx).setSceneRf(keyframe.rfs->host());
+void PCLStrategy<CG_Hough>::setSceneRefFrames(const KeyFrame& keyframe, unsigned model_idx) {
+    clust_.at(model_idx).setSceneRf(keyframe.ref_frames.host());
 }
 
 std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {
-    if(!config["type"])
+    if (!config["type"])
         return nullptr;
 
     auto clust_type = config["type"].as<std::string>();
@@ -174,6 +180,8 @@ std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {
         return std::make_unique<PCLStrategy<CG_Hough>>(config);
     }
     return nullptr;
+}
+
 }
 
 }

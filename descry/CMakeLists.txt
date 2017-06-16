@@ -5,6 +5,7 @@ add_library(descry SHARED
         src/image.cpp
         src/keypoints.cpp
         src/matching.cpp
+        src/matcher.cpp
         src/model.cpp
         src/normals.cpp
         src/preprocess.cpp

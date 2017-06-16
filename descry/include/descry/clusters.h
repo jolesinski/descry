@@ -12,16 +12,16 @@ class Clusterizer {
 public:
     class Strategy {
     public:
-        virtual void train(const Model& model, const std::vector<KeyFrameHandle>& view_keyframes) = 0;
-        virtual Instances compute(const Image& image, const KeyFrameHandle& keyframe,
+        virtual void train(const Model& model, const std::vector<KeyFrame::Ptr>& view_keyframes) = 0;
+        virtual Instances compute(const Image& image, const KeyFrame& keyframe,
                                   const std::vector<pcl::CorrespondencesPtr>& corrs) = 0;
         virtual ~Strategy() = default;
     };
 
     bool configure(const Config &config);
 
-    void train(const Model& image, const std::vector<KeyFrameHandle>& view_keyframes);
-    Instances compute(const Image& image, const KeyFrameHandle& keyframe,
+    void train(const Model& image, const std::vector<KeyFrame::Ptr>& view_keyframes);
+    Instances compute(const Image& image, const KeyFrame& keyframe,
                       const std::vector<pcl::CorrespondencesPtr>& corrs);
 
 private:

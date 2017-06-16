@@ -9,32 +9,35 @@
 
 namespace descry {
 
-struct KeyFrameHandle {
-    Keypoints* keys;
-    DualRefFrames* rfs;
+struct KeyFrame {
+    using Ptr = std::shared_ptr<KeyFrame>;
+    DualRefFrames ref_frames;
+    Keypoints keypoints;
 };
 
 template <typename Descriptor>
 class Description {
 public:
+    Description() : key_frame(std::make_shared<KeyFrame>()) {}
+
     const Keypoints& getKeypoints() const {
-        return keypoints;
+        return key_frame->keypoints;
     }
 
     void setKeypoints(const Keypoints& keypoints) {
-        this->keypoints = keypoints;
+        key_frame->keypoints = keypoints;
     }
 
     void setKeypoints(Keypoints&& keypoints) {
-        this->keypoints = std::move(keypoints);
+        key_frame->keypoints = std::move(keypoints);
     }
 
     const DualRefFrames& getRefFrames() const {
-        return ref_frames;
+        return key_frame->ref_frames;
     }
 
     void setRefFrames(DualRefFrames&& ref_frames) {
-        this->ref_frames = std::move(ref_frames);
+        key_frame->ref_frames = std::move(ref_frames);
     }
 
     const DescriptorContainer<Descriptor>& getFeatures() const {
@@ -45,14 +48,13 @@ public:
         this->features = std::move(feats);
     }
 
-    KeyFrameHandle getKeyFrame() {
-        return {&keypoints, &ref_frames};
+    std::shared_ptr<KeyFrame> getKeyFrame() {
+        return key_frame;
     }
 
 protected:
-    DualRefFrames ref_frames;
-    Keypoints keypoints;
     DescriptorContainer<Descriptor> features;
+    std::shared_ptr<KeyFrame> key_frame;
 };
 
 template <typename Descriptor>
