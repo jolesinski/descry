@@ -10,9 +10,6 @@ std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config);
 }
 
 void Matching::configure(const Config& config) {
-    if (!config["type"])
-        DESCRY_THROW(InvalidConfigException, "missing aligner type");
-
     try {
         strategy_ = makeStrategy(config);
     } catch ( const YAML::RepresentationException& e) {
@@ -20,7 +17,7 @@ void Matching::configure(const Config& config) {
     }
 }
 
-void Matching::train(const Model& model) {
+std::vector<KeyFrame::Ptr> Matching::train(const Model& model) {
     if (!strategy_)
         DESCRY_THROW(NotConfiguredException, "Aligner not configured");
     return strategy_->train(model);
@@ -65,7 +62,7 @@ public:
     SparseMatching(const Config& config);
     ~SparseMatching() override {};
 
-    void train(const Model& model);
+    std::vector<KeyFrame::Ptr> train(const Model& model) override;
     ModelSceneMatches match(const Image& image) override;
 private:
     Describer<Descriptor> scene_describer;
@@ -82,14 +79,20 @@ SparseMatching<Descriptor>::SparseMatching(const Config& cfg) {
 
     model_describer.configure(cfg[config::matcher::DESCRIPTION_NODE][config::MODEL_NODE]);
     scene_describer.configure(cfg[config::matcher::DESCRIPTION_NODE][config::SCENE_NODE]);
-    matcher.configure(cfg[config::matcher::NODE_NAME]);
+    matcher.configure(cfg[config::matcher::MATCHER_NODE]);
 }
 
 template<class Descriptor>
-void SparseMatching<Descriptor>::train(const Model& model) {
-    for(const auto& view : model.getViews())
+std::vector<KeyFrame::Ptr> SparseMatching<Descriptor>::train(const Model& model) {
+    for (const auto& view : model.getViews())
         model_description.emplace_back(model_describer.compute(view.image));
     matcher.train(model_description);
+
+    auto key_frames = std::vector<KeyFrame::Ptr>{};
+    for (auto& descr : model_description)
+        key_frames.emplace_back(descr.getKeyFrame());
+
+    return key_frames;
 }
 
 

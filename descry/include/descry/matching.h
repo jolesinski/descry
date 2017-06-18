@@ -24,13 +24,13 @@ class Matching {
 public:
     class Strategy {
     public:
-        virtual void train(const Model& model) = 0;
+        virtual std::vector<KeyFrame::Ptr> train(const Model& model) = 0;
         virtual ModelSceneMatches match(const Image& image) = 0;
         virtual ~Strategy() = default;
     };
 
     void configure(const Config& config);
-    void train(const Model& model);
+    std::vector<KeyFrame::Ptr> train(const Model& model);
 
     ModelSceneMatches match(const Image& image);
 private:

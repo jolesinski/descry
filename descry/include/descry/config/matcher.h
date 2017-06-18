@@ -4,6 +4,8 @@
 namespace descry { namespace config { namespace matcher {
 
 static constexpr auto NODE_NAME = "matching";
+static constexpr auto DESCRIPTION_NODE = "description";
+static constexpr auto MATCHER_NODE = "matcher";
 
 static constexpr auto KDTREE_FLANN_TYPE = "kdtree-flann";
 static constexpr auto BRUTE_FORCE_TYPE = "brute-force";

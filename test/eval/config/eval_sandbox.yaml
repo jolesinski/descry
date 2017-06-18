@@ -43,23 +43,24 @@ recognizer:
     #viewer: true
   aligner:
     type: sparse
-    description:
-      model:
-        features:
-          type: orb
-          max-features: 500
-#        viewer:
-#          show-only: [7]
-#          show-2d: true
-      scene:
-        features:
-          type: orb
-          max-features: 5000
     matching:
-      type: brute-force
-      norm: hamming
-      use-lowe: true
-      lowe-ratio: 0.8
+      description:
+        model:
+          features:
+            type: orb
+            max-features: 500
+  #        viewer:
+  #          show-only: [7]
+  #          show-2d: true
+        scene:
+          features:
+            type: orb
+            max-features: 5000
+      matcher:
+        type: brute-force
+        norm: hamming
+        use-lowe: true
+        lowe-ratio: 0.8
     clusters:
       type: gc
       gc-size: 0.01
@@ -68,10 +69,10 @@ recognizer:
 #        show-clusters: true
 #        show-once: false
 #        show-empty: true
-##        show-only: [2, 10, 15]
-#        show-2d: true
+#        show-only: [7, 8, 9]
+#        show-2d: false
 #        keypoint-size: 5
-    #viewer: true
+    viewer: true
   #refinement: *icp
   verification: *papazov
 

@@ -96,13 +96,14 @@ recognizer:
   normals: *cupcl
   aligner:
     type: sparse
-    description:
-      model: &model-description
-        keypoints: *iss
-        reference-frames: *board
-        features: *fpfh
-      scene: *model-description
-    matching: *kdtree-flann
+    matching:
+      description:
+        model: &model-description
+          keypoints: *iss
+          reference-frames: *board
+          features: *fpfh
+        scene: *model-description
+      matcher: *kdtree-flann
     clusters: *hough
   refinement: *icp
   verification: *papazov
