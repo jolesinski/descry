@@ -15,10 +15,10 @@ namespace descry {
 class Recognizer {
 public:
     bool configure(const Config& config);
-    void train(const Model& model);
+    void train(Model& model);
     Instances compute(const FullCloud::ConstPtr &scene);
 private:
-    NormalEstimation nest_;
+    Preprocess preproc_;
     Aligner aligner_;
     Refiner refiner_;
     Verifier verifier_;

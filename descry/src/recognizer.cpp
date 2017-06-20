@@ -4,8 +4,8 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
     if (!cfg.IsDefined())
         DESCRY_THROW(InvalidConfigException, "undefined node");
 
-    if (cfg[config::normals::NODE_NAME])
-        nest_.configure(cfg[config::normals::NODE_NAME]);
+    if (cfg[config::PREPROCESS_NODE])
+        preproc_.configure(cfg[config::PREPROCESS_NODE]);
 
     if (cfg[config::aligner::NODE_NAME])
         aligner_.configure(cfg[config::aligner::NODE_NAME]);
@@ -27,7 +27,9 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
     return true;
 }
 
-void descry::Recognizer::train(const descry::Model& model) {
+void descry::Recognizer::train(descry::Model& model) {
+    model.prepare(preproc_);
+
     aligner_.train(model);
 
     if (refiner_.is_configured())
@@ -38,8 +40,7 @@ descry::Instances
 descry::Recognizer::compute(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &scene) {
     auto image = descry::Image{scene};
 
-    if (nest_.is_configured())
-        image.setNormals(nest_.compute(image));
+    preproc_.process(image);
 
     auto instances = aligner_.compute(image);
 
