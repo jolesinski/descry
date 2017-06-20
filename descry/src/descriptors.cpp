@@ -1,10 +1,11 @@
 #include <descry/descriptors.h>
 
 #include <opencv2/features2d.hpp>
+#include <descry/latency.h>
 
+#define PCL_NO_PRECOMPILE
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/fpfh_omp.h>
-#include <descry/latency.h>
 
 using SHOT_PCL = pcl::SHOTEstimationOMP<descry::ShapePoint, pcl::Normal, pcl::SHOT352>;
 using FPFH_PCL = pcl::FPFHEstimationOMP<descry::ShapePoint, pcl::Normal, pcl::FPFHSignature33>;
@@ -175,11 +176,11 @@ bool Describer<D>::configure(const Config& config) {
     if (!features_config[config::TYPE_NODE])
         return false;
     auto est_type = features_config[config::TYPE_NODE].as<std::string>();
-    try {
 
+    try {
         if (pcl_describer_parser<D>::is_config_matching(est_type)) {
             auto descr = features_config.as<typename pcl_describer_parser<D>::describer_t>();
-            _descr = [ descr{std::move(descr)}, keys_det{std::move(keys_det)}, rf_est{std::move(rf_est)} ]
+            _descr = [ descr{std::move(descr)}, keys_det{std::move(keys_det)}, rf_est{std::move(rf_est)}, this ]
             (const Image &image) mutable {
                 auto d = Description<D>();
                 d.setKeypoints(keys_det.compute(image));
@@ -190,7 +191,7 @@ bool Describer<D>::configure(const Config& config) {
                     d.setRefFrames(rf_est.compute(image, d.getKeypoints()));
                     pcl_describer_parser<D>::add_rfs_if_supported(descr, d.getRefFrames());
                 }
-                typename pcl::PointCloud<D>::Ptr features{new pcl::PointCloud<D>{}};
+                auto features = make_cloud<D>();
                 {
                     auto scoped_latency = measure_scope_latency(config::features::NODE_NAME);
                     descr.compute(*features);
