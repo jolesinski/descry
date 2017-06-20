@@ -120,7 +120,7 @@ std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config) {
     if (descr_type == config::features::SHOT_PCL_TYPE)
         return std::make_unique<SparseMatching<pcl::SHOT352>>(config);
     else if (descr_type == config::features::FPFH_PCL_TYPE)
-        return std::make_unique<SparseMatching<pcl::SHOT352>>(config);
+        return std::make_unique<SparseMatching<pcl::FPFHSignature33>>(config);
     else if (descr_type == config::features::ORB_TYPE)
         return std::make_unique<SparseMatching<cv::Mat>>(config);
     else
