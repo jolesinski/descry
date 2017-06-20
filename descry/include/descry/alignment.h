@@ -17,7 +17,8 @@ public:
 
     Instances compute(const Image& image);
 protected:
-    Matching matching_;
+    std::vector<KeyFrame::Ptr> folded_kfs_;
+    std::vector<Matching> matchings_;
     Clusterizer clustering_;
     Viewer<Aligner> viewer_;
 };

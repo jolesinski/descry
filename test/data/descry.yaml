@@ -15,12 +15,12 @@ normal-estimators:
 keypoint-detectors:
   - &iss
     type: iss
-    salient-radius: 0.03
-    non-max-radius: 0.03
+    salient-radius: 0.02
+    non-max-radius: 0.02
     border-radius: 0.03
     normal-radius: 0.03
-    threshold-21: 0.975
-    threshold-32: 0.975
+    lambda-ratio-21: 0.9
+    lambda-ratio-32: 0.2
     min-neighbours: 5
     threads: 4
 
