@@ -106,7 +106,7 @@ public:
         for (const auto& view : model.getViews())
             viewpoints_.emplace_back(view.viewpoint);
 
-        train();
+        trainPCL();
 
         viewer_.addModel(model, view_keyframes);
     }
@@ -137,7 +137,7 @@ public:
         return instances;
     }
 
-    void train() {}
+    void trainPCL() {}
 
     void setModelRefFrames(const std::vector<KeyFrame::Ptr>& /*model*/) {}
 
@@ -151,7 +151,7 @@ private:
 };
 
 template<>
-void PCLStrategy<CG_Hough>::train() {
+void PCLStrategy<CG_Hough>::trainPCL() {
     for (auto& hough : clust_)
         hough.train();
 }
