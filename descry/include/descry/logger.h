@@ -10,12 +10,12 @@ using handle = std::shared_ptr<spdlog::logger>;
 static constexpr auto LOGGER_NAME = "descry";
 
 // TODO: configure
-void init() {
+inline void init() {
     spdlog::set_async_mode(8192);
     spdlog::stdout_color_mt(LOGGER_NAME);
 }
 
-auto get() {
+inline auto get() {
     return spdlog::get(LOGGER_NAME);
 }
 
