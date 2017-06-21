@@ -26,6 +26,7 @@ pcl::visualization::PCLVisualizer make_viewer(Args&&... args) {
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addCoordinateSystem(.3);
     viewer.initCameraParameters();
+    viewer.setCameraPosition(0,-.1,0,0,0,0);
 
     return viewer;
 }
