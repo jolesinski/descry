@@ -43,6 +43,12 @@ public:
         start_stamps.clear();
     }
 
+    template <typename NameType>
+    void restart(NameType&& name) {
+        finish();
+        start(std::forward<NameType>(name));
+    }
+
 private:
     logger::handle log_;
     std::unordered_map<std::string, time_point> start_stamps;
