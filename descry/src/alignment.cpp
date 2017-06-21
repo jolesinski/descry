@@ -8,6 +8,9 @@ void Aligner::configure(const Config& cfg) {
     if (!cfg[config::TYPE_NODE])
         DESCRY_THROW(InvalidConfigException, "missing aligner type");
 
+    if (cfg[config::LOG_LATENCY])
+        log_latency_ = cfg[config::LOG_LATENCY].as<bool>();
+
     try {
         auto est_type = cfg[config::TYPE_NODE].as<std::string>();
         if (est_type == config::aligner::SPARSE_TYPE) {
@@ -122,7 +125,7 @@ void Aligner::train(const Model& model) {
         key_frames.emplace_back(matching.train(model));
     }
 
-    auto latency = measure_latency("Folding keyframes");
+    auto latency = measure_latency("Folding keyframes", log_latency_);
     folded_kfs_ = fold_key_frames(key_frames, model);
     latency.finish();
     clustering_.train(model, folded_kfs_);
@@ -131,11 +134,11 @@ void Aligner::train(const Model& model) {
 Instances Aligner::compute(const Image& image) {
     auto model_scene_matches = std::vector<ModelSceneMatches>{};
     for (auto& matching : matchings_) {
-        auto latency = measure_scope_latency("Matching");
+        auto latency = measure_scope_latency("Matching", log_latency_);
         model_scene_matches.emplace_back(matching.match(image));
     }
 
-    auto latency = measure_latency("Folding matches");
+    auto latency = measure_latency("Folding matches", log_latency_);
     auto folded_matches = fold_matches(model_scene_matches, image, folded_kfs_);
     latency.finish();
 

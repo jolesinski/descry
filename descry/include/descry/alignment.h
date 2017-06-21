@@ -21,6 +21,7 @@ protected:
     std::vector<Matching> matchings_;
     Clusterizer clustering_;
     Viewer<Aligner> viewer_;
+    bool log_latency_ = false;
 };
 
 }

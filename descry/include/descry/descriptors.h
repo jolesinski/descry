@@ -60,12 +60,13 @@ protected:
 template <typename Descriptor>
 class Describer {
 public:
-    bool configure(const Config &config);
+    bool configure(const Config &cfg);
     Description<Descriptor> compute(const Image& image);
 
 private:
     std::function<Description<Descriptor>( const Image& )> _descr;
     Viewer<Keypoints> viewer_;
+    bool log_latency_ = false;
 };
 
 }

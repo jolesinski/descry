@@ -15,28 +15,37 @@ public:
     using time_point = std::chrono::time_point<clock>;
     using resolution = std::chrono::milliseconds;
 
-    Latency() : log_(logger::get()) {}
+    Latency(bool enabled) : disabled_(!enabled) {
+        if (enabled)
+            log_ = logger::get();
+
+        if (!log_)
+            disabled_ = true;
+    }
 
     void log_duration(const std::string& name, time_point started, time_point finished) {
+        if (disabled_) return;
         auto duration = std::chrono::duration_cast<resolution>(finished - started);
-        if (log_)
-            log_->info("{} took: {}ms", name, duration.count());
+        log_->info("{} took: {}ms", name, duration.count());
     }
 
     template <typename NameType>
     void start(NameType&& name) {
+        if (disabled_) return;
         auto& stamp = start_stamps[std::forward<NameType>(name)];
         stamp = clock::now();
     }
 
     template <typename NameType>
     void finish(NameType&& name) {
+        if (disabled_) return;
         auto finished = clock::now();
         auto name_str = std::string(std::forward<NameType>(name));
         log_duration(name, start_stamps[name], finished);
     }
 
     void finish() {
+        if (disabled_) return;
         auto finished = clock::now();
         for (auto& elem : start_stamps)
             log_duration(elem.first, elem.second, finished);
@@ -50,13 +59,14 @@ public:
     }
 
 private:
+    bool disabled_;
     logger::handle log_;
     std::unordered_map<std::string, time_point> start_stamps;
 };
 
 template <typename NameType>
-Latency measure_latency(NameType&& name) {
-    auto latency = Latency();
+Latency measure_latency(NameType&& name, bool enabled = true) {
+    auto latency = Latency(enabled);
     latency.start(std::forward<NameType>(name));
 
     return latency;
@@ -65,9 +75,8 @@ Latency measure_latency(NameType&& name) {
 class ScopedLatency {
 public:
     template <typename NameType>
-    explicit ScopedLatency(NameType&& name) {
-        latency_ = measure_latency(std::forward<NameType>(name));
-    }
+    ScopedLatency(NameType&& name, bool enabled) :
+            latency_(measure_latency(std::forward<NameType>(name), enabled)) {}
 
     ~ScopedLatency() {
         latency_.finish();
@@ -79,8 +88,8 @@ private:
 
 
 template <typename NameType>
-ScopedLatency measure_scope_latency(NameType&& name) {
-    return ScopedLatency(std::forward<NameType>(name));
+ScopedLatency measure_scope_latency(NameType&& name, bool enabled = true) {
+    return ScopedLatency(std::forward<NameType>(name), enabled);
 }
 
 }

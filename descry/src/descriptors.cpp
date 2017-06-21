@@ -158,18 +158,18 @@ Description<D> Describer<D>::compute(const Image& image) {
 }
 
 template<class D>
-bool Describer<D>::configure(const Config& config) {
+bool Describer<D>::configure(const Config& cfg) {
     auto keys_det = KeypointDetector{};
-    auto& keys_cfg = config[config::keypoints::NODE_NAME];
+    auto& keys_cfg = cfg[config::keypoints::NODE_NAME];
     if (!keys_cfg || !keys_det.configure(keys_cfg)) // required
         return false;
 
     auto rf_est = RefFramesEstimation{};
-    auto& rf_cfg = config[config::ref_frames::NODE_NAME];
+    auto& rf_cfg = cfg[config::ref_frames::NODE_NAME];
     if (rf_cfg && !rf_est.configure(rf_cfg)) // optional
         return false;
 
-    auto features_config = config[config::features::NODE_NAME];
+    auto features_config = cfg[config::features::NODE_NAME];
     if (!features_config)
         DESCRY_THROW(InvalidConfigException, "missing features node");
 
@@ -193,7 +193,7 @@ bool Describer<D>::configure(const Config& config) {
                 }
                 auto features = make_cloud<D>();
                 {
-                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME);
+                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME, this->log_latency_);
                     descr.compute(*features);
                 }
                 d.setFeatures(cupcl::DualContainer<D>{features});
@@ -205,7 +205,9 @@ bool Describer<D>::configure(const Config& config) {
         return false;
     }
 
-    viewer_.configure(config);
+    viewer_.configure(cfg);
+    if (cfg[config::LOG_LATENCY])
+        log_latency_ = cfg[config::LOG_LATENCY].as<bool>();
 
     return true;
 }
@@ -242,8 +244,8 @@ ColorDescription filter_null_keypoints(const ColorDescription& descr, const Imag
 }
 
 template<>
-bool Describer<cv::Mat>::configure(const Config& config) {
-    auto features_config = config[config::features::NODE_NAME];
+bool Describer<cv::Mat>::configure(const Config& cfg) {
+    auto features_config = cfg[config::features::NODE_NAME];
     if (!features_config)
         DESCRY_THROW(InvalidConfigException, "missing features node");
 
@@ -253,10 +255,10 @@ bool Describer<cv::Mat>::configure(const Config& config) {
     try {
         if (est_type == config::features::ORB_TYPE) {
             auto descr = features_config.as<cv::Ptr<cv::ORB>>();
-            _descr = [ descr{std::move(descr)} ] (const Image& image) mutable {
+            _descr = [ descr{std::move(descr)}, this ] (const Image& image) mutable {
                 auto color = ColorDescription{};
                 {
-                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME);
+                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME, this->log_latency_);
                     descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
                 }
                 auto filtered_color = filter_null_keypoints(color, image);
@@ -271,7 +273,9 @@ bool Describer<cv::Mat>::configure(const Config& config) {
         return false;
     }
 
-    viewer_.configure(config);
+    viewer_.configure(cfg);
+    if (cfg[config::LOG_LATENCY])
+        log_latency_ = cfg[config::LOG_LATENCY].as<bool>();
 
     return true;
 }
