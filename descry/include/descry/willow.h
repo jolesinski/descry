@@ -38,6 +38,8 @@ public:
 
     WillowTestSet(const Config& db_cfg) : test_set_cfg_(db_cfg["scenes"]) {};
 
+    std::vector<std::string> getTestNames() const;
+
     template <typename... Args>
     std::vector<AnnotatedScene> loadSingleTest(const std::string& test_name, Args... args) const {
         return loadTest(test_set_cfg_[test_name], args...);

@@ -115,6 +115,14 @@ std::vector<std::string> WillowDatabase::getModelNames() const {
 }
 
 
+std::vector<std::string> WillowTestSet::getTestNames() const {
+    auto tests = std::vector<std::string>{};
+    for (const auto& test_cfg : test_set_cfg_)
+        tests.emplace_back(test_cfg.first.as<std::string>());
+
+    return tests;
+}
+
 std::vector<WillowTestSet::AnnotatedScene>
 WillowTestSet::loadTest(const Config& test_cfg, std::size_t max_frames) const {
     auto annotated_scenes = std::vector<AnnotatedScene>{};
