@@ -14,33 +14,41 @@ public:
         unsigned int false_positive_ = 0;
         unsigned int false_negative_ = 0;
 
-        double getTruePositiveRate() {
+        Stats operator+(Stats b) const {
+            b.true_positive_ += true_positive_;
+            b.true_negative_ += true_negative_;
+            b.false_positive_ += false_positive_;
+            b.false_negative_ += false_negative_;
+            return b;
+        }
+
+        double getTruePositiveRate() const {
             if ((true_positive_ + false_negative_) == 0)
-                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+                return -1;
             return true_positive_/static_cast<double>(true_positive_ + false_negative_);
         }
 
-        double getFalsePositiveRate() {
+        double getFalsePositiveRate() const {
             if ((false_positive_ + true_negative_) == 0)
-                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+                return -1;
             return false_positive_/static_cast<double>(false_positive_ + true_negative_);
         }
 
-        double getPositivePredictiveValue() {
+        double getPositivePredictiveValue() const {
             if ((true_positive_ + false_positive_) == 0)
-                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+                return -1;
             return true_positive_/static_cast<double>(true_positive_ + false_positive_);
         }
 
-        double getAccuracy() {
+        double getAccuracy() const {
             auto all_samples = (true_positive_ + false_positive_ + false_negative_ + true_negative_);
             if (all_samples == 0)
-                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+                return -1;
             return (true_positive_ + true_negative_)/static_cast<double>(all_samples);
         }
 
-        double getPrecision() { return getPositivePredictiveValue(); }
-        double getRecall() { return getTruePositiveRate(); }
+        double getPrecision() const { return getPositivePredictiveValue(); }
+        double getRecall() const { return getTruePositiveRate(); }
     };
 
     RecognitionROC() : log_(descry::logger::get()),
@@ -85,13 +93,14 @@ public:
         return found_gts;
     };
 
-    void collectStats(const descry::AlignedVector<descry::Pose>& found_poses,
+    void collectStats(const std::string& model_name,
+                      const descry::AlignedVector<descry::Pose>& found_poses,
                       const descry::AlignedVector<descry::Pose>& gt_poses) {
         if (found_poses.empty() && gt_poses.empty()) {
-            stats_.true_negative_++;
+            model_stats_[model_name].true_negative_++;
             return;
         } else if (gt_poses.empty()) {
-            stats_.false_positive_++;
+            model_stats_[model_name].false_positive_ += found_poses.size();
             return;
         }
 
@@ -99,56 +108,60 @@ public:
 
         for (auto tp : found_gts) {
             if (tp.first != -1 && tp.second < max_translation_error_)
-                stats_.true_positive_++;
+                model_stats_[model_name].true_positive_++;
             else if (tp.first == -1)
-                stats_.false_negative_++;
+                model_stats_[model_name].false_negative_++;
             else
-                stats_.false_positive_++;
+                model_stats_[model_name].false_positive_++;
         }
     }
 
-    void logStats() {
+    static void logStats(const Stats& stats) {
         descry::logger::get()->info("TP {} FN {} FP {} TN {}",
-                                    stats_.true_positive_, stats_.false_negative_,
-                                    stats_.false_positive_, stats_.true_negative_);
+                                    stats.true_positive_, stats.false_negative_,
+                                    stats.false_positive_, stats.true_negative_);
         descry::logger::get()->info("TPR (recall) {} FPR {} PPV (precision) {} ACC {}",
-                                    stats_.getRecall(), stats_.getFalsePositiveRate(),
-                                    stats_.getPrecision(), stats_.getAccuracy());
+                                    stats.getRecall(), stats.getFalsePositiveRate(),
+                                    stats.getPrecision(), stats.getAccuracy());
     }
 
     void evaluate(const descry::Config& cfg) {
         recognizer_.configure(cfg[descry::config::RECOGNIZER_NODE]);
 
-        auto test_name = cfg[descry::config::SCENE_NODE].as<std::string>();
+        auto test_names = willow_ts_.getTestNames();
         auto model_names = willow_db_.getModelNames();
-        auto latency = descry::measure_latency("Loading test set");
-        auto test_data = willow_ts_.loadSingleTest(test_name);
-        latency.finish();
 
-        for (auto& model_name : model_names) {
-
-            latency.start("Loading model");
+        for (const auto& model_name : model_names) {
+            log_->info("Processing model {}", model_name);
+            auto latency = descry::measure_latency("Loading model");
             auto model = willow_db_.loadModel(model_name);
-            latency.restart("Training");
+            latency.start("Training");
             recognizer_.train(model);
             latency.finish();
 
-            log_->info("Processing model {}", model_name);
-            for (const auto& annotated_scene : test_data) {
-                const auto& scene = annotated_scene.first;
-                const auto& annotations = annotated_scene.second;
-
-                latency.start("Recognition");
-                auto instances = recognizer_.compute(scene);
+            for (const auto& test_name : test_names) {
+                log_->info("Processing test {}", test_name);
+                latency.start("Loading test scenes");
+                auto test_data = willow_ts_.loadSingleTest(test_name);
                 latency.finish();
+                for (const auto& annotated_scene : test_data) {
+                    const auto& scene = annotated_scene.first;
+                    const auto& annotations = annotated_scene.second;
 
-                if (annotations.count(model_name))
-                    collectStats(instances.poses, annotations.at(model_name));
-                else
-                    collectStats(instances.poses, {});
+                    latency.start("Recognition");
+                    auto instances = recognizer_.compute(scene);
+                    latency.finish();
+
+                    if (annotations.count(model_name))
+                        collectStats(model_name, instances.poses, annotations.at(model_name));
+                    else
+                        collectStats(model_name, instances.poses, {});
+                }
             }
+            logStats(model_stats_[model_name]);
         }
-        logStats();
+        logStats(std::accumulate(std::begin(model_stats_), std::end(model_stats_), Stats{},
+                                 [](const auto& a, const auto& b){ return a + b.second; }));
     }
 
 private:
@@ -159,7 +172,7 @@ private:
 
     double max_translation_error_ = 0.02;
 
-    Stats stats_;
+    std::unordered_map<std::string, Stats> model_stats_;
 };
 
 int main(int argc, char * argv[]) {

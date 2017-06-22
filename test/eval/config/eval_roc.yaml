@@ -36,5 +36,4 @@ recognizer:
           type: gc
           gc-size: 0.01
           gc-threshold: 5
-    log-latency: true
   verification: *papazov
