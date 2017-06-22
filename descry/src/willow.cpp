@@ -95,7 +95,7 @@ View WillowProjector::loadView(const std::string& cloud_path,
 }
 
 
-WillowDatabase::WillowDatabase(const Config& db_cfg) : db_cfg_{db_cfg} {}
+WillowDatabase::WillowDatabase(const Config& db_cfg) : db_cfg_{db_cfg["models"]} {}
 
 Model WillowDatabase::loadModel(const std::string& model_name) const {
     const auto& model_cfg = db_cfg_[model_name];
@@ -106,12 +106,10 @@ Model WillowDatabase::loadModel(const std::string& model_name) const {
     return Model{full, projector};
 }
 
-std::unordered_map<std::string, Model> WillowDatabase::loadDatabase() const {
-    auto models = std::unordered_map<std::string, Model>{};
-    for (const auto& model_cfg : db_cfg_) {
-        const auto model_name = model_cfg.first.as<std::string>();
-        models.emplace(model_name, loadModel(model_name));
-    }
+std::vector<std::string> WillowDatabase::getModelNames() const {
+    auto models = std::vector<std::string>{};
+    for (const auto& model_cfg : db_cfg_)
+        models.emplace_back(model_cfg.first.as<std::string>());
 
     return models;
 }
