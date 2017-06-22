@@ -103,6 +103,7 @@ public:
 
         setModelRefFrames(view_keyframes);
 
+        viewpoints_.clear();
         for (const auto& view : model.getViews())
             viewpoints_.emplace_back(view.viewpoint);
 

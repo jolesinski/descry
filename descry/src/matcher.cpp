@@ -66,8 +66,9 @@ public:
 
     void train(const std::vector<Description<Descriptor>>& model) override {
         trees.resize(model.size());
-        for (auto idx = 0u; idx < model.size(); ++idx)
+        for (auto idx = 0u; idx < model.size(); ++idx) {
             trees[idx].setInputCloud(model[idx].getFeatures().host());
+        }
     }
 
     void train(std::vector<Description<Descriptor>>&& model) override {
@@ -145,6 +146,7 @@ public:
     }
 
     void train(const std::vector<Description<cv::Mat>>& model) override {
+        model_.clear();
         for (auto& view : model) {
             auto d = Description<cv::Mat>();
             d.setFeatures(view.getFeatures().clone());

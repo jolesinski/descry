@@ -84,6 +84,7 @@ SparseMatching<Descriptor>::SparseMatching(const Config& cfg) {
 
 template<class Descriptor>
 std::vector<KeyFrame::Ptr> SparseMatching<Descriptor>::train(const Model& model) {
+    model_description.clear();
     for (const auto& view : model.getViews())
         model_description.emplace_back(model_describer.compute(view.image));
     matcher.train(model_description);

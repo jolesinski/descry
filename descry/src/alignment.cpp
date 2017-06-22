@@ -146,8 +146,9 @@ Instances Aligner::compute(const Image& image) {
     auto instances = clustering_.compute(image, folded_matches);
     latency.finish();
     viewer_.show(image.getFullCloud().host(), instances);
-    auto log = logger::get();
-    log->error("Aligner found {}", instances.poses.size());
+
+    logger::get()->debug("Aligner found {}", instances.poses.size());
+
     return instances;
 }
 
