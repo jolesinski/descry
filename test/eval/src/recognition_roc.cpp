@@ -125,11 +125,33 @@ public:
                                     stats.getPrecision(), stats.getAccuracy());
     }
 
+    std::vector<std::string> getModelNames(const descry::Config& cfg) {
+        auto models_cfg = cfg["models"];
+        if (!models_cfg)
+            return willow_db_.getModelNames();
+
+        if (models_cfg.IsSequence()) {
+            return models_cfg.as<std::vector<std::string>>();
+        } else
+            DESCRY_THROW(descry::InvalidConfigException, "models node is not a sequence")
+    }
+
+    std::vector<std::string> getTestNames(const descry::Config& cfg) {
+        auto tests_cfg = cfg["tests"];
+        if (!tests_cfg)
+            return willow_ts_.getTestNames();
+
+        if (tests_cfg.IsSequence()) {
+            return tests_cfg.as<std::vector<std::string>>();
+        } else
+            DESCRY_THROW(descry::InvalidConfigException, "tests node is not a sequence")
+    }
+
     void evaluate(const descry::Config& cfg) {
         recognizer_.configure(cfg[descry::config::RECOGNIZER_NODE]);
 
-        auto test_names = willow_ts_.getTestNames();
-        auto model_names = willow_db_.getModelNames();
+        auto test_names = getTestNames(cfg);
+        auto model_names = getModelNames(cfg);
 
         for (const auto& model_name : model_names) {
             log_->info("Processing model {}", model_name);
