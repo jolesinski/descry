@@ -26,7 +26,6 @@ verifiers:
     support-threshold: 0.2
     penalty-threshold: 0.1
     conflict-threshold: 0.001
-    viewer: true
 
 recognizer:
   aligner:
@@ -37,4 +36,5 @@ recognizer:
           type: gc
           gc-size: 0.01
           gc-threshold: 5
+    log-latency: true
   verification: *papazov

@@ -7,80 +7,160 @@
 #include <pcl/console/print.h>
 
 class RecognitionROC {
-    RecognitionROC() : log_(descry::logger::get()) {}
-private:
-    descry::logger::handle log_;
-};
+public:
+    struct Stats {
+        unsigned int true_positive_ = 0;
+        unsigned int true_negative_ = 0;
+        unsigned int false_positive_ = 0;
+        unsigned int false_negative_ = 0;
 
-void log_pose_metrics(const descry::AlignedVector<descry::Pose>& found_poses,
-                      const descry::AlignedVector<descry::Pose>& gt_poses) {
+        double getTruePositiveRate() {
+            if ((true_positive_ + false_negative_) == 0)
+                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+            return true_positive_/static_cast<double>(true_positive_ + false_negative_);
+        }
 
-    std::vector<std::pair<int,double>> found_gts(gt_poses.size(), {-1,std::numeric_limits<double>::max()});
+        double getFalsePositiveRate() {
+            if ((false_positive_ + true_negative_) == 0)
+                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+            return false_positive_/static_cast<double>(false_positive_ + true_negative_);
+        }
 
-    for (auto found_idx = 0u; found_idx < found_poses.size(); ++found_idx) {
-        auto min_distance = std::numeric_limits<double>::max();
-        auto matched_gt_idx = -1;
-        for (auto gt_idx = 0u; gt_idx < gt_poses.size(); ++gt_idx) {
-            Eigen::Vector4f test;
-            test << 1, 1, 1, 0;
-            auto rotation_error = (found_poses[found_idx]*test - gt_poses[gt_idx]*test).norm();
-            test << 0, 0, 0, 1;
-            auto translation_error = (found_poses[found_idx]*test - gt_poses[gt_idx]*test).norm();
-            descry::logger::get()->info("Accuracy: rotation: {} translation: {}", rotation_error, translation_error);
+        double getPositivePredictiveValue() {
+            if ((true_positive_ + false_positive_) == 0)
+                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+            return true_positive_/static_cast<double>(true_positive_ + false_positive_);
+        }
 
-            if (min_distance > translation_error) {
-                min_distance = translation_error;
-                matched_gt_idx = gt_idx;
+        double getAccuracy() {
+            auto all_samples = (true_positive_ + false_positive_ + false_negative_ + true_negative_);
+            if (all_samples == 0)
+                DESCRY_THROW(descry::InvalidConfigException, "Corrupted stats, check test dataset config");
+            return (true_positive_ + true_negative_)/static_cast<double>(all_samples);
+        }
+
+        double getPrecision() { return getPositivePredictiveValue(); }
+        double getRecall() { return getTruePositiveRate(); }
+    };
+
+    RecognitionROC() : log_(descry::logger::get()),
+                       willow_db_(descry::test::loadDBConfig()),
+                       willow_ts_(descry::test::loadDBConfig()) {}
+
+    static float rotationError(const descry::Pose& found, const descry::Pose& gt) {
+        Eigen::Vector4f test;
+        test << 1, 1, 1, 0;
+        return (found*test - gt*test).norm();
+    }
+
+    static float translationError(const descry::Pose& found, const descry::Pose& gt) {
+        Eigen::Vector4f test;
+        test << 0, 0, 0, 1;
+        return (found*test - gt*test).norm();
+    }
+
+    std::vector<std::pair<int,double>> matchPoses(const descry::AlignedVector<descry::Pose>& found_poses,
+                                                  const descry::AlignedVector<descry::Pose>& gt_poses) {
+        std::vector<std::pair<int,double>> found_gts(gt_poses.size(), {-1,std::numeric_limits<double>::max()});
+
+        for (auto found_idx = 0u; found_idx < found_poses.size(); ++found_idx) {
+            auto closest_gt = std::min_element(std::begin(gt_poses), std::end(gt_poses),
+                                               [found{found_poses[found_idx]}](const auto& gt1, const auto& gt2)
+                                               { return translationError(found, gt1) < translationError(found, gt2); });
+
+            if (closest_gt != std::end(gt_poses)) {
+                auto& found_gt = found_gts[closest_gt - std::begin(gt_poses)];
+                auto rotation = rotationError(found_poses[found_idx], *closest_gt);
+                auto translation = translationError(found_poses[found_idx], *closest_gt);
+
+                log_->info("Accuracy: rotation: {} translation: {}", rotation, translation);
+
+                if (found_gt.second > translation) {
+                    found_gt.first = found_idx;
+                    found_gt.second = translation;
+                }
             }
         }
 
-        if (matched_gt_idx != -1 && found_gts[matched_gt_idx].second > min_distance) {
-            found_gts[matched_gt_idx].first = found_idx;
-            found_gts[matched_gt_idx].second = min_distance;
+        return found_gts;
+    };
+
+    void collectStats(const descry::AlignedVector<descry::Pose>& found_poses,
+                      const descry::AlignedVector<descry::Pose>& gt_poses) {
+        if (found_poses.empty() && gt_poses.empty()) {
+            stats_.true_negative_++;
+            return;
+        } else if (gt_poses.empty()) {
+            stats_.false_positive_++;
+            return;
+        }
+
+        auto found_gts = matchPoses(found_poses, gt_poses);
+
+        for (auto tp : found_gts) {
+            if (tp.first != -1 && tp.second < max_translation_error_)
+                stats_.true_positive_++;
+            else if (tp.first == -1)
+                stats_.false_negative_++;
+            else
+                stats_.false_positive_++;
         }
     }
 
-    for (auto tp : found_gts) {
-        if (tp.first != -1 && tp.second < 0.02)
-            descry::logger::get()->info("TRUE POSITIVE {} {}", tp.first, tp.second);
-        else if (tp.first == -1)
-            descry::logger::get()->info("FALSE NEGATIVE");
-        else
-            descry::logger::get()->info("FALSE POSITIVE");
+    void logStats() {
+        descry::logger::get()->info("TP {} FN {} FP {} TN {}",
+                                    stats_.true_positive_, stats_.false_negative_,
+                                    stats_.false_positive_, stats_.true_negative_);
+        descry::logger::get()->info("TPR (recall) {} FPR {} PPV (precision) {} ACC {}",
+                                    stats_.getRecall(), stats_.getFalsePositiveRate(),
+                                    stats_.getPrecision(), stats_.getAccuracy());
     }
-    if (found_poses.empty() && gt_poses.empty())
-        descry::logger::get()->info("TRUE NEGATIVE");
-}
 
-void recognize(const descry::Config& cfg) {
-    auto willow = descry::WillowTestSet(descry::test::loadDBConfig());
-    auto test_name = cfg[descry::config::SCENE_NODE].as<std::string>();
-    auto model_name = cfg[descry::config::MODEL_NODE].as<std::string>();
-    auto latency = descry::measure_latency("Loading test set");
-    auto test_data = willow.loadSingleTest(test_name);
-    latency.restart("Loading model");
-    auto model = willow.loadModel(model_name);
-    latency.finish();
+    void evaluate(const descry::Config& cfg) {
+        recognizer_.configure(cfg[descry::config::RECOGNIZER_NODE]);
 
-
-    auto recognizer = descry::Recognizer{};
-    recognizer.configure(cfg[descry::config::RECOGNIZER_NODE]);
-
-    latency.start("Training");
-    recognizer.train(model);
-    latency.finish();
-
-    for (const auto& annotated_scene : test_data) {
-        const auto& scene = annotated_scene.first;
-        const auto& annotations = annotated_scene.second;
-
-        latency.start("Recognition");
-        auto instances = recognizer.compute(scene);
+        auto test_name = cfg[descry::config::SCENE_NODE].as<std::string>();
+        auto model_names = willow_db_.getModelNames();
+        auto latency = descry::measure_latency("Loading test set");
+        auto test_data = willow_ts_.loadSingleTest(test_name);
         latency.finish();
 
-        log_pose_metrics(instances.poses, annotations.at(model_name));
+        for (auto& model_name : model_names) {
+
+            latency.start("Loading model");
+            auto model = willow_db_.loadModel(model_name);
+            latency.restart("Training");
+            recognizer_.train(model);
+            latency.finish();
+
+            log_->info("Processing model {}", model_name);
+            for (const auto& annotated_scene : test_data) {
+                const auto& scene = annotated_scene.first;
+                const auto& annotations = annotated_scene.second;
+
+                latency.start("Recognition");
+                auto instances = recognizer_.compute(scene);
+                latency.finish();
+
+                if (annotations.count(model_name))
+                    collectStats(instances.poses, annotations.at(model_name));
+                else
+                    collectStats(instances.poses, {});
+            }
+        }
+        logStats();
     }
-}
+
+private:
+    descry::logger::handle log_;
+    descry::Recognizer recognizer_;
+    descry::WillowDatabase willow_db_;
+    descry::WillowTestSet willow_ts_;
+
+    double max_translation_error_ = 0.02;
+
+    Stats stats_;
+};
 
 int main(int argc, char * argv[]) {
     pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
@@ -104,7 +184,9 @@ int main(int argc, char * argv[]) {
         return EXIT_FAILURE;
     }
 
-    recognize(cfg);
+
+    auto roc = RecognitionROC{};
+    roc.evaluate(cfg);
 
     return EXIT_SUCCESS;
 }
