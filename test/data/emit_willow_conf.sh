@@ -27,6 +27,7 @@ function emit_array_elem {
 
 function emit_model {
     emit 'models:'
+    shopt -s nullglob
     for object in ${WILLOW_DB_PATH}/willow_models/*; do
         if [[ -d $object ]]; then
             indent
@@ -60,6 +61,7 @@ function emit_model {
 
 function emit_scenes {
     emit 'scenes:'
+    shopt -s nullglob
     for scene in ${WILLOW_DB_PATH}/willow_test_set/*; do
         if [[ -d $scene ]]; then
             indent
@@ -84,6 +86,7 @@ function emit_instances {
     emit "instances:"
     indent
     instance_prefix="${WILLOW_DB_PATH}/willow_annotations/willow/${scene}/${cloud}_"
+    shopt -s nullglob
     for pose in "${instance_prefix}"object_*.txt; do
         emit_array_elem ""
         indent
