@@ -76,7 +76,7 @@ void show_matches_3d(const std::vector<FullCloud::ConstPtr>& views,
             continue;
 
         add_image_with_keypoints(scene, matches.scene->keypoints, keypoint_size, config::SCENE_NODE, viewer);
-        add_image_with_keypoints(views.at(idx), matches.view_corrs.at(idx).view->keypoints,
+        add_image_with_keypoints(Image{views.at(idx)}, matches.view_corrs.at(idx).view->keypoints,
                                  keypoint_size, config::MODEL_NODE, viewer);
         viewer.addCorrespondences<ShapePoint>(matches.view_corrs.at(idx).view->keypoints.getShape().host(),
                                               matches.scene->keypoints.getShape().host(), *matches.view_corrs.at(idx).corrs);
@@ -135,7 +135,7 @@ void show_clusters_3d(const FullCloud::ConstPtr& view, const KeyFrame& m_keyfram
 
     auto count = 0u;
     add_image_with_keypoints(scene, keyframe.keypoints, 5.0, config::SCENE_NODE, viewer);
-    add_image_with_keypoints(view, m_keyframe.keypoints, 5.0, config::MODEL_NODE, viewer);
+    add_image_with_keypoints(Image{view}, m_keyframe.keypoints, 5.0, config::MODEL_NODE, viewer);
     for (auto cluster : clusters)
         viewer.addCorrespondences<ShapePoint>(m_keyframe.keypoints.getShape().host(),
                                               keyframe.keypoints.getShape().host(), cluster, std::to_string(count++));
@@ -168,7 +168,7 @@ void show_clusters_2d(const FullCloud::ConstPtr& view, const KeyFrame& m_keyfram
 
 void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const {
     // scalar only for now
-    if (!cfg_.IsScalar())
+    if (!cfg_.IsMap() || !cfg_["enabled"].as<bool>(true))
         return;
 
     auto viewer = make_viewer(config::normals::NODE_NAME);
@@ -183,7 +183,7 @@ void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::Cons
 }
 
 void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
-    if (!cfg_.IsMap())
+    if (!cfg_.IsMap() || !cfg_["enabled"].as<bool>(true))
         return;
 
     ++show_count_;
@@ -205,7 +205,7 @@ void Viewer<Keypoints>::show(const Image& image, const Keypoints& keypoints) {
 }
 
 void Viewer<Clusterizer>::addModel(const Model& model, const std::vector<KeyFrame::Ptr>& m_keyframes) {
-    if (!cfg_.IsMap())
+    if (!cfg_.IsMap() || !cfg_["enabled"].as<bool>(true))
         return;
 
     std::vector<FullCloud::ConstPtr> views;
@@ -266,7 +266,7 @@ void Viewer<Clusterizer>::show(const Image& scene, const KeyFrame& keyframe,
 }
 
 void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {
-    if (!cfg_.IsScalar())
+    if (!cfg_.IsScalar() || !cfg_.as<bool>())
         return;
 
     auto viewer = make_viewer(config::aligner::NODE_NAME);

@@ -17,6 +17,7 @@ public:
         if (cfg[config::viewer::NODE_NAME])
             cfg_ = cfg[config::viewer::NODE_NAME];
     }
+
 protected:
     Config cfg_;
 };

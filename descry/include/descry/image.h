@@ -7,7 +7,8 @@ namespace descry {
 
 class Image {
 public:
-    Image(FullCloud::ConstPtr cloud) : full(cloud) {};
+    Image() = default;
+    explicit Image(FullCloud::ConstPtr cloud) : full(cloud) {};
 
     const DualConstFullCloud& getFullCloud() const;
     const DualPerpective& getProjection() const;
@@ -17,6 +18,7 @@ public:
     const DualNormals& getNormals() const;
     void setNormals(DualNormals&& normals);
 
+    bool empty() const noexcept { return full.empty(); }
 private:
     DualConstFullCloud full;
     mutable DualPerpective projection;

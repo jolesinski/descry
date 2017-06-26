@@ -1,5 +1,25 @@
-model: object_13
-scene: T_07_willow_dataset
+models:
+ - object_06
+tests:
+ - T_13_willow_dataset
+
+keypoints:
+  - &model-iss
+    type: iss-cupcl
+    salient-radius: 0.02
+    non-max-radius: 0.02
+    lambda-ratio-21: 0.9
+    lambda-ratio-32: 0.2
+    lambda-threshold-3: 1e-6
+    min-neighbours: 10
+  - &scene-iss
+    type: iss-cupcl
+    salient-radius: 0.005
+    non-max-radius: 0.01
+    lambda-ratio-21: 0.9
+    lambda-ratio-32: 0.2
+    lambda-threshold-3: 1e-6
+    min-neighbours: 10
 
 feature-matching:
   - &orb-matching
@@ -17,6 +37,36 @@ feature-matching:
       norm: hamming
       use-lowe: true
       lowe-ratio: 0.8
+  - &shot-matching
+    description:
+      model:
+        keypoints: *model-iss
+        reference-frames:
+          type: board
+          find-holes: true
+          support-radius: 0.015
+        features:
+          type: shot
+          support-radius: 0.015
+          threads: 4
+#        viewer:
+#          show-2d: true
+      scene:
+        keypoints: *scene-iss
+        reference-frames:
+          type: board
+          find-holes: true
+          support-radius: 0.015
+        features:
+          type: shot
+          support-radius: 0.015
+          threads: 4
+#        viewer:
+#          show-2d: true
+    matcher:
+      type: kdtree-flann
+      max-neighs: 1
+      max-distance: 0.15
 
 verifiers:
   - &papazov
@@ -28,12 +78,28 @@ verifiers:
     conflict-threshold: 0.001
 
 recognizer:
+  log-latency: true
+  preprocess:
+    normals:
+      type: cupcl
+      support-radius: 0.02
   aligner:
     type: sparse
     matching:
-      - *orb-matching
+#      - *orb-matching
+      - *shot-matching
     clusters:
-          type: gc
-          gc-size: 0.01
-          gc-threshold: 5
+      type: gc
+      gc-size: 0.01
+      gc-threshold: 5
+      viewer:
+        show-clusters: true
+        show-2d: true
+  refinement:
+    type: icp
+    max-iterations: 10
+    max-correspondence-distance: 0.005
+    transformation-epsilon: 1e-5
+    euclidean-fitness: 1
+    use-reciprocal: false
   verification: *papazov

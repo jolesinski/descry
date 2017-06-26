@@ -1,6 +1,32 @@
 model: object_13
 scene: T_07_willow_dataset
 
+viewer:
+  - &viewer-model-description
+    enabled: false
+    show-only: [7]
+    show-2d: true
+  - &viewer-scene-description
+    enabled: false
+    show-only: [7]
+    show-2d: true
+  - &viewer-clusters
+    enabled: false
+    show-matches: true
+    show-once: false
+    show-empty: true
+#   show-only: [7, 8, 9]
+    show-2d: true
+    keypoint-size: 5
+  - &viewer-aligner false
+  - &viewer-refiner false
+  - &viewer-verifier false
+
+latency:
+  - &latency-model-description false
+  - &latency-scene-description true
+  - &latency-aligner true
+
 keypoints:
   - &model-iss
     type: iss-cupcl
@@ -26,13 +52,14 @@ feature-matching:
         features:
           type: orb
           max-features: 500
-#        viewer:
-#          show-only: [7]
-#          show-2d: true
+        viewer: *viewer-model-description
+        log-latency: *latency-model-description
       scene:
         features:
           type: orb
           max-features: 5000
+        viewer: *viewer-scene-description
+        log-latency: *latency-scene-description
     matcher:
       type: brute-force
       norm: hamming
@@ -50,6 +77,7 @@ feature-matching:
           type: shot
           support-radius: 0.015
           threads: 4
+        log-latency: *latency-model-description
       scene:
         keypoints: *scene-iss
         reference-frames:
@@ -60,6 +88,7 @@ feature-matching:
           type: shot
           support-radius: 0.015
           threads: 4
+        log-latency: *latency-scene-description
     matcher:
       type: kdtree-flann
       max-neighs: 1
@@ -87,7 +116,7 @@ verifiers:
     penalty-threshold: 0.1
   # number of scene indices that are neighbours to both models to either full model ratio
     conflict-threshold: 0.001
-  #  viewer: true
+    viewer: *viewer-verifier
   - &global
     type: global
     resolution: 0.01
@@ -98,10 +127,11 @@ verifiers:
     clutter-radius: 0.05
     clutter-regularizer: 5.0
     radius-normals: 0.05
-  #  viewer: true
+    viewer: *viewer-verifier
 
 recognizer:
   preprocess:
+    passthrough: 1.5
     normals:
       type: cupcl
       support-radius: 0.02
@@ -115,14 +145,8 @@ recognizer:
       type: gc
       gc-size: 0.01
       gc-threshold: 5
-#      viewer:
-#        show-matches: true
-#        show-once: false
-#        show-empty: true
-##        show-only: [7, 8, 9]
-#        show-2d: true
-#        keypoint-size: 5
-    viewer: true
+      viewer: *viewer-clusters
+    log-latency: *latency-aligner
   #refinement: *icp
   verification: *papazov
 
