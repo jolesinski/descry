@@ -153,6 +153,9 @@ public:
         auto test_names = getTestNames(cfg);
         auto model_names = getModelNames(cfg);
 
+        auto progress_count = 0u;
+        auto progress_total = model_names.size() * test_names.size();
+
         for (const auto& model_name : model_names) {
             log_->info("Processing model {}", model_name);
             auto latency = descry::measure_latency("Loading model");
@@ -179,6 +182,7 @@ public:
                     else
                         collectStats(model_name, instances.poses, {});
                 }
+                log_->info("Progress {}%", (++progress_count*100)/progress_total);
             }
             logStats(model_stats_[model_name]);
         }
