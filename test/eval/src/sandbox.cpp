@@ -68,16 +68,17 @@ void log_pose_metrics(const descry::Pose& pose, const descry::Pose& ground_truth
 }
 
 void recognize(const descry::Config& cfg) {
-    auto willow = descry::WillowTestSet(descry::test::loadDBConfig());
+    auto willow_ts = descry::WillowTestSet(descry::test::loadDBConfig());
+    auto willow_db = descry::WillowDatabase(descry::test::loadDBConfig());
     auto test_name = cfg[descry::config::SCENE_NODE].as<std::string>();
     auto model_name = cfg[descry::config::MODEL_NODE].as<std::string>();
-    auto test_data = willow.loadSingleTest(test_name, 1);
+    auto test_data = willow_ts.loadSingleTest(test_name, 1);
 
     auto& instance_map = test_data.front().second;
     auto ground_truth = instance_map[model_name].front();
 
     auto scene = test_data.front().first;
-    auto model = willow.loadModel(model_name);
+    auto model = willow_db.loadModel(model_name);
 
     pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
 
@@ -91,29 +92,6 @@ void recognize(const descry::Config& cfg) {
     latency.start("Recognition");
     auto instances = recognizer.compute(scene);
     latency.finish();
-
-//    auto start = std::chrono::steady_clock::now();
-
-//    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-//            (std::chrono::steady_clock::now() - start);
-//    std::cout << "Alignment took " << duration.count() << "ms" << std::endl;
-//    start = std::chrono::steady_clock::now();
-
-    // Refinement
-//    std::cout << "ICP Refinement" << std::endl;
-
-//    duration = std::chrono::duration_cast<std::chrono::milliseconds>
-//            (std::chrono::steady_clock::now() - start);
-//    std::cout << "Refinement took " << duration.count() << "ms" << std::endl;
-//    start = std::chrono::steady_clock::now();
-
-    // Verification
-//    std::cout << "\n\nVerification" << std::endl;
-
-//    duration = std::chrono::duration_cast<std::chrono::milliseconds>
-//            (std::chrono::steady_clock::now() - start);
-
-//    std::cout << "Verification took " << duration.count() << "ms" << std::endl;
 
     g_log->info("Ground truth:\n{}", ground_truth);
     g_log->info("Found: {}", instances.poses.size());
