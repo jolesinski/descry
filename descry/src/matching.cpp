@@ -19,13 +19,13 @@ void Matching::configure(const Config& config) {
 
 std::vector<KeyFrame::Ptr> Matching::train(const Model& model) {
     if (!strategy_)
-        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
+        DESCRY_THROW(NotConfiguredException, "Matching not configured");
     return strategy_->train(model);
 }
 
 ModelSceneMatches Matching::match(const Image& image) {
     if (!strategy_)
-        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
+        DESCRY_THROW(NotConfiguredException, "Matching not configured");
     return strategy_->match(image);
 }
 
@@ -111,19 +111,19 @@ ModelSceneMatches SparseMatching<Descriptor>::match(const Image& image) {
     return model_scene_matches;
 }
 
-std::unique_ptr<Matching> makeStrategy(const Config& config) {
-    if (config.IsMap()) {
-        if(!config[config::matcher::DESCRIPTION_NODE])
-        DESCRY_THROW(InvalidConfigException, "missing descriptor type");
-    }
+std::unique_ptr<Matching> makeStrategy(const Config& cfg) {
+    if (!cfg.IsMap())
+        DESCRY_THROW(InvalidConfigException, "invalid config");
 
-    auto descr_type = getDescriptorName(config[config::matcher::DESCRIPTION_NODE]);
+    if (!cfg[config::matcher::DESCRIPTION_NODE])
+        DESCRY_THROW(InvalidConfigException, "missing descriptor type");
+    auto descr_type = getDescriptorName(cfg[config::matcher::DESCRIPTION_NODE]);
     if (descr_type == config::features::SHOT_PCL_TYPE)
-        return std::make_unique<SparseMatching<pcl::SHOT352>>(config);
+        return std::make_unique<SparseMatching<pcl::SHOT352>>(cfg);
     else if (descr_type == config::features::FPFH_PCL_TYPE)
-        return std::make_unique<SparseMatching<pcl::FPFHSignature33>>(config);
+        return std::make_unique<SparseMatching<pcl::FPFHSignature33>>(cfg);
     else if (descr_type == config::features::ORB_TYPE)
-        return std::make_unique<SparseMatching<cv::Mat>>(config);
+        return std::make_unique<SparseMatching<cv::Mat>>(cfg);
     else
         DESCRY_THROW(InvalidConfigException, "unsupported descriptor type");
 }
