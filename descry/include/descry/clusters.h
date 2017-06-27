@@ -11,20 +11,18 @@ namespace descry {
 
 class Clusterizer {
 public:
-    class Strategy {
-    public:
-        virtual void train(const Model& model, const std::vector<KeyFrame::Ptr>& view_keyframes) = 0;
-        virtual Instances compute(const Image& image, const ModelSceneMatches& matches) = 0;
-        virtual ~Strategy() = default;
-    };
+    Clusterizer() = default;
+    Clusterizer(Clusterizer&& other) = default;
+    Clusterizer& operator=(Clusterizer&& other) = default;
 
     bool configure(const Config &config);
 
-    void train(const Model& image, const std::vector<KeyFrame::Ptr>& view_keyframes);
-    Instances compute(const Image& image, const ModelSceneMatches& matches);
+    virtual void train(const Model& image, const std::vector<KeyFrame::Ptr>& view_keyframes);
+    virtual Instances compute(const Image& image, const ModelSceneMatches& matches);
 
+    virtual ~Clusterizer() = default;
 private:
-    std::unique_ptr<Strategy> strategy_ = nullptr;
+    std::unique_ptr<Clusterizer> strategy_ = nullptr;
 };
 
 }

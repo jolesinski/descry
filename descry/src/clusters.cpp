@@ -64,7 +64,7 @@ struct convert<CG_Hough> {
 namespace descry {
 
 namespace {
-std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config);
+std::unique_ptr<Clusterizer> makeStrategy(const Config& config);
 }
 
 bool Clusterizer::configure(const Config &config) {
@@ -88,7 +88,7 @@ Instances Clusterizer::compute(const Image& image, const ModelSceneMatches& matc
 namespace {
 
 template<typename CG>
-class PCLStrategy : public Clusterizer::Strategy {
+class PCLStrategy : public Clusterizer {
 public:
     PCLStrategy(const Config& config) : clust_{config.as<CG>()} { viewer_.configure(config); }
 
@@ -168,7 +168,7 @@ void PCLStrategy<CG_Hough>::setSceneRefFrames(const KeyFrame& keyframe, unsigned
     clust_.at(model_idx).setSceneRf(keyframe.ref_frames.host());
 }
 
-std::unique_ptr<Clusterizer::Strategy> makeStrategy(const Config& config) {
+std::unique_ptr<Clusterizer> makeStrategy(const Config& config) {
     if (!config["type"])
         return nullptr;
 
