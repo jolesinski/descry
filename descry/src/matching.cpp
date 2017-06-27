@@ -6,7 +6,7 @@
 namespace descry {
 
 namespace {
-std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config);
+std::unique_ptr<Matching> makeStrategy(const Config& config);
 }
 
 void Matching::configure(const Config& config) {
@@ -57,7 +57,7 @@ std::string getDescriptorName(const Config& config) {
 }
 
 template <class Descriptor>
-class SparseMatching : public Matching::Strategy {
+class SparseMatching : public Matching {
 public:
     SparseMatching(const Config& config);
     ~SparseMatching() override {};
@@ -111,7 +111,7 @@ ModelSceneMatches SparseMatching<Descriptor>::match(const Image& image) {
     return model_scene_matches;
 }
 
-std::unique_ptr<Matching::Strategy> makeStrategy(const Config& config) {
+std::unique_ptr<Matching> makeStrategy(const Config& config) {
     if (config.IsMap()) {
         if(!config[config::matcher::DESCRIPTION_NODE])
         DESCRY_THROW(InvalidConfigException, "missing descriptor type");

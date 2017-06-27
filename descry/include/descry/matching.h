@@ -22,19 +22,17 @@ struct ModelSceneMatches {
 
 class Matching {
 public:
-    class Strategy {
-    public:
-        virtual std::vector<KeyFrame::Ptr> train(const Model& model) = 0;
-        virtual ModelSceneMatches match(const Image& image) = 0;
-        virtual ~Strategy() = default;
-    };
+    Matching() = default;
+    Matching(Matching&& other) = default;
+    Matching& operator=(Matching&& other) = default;
 
     void configure(const Config& config);
-    std::vector<KeyFrame::Ptr> train(const Model& model);
+    virtual std::vector<KeyFrame::Ptr> train(const Model& model);
+    virtual ModelSceneMatches match(const Image& image);
 
-    ModelSceneMatches match(const Image& image);
+    virtual ~Matching() = default;
 private:
-    std::unique_ptr<Strategy> strategy_ = nullptr;
+    std::unique_ptr<Matching> strategy_ = nullptr;
 };
 
 }
