@@ -183,19 +183,22 @@ bool Describer<D>::configure(const Config& cfg) {
             _descr = [ descr{std::move(descr)}, keys_det{std::move(keys_det)}, rf_est{std::move(rf_est)}, this ]
             (const Image &image) mutable {
                 auto d = Description<D>();
+                auto latency = measure_latency(config::keypoints::NODE_NAME, this->log_latency_);
                 d.setKeypoints(keys_det.compute(image));
+                latency.finish();
                 descr.setInputCloud(d.getKeypoints().getShape().host());
                 descr.setSearchSurface(image.getShapeCloud().host());
                 descr.setInputNormals(image.getNormals().host());
                 if (rf_est.is_configured()) {
+                    latency.start(config::ref_frames::NODE_NAME);
                     d.setRefFrames(rf_est.compute(image, d.getKeypoints()));
+                    latency.finish();
                     pcl_describer_parser<D>::add_rfs_if_supported(descr, d.getRefFrames());
                 }
                 auto features = make_cloud<D>();
-                {
-                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME, this->log_latency_);
-                    descr.compute(*features);
-                }
+                latency.start(config::features::NODE_NAME);
+                descr.compute(*features);
+                latency.finish();
                 d.setFeatures(cupcl::DualContainer<D>{features});
                 return d;
             };
