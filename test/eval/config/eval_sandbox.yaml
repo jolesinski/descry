@@ -8,11 +8,10 @@ viewer:
     show-2d: true
   - &viewer-scene-description
     enabled: false
-    show-only: [7]
     show-2d: true
   - &viewer-clusters
     enabled: false
-    show-matches: true
+    show-clusters: true
     show-once: false
     show-empty: true
 #   show-only: [7, 8, 9]
@@ -23,9 +22,12 @@ viewer:
   - &viewer-verifier false
 
 latency:
+  - &latency-model-preproc false
+  - &latency-scene-preproc true
   - &latency-model-description false
   - &latency-scene-description true
   - &latency-aligner true
+  - &latency-recognizer true
 
 keypoints:
   - &model-iss
@@ -38,12 +40,16 @@ keypoints:
     min-neighbours: 10
   - &scene-iss
     type: iss-cupcl
-    salient-radius: 0.005
-    non-max-radius: 0.01
+    salient-radius: 0.03
+    non-max-radius: 0.05
     lambda-ratio-21: 0.9
     lambda-ratio-32: 0.2
     lambda-threshold-3: 1e-6
     min-neighbours: 10
+  - &uniform
+    type: uniform
+    support-radius: 0.02
+
 
 feature-matching:
   - &orb-matching
@@ -57,7 +63,7 @@ feature-matching:
       scene:
         features:
           type: orb
-          max-features: 5000
+          max-features: 1000
         viewer: *viewer-scene-description
         log-latency: *latency-scene-description
     matcher:
@@ -68,41 +74,43 @@ feature-matching:
   - &shot-matching
     description:
       model:
-        keypoints: *model-iss
+        keypoints: *uniform
         reference-frames:
           type: board
           find-holes: true
-          support-radius: 0.015
+          support-radius: 0.03
         features:
           type: shot
-          support-radius: 0.015
+          support-radius: 0.03
           threads: 4
+        viewer: *viewer-model-description
         log-latency: *latency-model-description
       scene:
-        keypoints: *scene-iss
+        keypoints: *uniform
         reference-frames:
           type: board
           find-holes: true
-          support-radius: 0.015
+          support-radius: 0.03
         features:
           type: shot
-          support-radius: 0.015
+          support-radius: 0.03
           threads: 4
+        viewer: *viewer-scene-description
         log-latency: *latency-scene-description
     matcher:
       type: kdtree-flann
       max-neighs: 1
-      max-distance: 0.15
+      max-distance: 0.2
 
 refiners:
   - &icp
     type: icp
     max-iterations: 5
-    max-correspondence-distance: 0.005
+    max-correspondence-distance: 0.05
     transformation-epsilon: 1e-5
     euclidean-fitness: 1
     use-reciprocal: false
-#    viewer: true
+    viewer: *viewer-refiner
 
 verifiers:
   - &papazov
@@ -131,11 +139,24 @@ verifiers:
 
 recognizer:
   preprocess:
-    passthrough: 1.5
-    normals:
-      type: cupcl
-      support-radius: 0.02
-      #viewer: true
+    model:
+      normals: &normals
+        type: cupcl
+        support-radius: 0.02
+      log-latency: *latency-model-preproc
+    scene:
+      passthrough: 1.5
+#      smoothing:
+#        sigma-r: 0.05
+#        sigma-s: 5.0
+#        threads: 4
+      normals: *normals
+      segmentation:
+        min-inliers: 10000
+        angular-thresh: 0.05
+        distance-thresh: 0.02
+        project-points: true
+      log-latency: *latency-scene-preproc
   aligner:
     type: sparse
     matching:
@@ -146,9 +167,11 @@ recognizer:
       gc-size: 0.01
       gc-threshold: 5
       viewer: *viewer-clusters
+    viewer: *viewer-aligner
     log-latency: *latency-aligner
-  #refinement: *icp
+#  refinement: *icp
   verification: *papazov
+  log-latency: *latency-recognizer
 
 metrics:
   radius: 0.01

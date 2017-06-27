@@ -14,6 +14,9 @@ static constexpr auto SIGMA_S = "sigma-s";
 
 static constexpr auto SEGMENTATION = "segmentation";
 static constexpr auto MIN_INLIERS = "min-inliers";
+static constexpr auto ANGULAR_THRESH = "angular-thresh";
+static constexpr auto DISTANCE_THRESH = "distance-thresh";
+static constexpr auto PROJECT_POINTS = "project-points";
 
 }}}
 

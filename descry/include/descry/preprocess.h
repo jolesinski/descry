@@ -9,10 +9,11 @@ namespace descry {
 
 class Preprocess {
 public:
-    bool configure(const Config& cfg);
+    void configure(const Config& cfg);
     void process(Image& image) const;
 private:
     std::vector<std::function<void( Image& )>> steps_;
+    bool log_latency_;
 };
 
 }
