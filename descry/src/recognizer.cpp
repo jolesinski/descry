@@ -1,11 +1,14 @@
 #include <descry/recognizer.h>
+#include <descry/latency.h>
 
 bool descry::Recognizer::configure(const descry::Config &cfg) {
     if (!cfg.IsDefined())
         DESCRY_THROW(InvalidConfigException, "undefined node");
 
-    if (cfg[config::preprocess::NODE_NAME])
-        preproc_.configure(cfg[config::preprocess::NODE_NAME]);
+    if (cfg[config::preprocess::NODE_NAME]) {
+        model_preproc_.configure(cfg[config::preprocess::NODE_NAME][config::MODEL_NODE]);
+        scene_preproc_.configure(cfg[config::preprocess::NODE_NAME][config::SCENE_NODE]);
+    }
 
     if (cfg[config::aligner::NODE_NAME])
         aligner_.configure(cfg[config::aligner::NODE_NAME]);
@@ -24,11 +27,13 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
             verifier_.configure(verifier_cfg);
     }
 
+    log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+
     return true;
 }
 
 void descry::Recognizer::train(descry::Model& model) {
-    model.prepare(preproc_);
+    model.prepare(model_preproc_);
 
     aligner_.train(model);
 
@@ -38,16 +43,26 @@ void descry::Recognizer::train(descry::Model& model) {
 
 descry::Instances
 descry::Recognizer::compute(const descry::FullCloud::ConstPtr& scene) {
-    auto image = preproc_.filter(scene);
-    preproc_.process(image);
+    auto image = Image{scene};
 
+    auto latency = measure_latency(config::preprocess::NODE_NAME, log_latency_);
+    scene_preproc_.process(image);
+
+    latency.restart(config::aligner::NODE_NAME);
     auto instances = aligner_.compute(image);
+    latency.finish();
 
-    if (refiner_.is_trained())
+    if (refiner_.is_trained()) {
+        latency.start(config::refiner::NODE_NAME);
         instances = refiner_.compute(image, instances);
+        latency.finish();
+    }
 
-    if (verifier_.is_configured())
+    if (verifier_.is_configured()) {
+        latency.start(config::verifier::NODE_NAME);
         instances = verifier_.compute(image, instances);
+        latency.finish();
+    }
 
     return instances;
 }

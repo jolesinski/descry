@@ -18,10 +18,12 @@ public:
     void train(Model& model);
     Instances compute(const FullCloud::ConstPtr &scene);
 private:
-    Preprocess preproc_;
+    Preprocess model_preproc_;
+    Preprocess scene_preproc_;
     Aligner aligner_;
     Refiner refiner_;
     Verifier verifier_;
+    bool log_latency_;
 };
 
 }
