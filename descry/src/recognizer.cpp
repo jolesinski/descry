@@ -5,9 +5,12 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
     if (!cfg.IsDefined())
         DESCRY_THROW(InvalidConfigException, "undefined node");
 
-    if (cfg[config::preprocess::NODE_NAME]) {
-        model_preproc_.configure(cfg[config::preprocess::NODE_NAME][config::MODEL_NODE]);
-        scene_preproc_.configure(cfg[config::preprocess::NODE_NAME][config::SCENE_NODE]);
+    {
+        auto preproc_cfg = cfg[config::preprocess::NODE_NAME];
+        if (preproc_cfg) {
+            model_preproc_.configure(preproc_cfg[config::MODEL_NODE]);
+            scene_preproc_.configure(preproc_cfg[config::SCENE_NODE]);
+        }
     }
 
     if (cfg[config::aligner::NODE_NAME])
