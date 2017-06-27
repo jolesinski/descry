@@ -4,10 +4,45 @@
 
 namespace descry {
 
-void Aligner::configure(const Config& cfg) {
-    if (!cfg[config::TYPE_NODE])
-        DESCRY_THROW(InvalidConfigException, "missing aligner type");
+namespace {
+std::unique_ptr<Aligner> makeStrategy(const Config& config);
+}
 
+void Aligner::configure(const Config& config) {
+    try {
+        strategy_ = makeStrategy(config);
+    } catch ( const YAML::RepresentationException& e) {
+        DESCRY_THROW(InvalidConfigException, e.what());
+    }
+}
+
+void Aligner::train(const Model& model) {
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
+    return strategy_->train(model);
+}
+
+Instances Aligner::compute(const Image& image) {
+    if (!strategy_)
+        DESCRY_THROW(NotConfiguredException, "Aligner not configured");
+    return strategy_->compute(image);
+}
+
+class SparseAligner : public Aligner {
+public:
+    SparseAligner(const Config& cfg);
+
+    void train(const Model& model) override;
+    Instances compute(const Image& image) override;
+private:
+    std::vector<KeyFrame::Ptr> folded_kfs_;
+    std::vector<Matching> matchings_;
+    Clusterizer clustering_;
+    Viewer<Aligner> viewer_;
+    bool log_latency_ = false;
+};
+
+SparseAligner::SparseAligner(const Config& cfg) {
     if (cfg[config::LOG_LATENCY])
         log_latency_ = cfg[config::LOG_LATENCY].as<bool>();
 
@@ -119,7 +154,7 @@ ModelSceneMatches fold_matches(const std::vector<ModelSceneMatches>& matches,
 
 }
 
-void Aligner::train(const Model& model) {
+void SparseAligner::train(const Model& model) {
     auto key_frames = std::vector<std::vector<KeyFrame::Ptr>>{};
     for (auto& matching : matchings_) {
         key_frames.emplace_back(matching.train(model));
@@ -131,7 +166,7 @@ void Aligner::train(const Model& model) {
     clustering_.train(model, folded_kfs_);
 }
 
-Instances Aligner::compute(const Image& image) {
+Instances SparseAligner::compute(const Image& image) {
     auto model_scene_matches = std::vector<ModelSceneMatches>{};
     for (auto& matching : matchings_) {
         auto latency = measure_scope_latency("Matching", log_latency_);
@@ -150,6 +185,19 @@ Instances Aligner::compute(const Image& image) {
     logger::get()->debug("Aligner found {}", instances.poses.size());
 
     return instances;
+}
+
+namespace {
+std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
+    if (!cfg.IsMap()) DESCRY_THROW(InvalidConfigException, "invalid config");
+
+    if (!cfg[config::TYPE_NODE]) DESCRY_THROW(InvalidConfigException, "missing aligner type");
+
+    auto aligner_type = cfg[config::TYPE_NODE].as<std::string>();
+    if (aligner_type == config::aligner::SPARSE_TYPE)
+        return std::make_unique<SparseAligner>(cfg);
+    else DESCRY_THROW(InvalidConfigException, "unsupported aligner type");
+}
 }
 
 }

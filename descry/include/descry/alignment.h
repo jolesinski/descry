@@ -12,16 +12,15 @@ namespace descry {
 
 class Aligner {
 public:
-    void configure(const Config& config);
-    void train(const Model& model);
+    Aligner() = default;
+    Aligner(Aligner&& other) = default;
+    Aligner& operator=(Aligner&& other) = default;
 
-    Instances compute(const Image& image);
-protected:
-    std::vector<KeyFrame::Ptr> folded_kfs_;
-    std::vector<Matching> matchings_;
-    Clusterizer clustering_;
-    Viewer<Aligner> viewer_;
-    bool log_latency_ = false;
+    void configure(const Config& config);
+    virtual void train(const Model& model);
+    virtual Instances compute(const Image& image);
+private:
+    std::unique_ptr<Aligner> strategy_;
 };
 
 }
