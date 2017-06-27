@@ -34,12 +34,14 @@ pcl::visualization::PCLVisualizer make_viewer(Args&&... args) {
 void add_image_with_keypoints(const Image& image, const Keypoints& keys, const double size, const std::string& name,
                               pcl::visualization::PCLVisualizer& vis) {
     auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
-    keys.getShape().host()->sensor_origin_ = image.getFullCloud().host()->sensor_origin_;
-    keys.getShape().host()->sensor_orientation_ = image.getFullCloud().host()->sensor_orientation_;
     vis.addPointCloud(image.getFullCloud().host(), rgb, name);
-    vis.addPointCloud(keys.getShape().host(), name+config::keypoints::NODE_NAME);
-    vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, name+config::keypoints::NODE_NAME);
-    vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, size, name+config::keypoints::NODE_NAME);
+    if (!keys.empty()) {
+        keys.getShape().host()->sensor_origin_ = image.getFullCloud().host()->sensor_origin_;
+        keys.getShape().host()->sensor_orientation_ = image.getFullCloud().host()->sensor_orientation_;
+        vis.addPointCloud(keys.getShape().host(), name+config::keypoints::NODE_NAME);
+        vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, name+config::keypoints::NODE_NAME);
+        vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, size, name+config::keypoints::NODE_NAME);
+    }
 }
 
 void show_keypoints_2d(const Image& image, const Keypoints& keypoints) {
