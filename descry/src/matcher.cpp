@@ -4,12 +4,9 @@
 
 namespace descry {
 
-template<class Descriptor>
-using MatcherStrategy = typename Matcher<Descriptor>::Strategy;
-
 namespace {
 template<class Descriptor>
-std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config);
+std::unique_ptr<Matcher<Descriptor>> makeStrategy(const Config& config);
 }
 
 template<class D>
@@ -50,7 +47,7 @@ bool descriptorFinite(const pcl::SHOT352& descr) {
 }
 
 template<class Descriptor>
-class KDTreeFlannMatching : public MatcherStrategy<Descriptor> {
+class KDTreeFlannMatching : public Matcher<Descriptor> {
 public:
     using Tree = pcl::KdTreeFLANN<Descriptor>;
 
@@ -121,7 +118,7 @@ private:
     double max_distance = 0.0;
 };
 
-class BruteForceMatching : public MatcherStrategy<cv::Mat> {
+class BruteForceMatching : public Matcher<cv::Mat> {
 public:
     BruteForceMatching(const Config& config) {
         auto norm_type_str = config[config::matcher::NORM_TYPE].as<std::string>();
@@ -210,7 +207,7 @@ private:
 };
 
 template<class Descriptor>
-std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config) {
+std::unique_ptr<Matcher<Descriptor>> makeStrategy(const Config& config) {
     if (!config.IsMap() || !config["type"])
         return nullptr;
 
@@ -224,7 +221,7 @@ std::unique_ptr<MatcherStrategy<Descriptor>> makeStrategy(const Config& config) 
 }
 
 template<>
-std::unique_ptr<MatcherStrategy<cv::Mat>> makeStrategy<cv::Mat>(const Config& config) {
+std::unique_ptr<Matcher<cv::Mat>> makeStrategy<cv::Mat>(const Config& config) {
     if (!config.IsMap() || !config["type"])
         return nullptr;
 

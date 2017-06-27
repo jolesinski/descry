@@ -13,27 +13,15 @@ namespace descry {
 template<class Descriptor>
 class Matcher {
 public:
-    class Strategy {
-    public:
-        virtual void train(const std::vector<Description<Descriptor>>& model) = 0;
-
-        virtual void train(std::vector<Description<Descriptor>>&& model) = 0;
-
-        virtual std::vector<pcl::CorrespondencesPtr> match(const Description<Descriptor>& scene) = 0;
-
-        virtual ~Strategy() = default;
-    };
-
     bool configure(const Config& config);
 
-    void train(const std::vector<Description<Descriptor>>& model);
+    virtual void train(const std::vector<Description<Descriptor>>& model);
+    virtual void train(std::vector<Description<Descriptor>>&& model);
+    virtual std::vector<pcl::CorrespondencesPtr> match(const Description<Descriptor>& scene);
 
-    void train(std::vector<Description<Descriptor>>&& model);
-
-    std::vector<pcl::CorrespondencesPtr> match(const Description<Descriptor>& scene);
-
+    virtual ~Matcher() = default;
 private:
-    std::unique_ptr<Strategy> strategy_ = nullptr;
+    std::unique_ptr<Matcher<Descriptor>> strategy_ = nullptr;
 };
 
 }
