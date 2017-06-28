@@ -11,6 +11,7 @@ static constexpr auto DESCRIPTION_NODE = "description";
 static constexpr auto SPARSE_TYPE = "sparse";
 
 // Template matching
+static constexpr auto GLOBAL_TYPE = "global";
 static constexpr auto SLIDING_TYPE = "sliding-window";
 
 }}}

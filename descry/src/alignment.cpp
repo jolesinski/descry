@@ -280,6 +280,34 @@ Instances SlidingWindow::compute(const Image& image) {
     return instances;
 }
 
+class GlobalAligner : public Aligner {
+public:
+    GlobalAligner(const Config& cfg);
+
+    void train(const Model& model) override;
+    Instances compute(const Image& image) override;
+private:
+    Viewer<Aligner> viewer_;
+    bool log_latency_ = false;
+    FullCloud::ConstPtr full_model_;
+};
+
+GlobalAligner::GlobalAligner(const Config& cfg) {
+    log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+    viewer_.configure(cfg);
+}
+
+void GlobalAligner::train(const Model& model) {
+    full_model_ = model.getFullCloud();
+}
+
+Instances GlobalAligner::compute(const Image& image) {
+    (void)image;
+    auto instances = Instances{};
+    instances.cloud = full_model_;
+    return instances;
+}
+
 namespace {
 std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
     if (!cfg.IsMap()) DESCRY_THROW(InvalidConfigException, "invalid config");
@@ -289,6 +317,8 @@ std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
     auto aligner_type = cfg[config::TYPE_NODE].as<std::string>();
     if (aligner_type == config::aligner::SPARSE_TYPE)
         return std::make_unique<SparseAligner>(cfg);
+    else if (aligner_type == config::aligner::GLOBAL_TYPE)
+        return std::make_unique<GlobalAligner>(cfg);
     else if (aligner_type == config::aligner::SLIDING_TYPE)
         return std::make_unique<SlidingWindow>(cfg);
     else DESCRY_THROW(InvalidConfigException, "unsupported aligner type");

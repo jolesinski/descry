@@ -154,6 +154,10 @@ alignment:
     type: sliding-window
     viewer: *viewer-aligner
     log-latency: *latency-aligner
+  - &global
+    type: global
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
 
 recognizer:
   preprocess:
@@ -175,8 +179,8 @@ recognizer:
         distance-thresh: 0.02
         project-points: true
       log-latency: *latency-scene-preproc
-  aligner: *template
-  refinement: *icp
+  aligner: *global
+#  refinement: *icp
   verification: *papazov
   log-latency: *latency-recognizer
 
