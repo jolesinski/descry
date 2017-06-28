@@ -1,6 +1,8 @@
 #include <descry/alignment.h>
 #include <boost/make_shared.hpp>
 #include <descry/latency.h>
+#include <opencv2/imgproc.hpp>
+#include <pcl/common/centroid.h>
 
 namespace descry {
 
@@ -43,30 +45,22 @@ private:
 };
 
 SparseAligner::SparseAligner(const Config& cfg) {
-    if (cfg[config::LOG_LATENCY])
-        log_latency_ = cfg[config::LOG_LATENCY].as<bool>();
+    log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+    viewer_.configure(cfg);
 
     try {
-        auto est_type = cfg[config::TYPE_NODE].as<std::string>();
-        if (est_type == config::aligner::SPARSE_TYPE) {
-            viewer_.configure(cfg);
-
-            auto matching_cfg = cfg[config::matcher::NODE_NAME];
-            matchings_.clear();
-            if (matching_cfg.IsMap()) {
+        auto matching_cfg = cfg[config::matcher::NODE_NAME];
+        matchings_.clear();
+        if (matching_cfg.IsMap()) {
+            matchings_.emplace_back();
+            matchings_.back().configure(matching_cfg);
+        } else if (matching_cfg.IsSequence()) {
+            for (auto it = matching_cfg.begin(); it != matching_cfg.end(); ++it) {
                 matchings_.emplace_back();
-                matchings_.back().configure(matching_cfg);
-            } else if (matching_cfg.IsSequence()) {
-                for (auto it = matching_cfg.begin(); it != matching_cfg.end(); ++it) {
-                    matchings_.emplace_back();
-                    matchings_.back().configure(*it);
-                }
-            } else {
-                DESCRY_THROW(InvalidConfigException, "missing matching node");
+                matchings_.back().configure(*it);
             }
-            clustering_.configure(cfg[config::clusters::NODE_NAME]);
-        } else
-            DESCRY_THROW(InvalidConfigException, "unsupported aligner type");
+        } else DESCRY_THROW(InvalidConfigException, "missing matching node");
+        clustering_.configure(cfg[config::clusters::NODE_NAME]);
     } catch ( const YAML::RepresentationException& e) {
         DESCRY_THROW(InvalidConfigException, e.what());
     }
@@ -187,6 +181,105 @@ Instances SparseAligner::compute(const Image& image) {
     return instances;
 }
 
+class SlidingWindow : public Aligner {
+public:
+    SlidingWindow(const Config& cfg);
+
+    void train(const Model& model) override;
+    Instances compute(const Image& image) override;
+private:
+    Viewer<Aligner> viewer_;
+    bool log_latency_ = false;
+
+    struct Template {
+        cv::Mat color;
+        cv::Mat mask;
+        Pose viewpoint;
+    };
+
+    AlignedVector<Template> templates_;
+    FullCloud::ConstPtr full_model_;
+    ShapePoint model_centroid_;
+};
+
+SlidingWindow::SlidingWindow(const Config& cfg) {
+    log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+    viewer_.configure(cfg);
+}
+
+void SlidingWindow::train(const Model& model) {
+    full_model_ = model.getFullCloud();
+    auto centroid = Eigen::Vector4f{};
+    pcl::compute3DCentroid(*full_model_, centroid);
+    model_centroid_.getVector4fMap() = centroid;
+    for (auto& view : model.getViews()) {
+        auto mask = cv::Mat(view.image.getColorMat().size(), CV_8UC3, cv::Scalar(0,0,0));
+        auto mask_points = std::vector<cv::Point>{};
+        mask_points.reserve(view.mask.size());
+        for (auto idx : view.mask) {
+            mask_points.emplace_back(idx % view.image.getColorMat().cols, idx / view.image.getColorMat().cols);
+            mask.at<cv::Vec3b>(idx)[0] = 255;
+            mask.at<cv::Vec3b>(idx)[1] = 255;
+            mask.at<cv::Vec3b>(idx)[2] = 255;
+        }
+        auto rect = cv::boundingRect(mask_points);
+        auto cropped = view.image.getColorMat()(rect);
+        templates_.emplace_back(Template{cropped, mask(rect),
+                                         view.viewpoint});
+    }
+}
+
+Instances SlidingWindow::compute(const Image& image) {
+    auto instances = Instances{};
+    instances.cloud = full_model_;
+    for (auto temp : templates_) {
+        auto result = cv::Mat{};
+        cv::matchTemplate(image.getColorMat(), temp.color, result, CV_TM_SQDIFF, temp.mask);
+//        cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat{} );
+        double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+        cv::Point matchLoc;
+        cv::minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc);
+
+        if (minVal > 600)
+            continue;
+
+        matchLoc = minLoc;
+        matchLoc.x += temp.color.cols/2;
+        matchLoc.y += temp.color.rows/2;
+        // will already know model z offset from scale pyramid
+        auto view_centroid = ShapePoint{};
+        view_centroid.getVector4fMap() = temp.viewpoint.inverse() * model_centroid_.getVector4fMap();
+        auto scene_centroid = ShapePoint{};
+        scene_centroid.z = view_centroid.z;
+
+        auto matA = Eigen::Matrix3f{};
+        matA.col(0) << matchLoc.x, matchLoc.y, 1;
+        matA.col(1) = image.getProjection().host()->block(0,0,3,0);
+        matA.col(2) = image.getProjection().host()->block(0,1,3,0);
+        auto vecB = Eigen::Vector3f{};
+        vecB = (view_centroid.z * image.getProjection().host()->block(0,2,3,0))
+               + image.getProjection().host()->block(0,3,3,0);
+        Eigen::Vector3f solution = matA.colPivHouseholderQr().solve(vecB);
+        scene_centroid.x = solution(1);
+        scene_centroid.y = solution(2);
+
+        Eigen::Affine3f view_affine = Eigen::Affine3f::Identity();
+        view_affine.matrix() = temp.viewpoint.inverse();
+        Eigen::Affine3f affine = Eigen::Affine3f::Identity();
+//        affine.translate(view_affine.translation());
+        Eigen::Vector3f translation;
+        translation.coeffRef(0) = -scene_centroid.x  - model_centroid_.x;
+        translation.coeffRef(1) = -scene_centroid.y - model_centroid_.y;
+        translation.coeffRef(2) = scene_centroid.z + model_centroid_.z;
+        affine.translate(translation);
+        affine.rotate(view_affine.rotation());
+        instances.poses.emplace_back(affine.matrix());
+    }
+
+    viewer_.show(image.getFullCloud().host(), instances);
+    return instances;
+}
+
 namespace {
 std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
     if (!cfg.IsMap()) DESCRY_THROW(InvalidConfigException, "invalid config");
@@ -196,6 +289,8 @@ std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
     auto aligner_type = cfg[config::TYPE_NODE].as<std::string>();
     if (aligner_type == config::aligner::SPARSE_TYPE)
         return std::make_unique<SparseAligner>(cfg);
+    else if (aligner_type == config::aligner::SLIDING_TYPE)
+        return std::make_unique<SlidingWindow>(cfg);
     else DESCRY_THROW(InvalidConfigException, "unsupported aligner type");
 }
 }

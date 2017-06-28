@@ -137,6 +137,24 @@ verifiers:
     radius-normals: 0.05
     viewer: *viewer-verifier
 
+alignment:
+  - &sparse
+    type: sparse
+    matching:
+      - *orb-matching
+      - *shot-matching
+    clusters:
+      type: gc
+      gc-size: 0.01
+      gc-threshold: 5
+      viewer: *viewer-clusters
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &template
+    type: sliding-window
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+
 recognizer:
   preprocess:
     model:
@@ -157,19 +175,8 @@ recognizer:
         distance-thresh: 0.02
         project-points: true
       log-latency: *latency-scene-preproc
-  aligner:
-    type: sparse
-    matching:
-      - *orb-matching
-      - *shot-matching
-    clusters:
-      type: gc
-      gc-size: 0.01
-      gc-threshold: 5
-      viewer: *viewer-clusters
-    viewer: *viewer-aligner
-    log-latency: *latency-aligner
-#  refinement: *icp
+  aligner: *template
+  refinement: *icp
   verification: *papazov
   log-latency: *latency-recognizer
 

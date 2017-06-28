@@ -10,6 +10,9 @@ static constexpr auto DESCRIPTION_NODE = "description";
 // Local features
 static constexpr auto SPARSE_TYPE = "sparse";
 
+// Template matching
+static constexpr auto SLIDING_TYPE = "sliding-window";
+
 }}}
 
 #endif //DESCRY_CONFIG_ALIGNER_H

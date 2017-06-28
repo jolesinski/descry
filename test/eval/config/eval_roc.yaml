@@ -1,7 +1,33 @@
 models:
- - object_06
-tests:
- - T_13_willow_dataset
+ - object_13
+#tests:
+# - T_13_willow_dataset
+
+viewer:
+  - &viewer-model-description
+    enabled: false
+    show-only: [7]
+    show-2d: true
+  - &viewer-scene-description
+    enabled: false
+    show-only: [7]
+    show-2d: true
+  - &viewer-clusters
+    enabled: false
+    show-clusters: true
+    show-once: false
+    show-empty: true
+#   show-only: [7, 8, 9]
+    show-2d: true
+    keypoint-size: 5
+  - &viewer-aligner false
+  - &viewer-refiner false
+  - &viewer-verifier false
+
+latency:
+  - &latency-model-description false
+  - &latency-scene-description true
+  - &latency-aligner true
 
 keypoints:
   - &model-iss
@@ -20,6 +46,9 @@ keypoints:
     lambda-ratio-32: 0.2
     lambda-threshold-3: 1e-6
     min-neighbours: 10
+  - &uniform
+    type: uniform
+    support-radius: 0.02
 
 feature-matching:
   - &orb-matching
@@ -28,10 +57,14 @@ feature-matching:
         features:
           type: orb
           max-features: 500
+        viewer: *viewer-model-description
+        log-latency: *latency-model-description
       scene:
         features:
           type: orb
           max-features: 5000
+        viewer: *viewer-scene-description
+        log-latency: *latency-scene-description
     matcher:
       type: brute-force
       norm: hamming
@@ -40,7 +73,7 @@ feature-matching:
   - &shot-matching
     description:
       model:
-        keypoints: *model-iss
+        keypoints: *uniform
         reference-frames:
           type: board
           find-holes: true
@@ -49,10 +82,9 @@ feature-matching:
           type: shot
           support-radius: 0.015
           threads: 4
-#        viewer:
-#          show-2d: true
+        log-latency: *latency-model-description
       scene:
-        keypoints: *scene-iss
+        keypoints: *uniform
         reference-frames:
           type: board
           find-holes: true
@@ -61,8 +93,7 @@ feature-matching:
           type: shot
           support-radius: 0.015
           threads: 4
-#        viewer:
-#          show-2d: true
+        log-latency: *latency-scene-description
     matcher:
       type: kdtree-flann
       max-neighs: 1
@@ -76,10 +107,11 @@ verifiers:
     support-threshold: 0.2
     penalty-threshold: 0.1
     conflict-threshold: 0.001
+    viewer: *viewer-verifier
 
 recognizer:
-  log-latency: true
   preprocess:
+    passthrough: 1.5
     normals:
       type: cupcl
       support-radius: 0.02
@@ -92,14 +124,13 @@ recognizer:
       type: gc
       gc-size: 0.01
       gc-threshold: 5
-      viewer:
-        show-clusters: true
-        show-2d: true
-  refinement:
-    type: icp
-    max-iterations: 10
-    max-correspondence-distance: 0.005
-    transformation-epsilon: 1e-5
-    euclidean-fitness: 1
-    use-reciprocal: false
+      viewer: *viewer-clusters
+    log-latency: *latency-aligner
+#  refinement:
+#    type: icp
+#    max-iterations: 10
+#    max-correspondence-distance: 0.005
+#    transformation-epsilon: 1e-5
+#    euclidean-fitness: 1
+#    use-reciprocal: false
   verification: *papazov
