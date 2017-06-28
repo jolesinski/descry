@@ -1,10 +1,8 @@
 #ifndef DESCRY_ALIGNMENT_H
 #define DESCRY_ALIGNMENT_H
 
-#include <descry/clusters.h>
 #include <descry/config/aligner.h>
 #include <descry/image.h>
-#include <descry/matching.h>
 #include <descry/model.h>
 #include <descry/viewer.h>
 

@@ -53,6 +53,13 @@ protected:
     std::function<void(const Image&, const KeyFrame&, const std::vector<pcl::Correspondences>&, unsigned int idx)> show_clusters_;
 };
 
+class Segmenter;
+template <>
+class Viewer<Segmenter> : public ConfigurableViewer {
+public:
+    void show(const Image& image, const std::vector<std::vector<int>>& segments) const;
+};
+
 class Aligner;
 template <>
 class Viewer<Aligner> : public ConfigurableViewer {

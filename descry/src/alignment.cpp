@@ -1,4 +1,8 @@
 #include <descry/alignment.h>
+#include <descry/clusters.h>
+#include <descry/matching.h>
+#include <descry/segmentation.h>
+
 #include <boost/make_shared.hpp>
 #include <descry/latency.h>
 #include <opencv2/imgproc.hpp>
@@ -287,22 +291,28 @@ public:
     void train(const Model& model) override;
     Instances compute(const Image& image) override;
 private:
+    Segmenter segmenter_;
+    FullCloud::ConstPtr full_model_;
     Viewer<Aligner> viewer_;
     bool log_latency_ = false;
-    FullCloud::ConstPtr full_model_;
 };
 
 GlobalAligner::GlobalAligner(const Config& cfg) {
+    segmenter_.configure(cfg[config::segments::NODE_NAME]);
+
     log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
     viewer_.configure(cfg);
 }
 
 void GlobalAligner::train(const Model& model) {
     full_model_ = model.getFullCloud();
+    segmenter_.train(model);
 }
 
 Instances GlobalAligner::compute(const Image& image) {
-    (void)image;
+    auto segments = segmenter_.compute(image);
+    logger::get()->error("Segmenter got {} segments", segments.size());
+
     auto instances = Instances{};
     instances.cloud = full_model_;
     return instances;

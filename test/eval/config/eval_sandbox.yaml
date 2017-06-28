@@ -17,6 +17,7 @@ viewer:
 #   show-only: [7, 8, 9]
     show-2d: true
     keypoint-size: 5
+  - &viewer-segmenter true
   - &viewer-aligner false
   - &viewer-refiner false
   - &viewer-verifier false
@@ -156,6 +157,12 @@ alignment:
     log-latency: *latency-aligner
   - &global
     type: global
+    segmentation:
+      angular-thresh: 0.07
+      distance-thresh: 0.01
+      min-size: 500
+      max-size: 250000
+      viewer: *viewer-segmenter
     viewer: *viewer-aligner
     log-latency: *latency-aligner
 
@@ -168,10 +175,10 @@ recognizer:
       log-latency: *latency-model-preproc
     scene:
       passthrough: 1.5
-#      smoothing:
-#        sigma-r: 0.05
-#        sigma-s: 5.0
-#        threads: 4
+      smoothing:
+        sigma-r: 0.05
+        sigma-s: 5.0
+        threads: 4
       normals: *normals
       segmentation:
         min-inliers: 10000

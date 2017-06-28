@@ -8,6 +8,7 @@
 #include <descry/keypoints.h>
 #include <descry/matching.h>
 #include <descry/model.h>
+#include <descry/segmentation.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -42,6 +43,23 @@ void add_image_with_keypoints(const Image& image, const Keypoints& keys, const d
         vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, name+config::keypoints::NODE_NAME);
         vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, size, name+config::keypoints::NODE_NAME);
     }
+}
+
+template <typename Point>
+void add_indexed_color_cloud(const typename pcl::PointCloud<Point>::ConstPtr& cloud, std::string basename,
+                             unsigned int idx, unsigned long max, pcl::visualization::PCLVisualizer& vis) {
+
+    static auto bell = [](unsigned int idx, unsigned long max, double center)
+                       { return 256 * pow((0.5 + (static_cast<float>(idx)/max - center))*
+                                                  (0.5 - (static_cast<float>(idx)/max - center)), 3); };
+    auto red = bell(idx, max, 0);
+    auto green = bell(idx, max, 0.5);
+    auto blue = bell(idx, max, 1);
+
+    auto name_id = basename + std::to_string(idx);
+    vis.addPointCloud(cloud, name_id);
+    vis.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
+                                         red, green, blue, name_id);
 }
 
 void show_keypoints_2d(const Image& image, const Keypoints& keypoints) {
@@ -269,6 +287,24 @@ void Viewer<Clusterizer>::show(const Image& scene, const KeyFrame& keyframe,
     show_clusters_(scene, keyframe, clustered, idx);
 }
 
+void Viewer<Segmenter>::show(const Image& image, const std::vector<std::vector<int>>& segments) const {
+    if (!cfg_.IsScalar() || !cfg_.as<bool>())
+        return;
+
+    auto viewer = make_viewer(config::segments::NODE_NAME);
+    viewer.addPointCloud(image.getFullCloud().host(), config::SCENE_NODE);
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.33, 0.33, 0.33, config::SCENE_NODE);
+
+    for (auto idx = 0u; idx < segments.size(); ++idx) {
+        auto segment_cloud = make_cloud<FullPoint>(*image.getFullCloud().host(), segments[idx]);
+        add_indexed_color_cloud<FullPoint>(segment_cloud, "segment", idx, segments.size(), viewer);
+    }
+
+    while (!viewer.wasStopped()) {
+        viewer.spinOnce(100);
+    }
+}
+
 void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& instances) const {
     if (!cfg_.IsScalar() || !cfg_.as<bool>())
         return;
@@ -277,18 +313,10 @@ void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& in
     viewer.addPointCloud(scene, config::SCENE_NODE);
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.33, 0.33, 0.33, config::SCENE_NODE);
 
-    auto bell = [](double x, double center){ return 256 * pow((0.5 + (x - center))*(0.5 - (x - center)), 3); };
-    auto set_red = [size{instances.poses.size()}, bell](unsigned int idx){ return bell(static_cast<float>(idx)/size, 0); };
-    auto set_green = [size{instances.poses.size()}, bell](unsigned int idx){ return bell(static_cast<float>(idx)/size, 0.5); };
-    auto set_blue = [size{instances.poses.size()}, bell](unsigned int idx){ return bell(static_cast<float>(idx)/size, 1); };
     for (auto idx = 0u; idx < instances.poses.size(); ++idx) {
         auto transformed = make_cloud<FullPoint>();
         pcl::transformPointCloud(*instances.cloud, *transformed, instances.poses[idx]);
-
-        auto instance_id = std::string("instance_") + std::to_string(idx);
-        viewer.addPointCloud(transformed, instance_id);
-        viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
-                                                set_red(idx), set_green(idx), set_blue(idx), instance_id);
+        add_indexed_color_cloud<FullPoint>(transformed, "instance_", idx, instances.poses.size(), viewer);
     }
 
     while (!viewer.wasStopped()) {

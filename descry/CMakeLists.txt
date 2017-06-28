@@ -13,6 +13,7 @@ add_library(descry SHARED
         src/recognizer.cpp
         src/ref_frames.cpp
         src/refinement.cpp
+        src/segmentation.cpp
         src/willow.cpp
         src/verification.cpp
         src/viewer.cpp)
