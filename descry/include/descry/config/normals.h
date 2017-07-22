@@ -17,6 +17,9 @@ static constexpr auto INTEGRAL_IMAGE_TYPE = "integral-image";
 static constexpr auto INTEGRAL_METHOD = "integral-method";
 static constexpr auto SMOOTHING_SIZE = "smoothing-size";
 static constexpr auto MAX_DEPTH_CHANGE = "max-depth-change";
+static constexpr auto INT_METHOD_COV = "covariance";
+static constexpr auto INT_METHOD_GRAD = "gradient";
+static constexpr auto INT_METHOD_DEPTH = "depth_change";
 
 // CUPCL implementation
 static constexpr auto CUPCL_TYPE = "cupcl";

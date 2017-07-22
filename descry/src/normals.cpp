@@ -35,28 +35,29 @@ struct convert<NEstINT> {
         if(!node.IsMap()) {
             return false;
         }
+        namespace cfg = descry::config::normals;
 
         {
-            auto elem = node[descry::config::normals::MAX_DEPTH_CHANGE];
+            auto elem = node[cfg::MAX_DEPTH_CHANGE];
             if (elem)
                 rhs.setMaxDepthChangeFactor(elem.as<float>());
         }
 
         {
-            auto elem = node[descry::config::normals::SMOOTHING_SIZE];
+            auto elem = node[cfg::SMOOTHING_SIZE];
             if (elem)
                 rhs.setNormalSmoothingSize(elem.as<float>());
         }
 
         {
-            auto elem = node[descry::config::normals::INTEGRAL_METHOD];
+            auto elem = node[cfg::INTEGRAL_METHOD];
             if (elem) {
                 auto method_str = elem.as<std::string>();
-                if (method_str == "covariance")
+                if (method_str == cfg::INT_METHOD_COV)
                     rhs.setNormalEstimationMethod(rhs.COVARIANCE_MATRIX);
-                else if (method_str == "average_gradient")
+                else if (method_str == cfg::INT_METHOD_GRAD)
                     rhs.setNormalEstimationMethod(rhs.AVERAGE_3D_GRADIENT);
-                else if (method_str == "average_depth_change")
+                else if (method_str == cfg::INT_METHOD_DEPTH)
                     rhs.setNormalEstimationMethod(rhs.AVERAGE_DEPTH_CHANGE);
                 else
                     return false;
@@ -101,7 +102,6 @@ bool NormalEstimation::configure(const Config& cfg) {
 
     viewer_.configure(cfg);
     log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
-    std::cerr << "Log latency" << log_latency_ << std::endl;
     return true;
 }
 
