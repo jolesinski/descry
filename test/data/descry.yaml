@@ -5,9 +5,9 @@ normal-estimators:
     threads: 4
   - &normals-integral
     type: integral-image
-    integral-method:
-    smoothing-size:
-    max-depth-change:
+    integral-method: covariance
+    smoothing-size: 10.0
+    max-depth-change: 0.02
   - &normals-cupcl
     type: cupcl
     support-radius: 0.05

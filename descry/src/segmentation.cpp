@@ -2,10 +2,10 @@
 
 #include <pcl/segmentation/organized_connected_component_segmentation.h>
 #include <pcl/segmentation/euclidean_plane_coefficient_comparator.h>
-#include <boost/make_shared.hpp>
 
 #include <descry/viewer.h>
 // FIXME: #include <pcl/segmentation/extract_clusters.h>
+// TODO: add supervoxel
 
 namespace descry {
 
@@ -39,7 +39,7 @@ std::vector<Segment> Segmenter::compute(const Image& image) {
     auto segments = std::vector<Segment>{};
     for (auto& segment : indices)
         if (segment.indices.size() > min_cluster_size_ && segment.indices.size() < max_cluster_size_)
-            segments.emplace_back(segment.indices);
+            segments.emplace_back(boost::make_shared<std::vector<int>>(segment.indices));
 
     viewer_.show(image, segments);
     return segments;

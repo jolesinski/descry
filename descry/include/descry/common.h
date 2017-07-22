@@ -61,6 +61,16 @@ struct DescriptorContainerTrait<cv::Mat> {
 template <typename Descriptor>
 using DescriptorContainer = typename DescriptorContainerTrait<Descriptor>::type;
 
+template <typename Point>
+inline Point make_nan();
+
+template <>
+inline pcl::Normal make_nan<pcl::Normal>() {
+    auto pt = pcl::Normal{};
+    pt.normal_x = pt.normal_y = pt.normal_z = pt.curvature = std::numeric_limits<float>::quiet_NaN();
+    return pt;
+}
+
 }
 
 #endif //DESCRY_COMMON_H

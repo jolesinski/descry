@@ -287,7 +287,7 @@ void Viewer<Clusterizer>::show(const Image& scene, const KeyFrame& keyframe,
     show_clusters_(scene, keyframe, clustered, idx);
 }
 
-void Viewer<Segmenter>::show(const Image& image, const std::vector<std::vector<int>>& segments) const {
+void Viewer<Segmenter>::show(const Image& image, const std::vector<pcl::IndicesPtr>& segments) const {
     if (!cfg_.IsScalar() || !cfg_.as<bool>())
         return;
 
@@ -296,7 +296,7 @@ void Viewer<Segmenter>::show(const Image& image, const std::vector<std::vector<i
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.33, 0.33, 0.33, config::SCENE_NODE);
 
     for (auto idx = 0u; idx < segments.size(); ++idx) {
-        auto segment_cloud = make_cloud<FullPoint>(*image.getFullCloud().host(), segments[idx]);
+        auto segment_cloud = make_cloud<FullPoint>(*image.getFullCloud().host(), *segments[idx]);
         add_indexed_color_cloud<FullPoint>(segment_cloud, "segment", idx, segments.size(), viewer);
     }
 

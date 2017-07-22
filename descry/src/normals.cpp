@@ -3,6 +3,8 @@
 
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
+#include <descry/config/common.h>
+#include <descry/latency.h>
 
 using NEstOMP = pcl::NormalEstimationOMP<descry::FullPoint, pcl::Normal>;
 using NEstINT = pcl::IntegralImageNormalEstimation<descry::FullPoint, pcl::Normal>;
@@ -80,32 +82,36 @@ auto configureEstimatorPCL(const YAML::Node& node) {
             };
 }
 
-bool NormalEstimation::configure(const Config& config) {
-    if (!config["type"])
+bool NormalEstimation::configure(const Config& cfg) {
+    if (!cfg["type"])
         return false;
 
-    auto est_type = config["type"].as<std::string>();
+    auto est_type = cfg["type"].as<std::string>();
     if (est_type == config::normals::OMP_TYPE) {
-        nest_ = configureEstimatorPCL<NEstOMP>(config);
+        nest_ = configureEstimatorPCL<NEstOMP>(cfg);
     } else if (est_type == config::normals::INTEGRAL_IMAGE_TYPE) {
-        nest_ = configureEstimatorPCL<NEstINT>(config);
-    } else if (est_type == config::normals::CUPCL_TYPE && config[config::normals::SUPPORT_RAD]) {
-        auto rad = config[config::normals::SUPPORT_RAD].as<float>();
+        nest_ = configureEstimatorPCL<NEstINT>(cfg);
+    } else if (est_type == config::normals::CUPCL_TYPE && cfg[config::normals::SUPPORT_RAD]) {
+        auto rad = cfg[config::normals::SUPPORT_RAD].as<float>();
         nest_ = [rad](const Image &image) {
             return cupcl::computeNormals(image.getShapeCloud(), image.getProjection(), rad);
         };
     } else
         return false;
 
-    viewer_.configure(config);
-
+    viewer_.configure(cfg);
+    log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+    std::cerr << "Log latency" << log_latency_ << std::endl;
     return true;
 }
 
 DualNormals NormalEstimation::compute(const Image& image) const {
     if (!nest_)
         DESCRY_THROW(NotConfiguredException, "Normals not configured");
+
+    auto latency = descry::measure_latency("Normals", log_latency_);
     auto normals = nest_(image);
+    latency.finish();
 
     viewer_.show(image.getFullCloud().host(), normals.host());
 

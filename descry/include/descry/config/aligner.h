@@ -13,6 +13,7 @@ static constexpr auto SPARSE_TYPE = "sparse";
 // Template matching
 static constexpr auto GLOBAL_TYPE = "global";
 static constexpr auto SLIDING_TYPE = "sliding-window";
+static constexpr auto MOCK_TYPE = "mock";
 
 }}}
 

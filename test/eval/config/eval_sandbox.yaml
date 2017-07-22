@@ -17,7 +17,7 @@ viewer:
 #   show-only: [7, 8, 9]
     show-2d: true
     keypoint-size: 5
-  - &viewer-segmenter true
+  - &viewer-segmenter false
   - &viewer-aligner false
   - &viewer-refiner false
   - &viewer-verifier false

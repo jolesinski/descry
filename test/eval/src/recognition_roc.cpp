@@ -148,6 +148,7 @@ public:
     }
 
     void evaluate(const descry::Config& cfg) {
+        auto log_latency = cfg[descry::config::LOG_LATENCY].as<bool>(false);
         recognizer_.configure(cfg[descry::config::RECOGNIZER_NODE]);
 
         auto test_names = getTestNames(cfg);
@@ -158,7 +159,7 @@ public:
 
         for (const auto& model_name : model_names) {
             log_->info("Processing model {}", model_name);
-            auto latency = descry::measure_latency("Loading model");
+            auto latency = descry::measure_latency("Loading model", log_latency);
             auto model = willow_db_.loadModel(model_name);
             latency.start("Training");
             recognizer_.train(model);

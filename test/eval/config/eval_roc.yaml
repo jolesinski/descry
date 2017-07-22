@@ -28,6 +28,21 @@ latency:
   - &latency-model-description false
   - &latency-scene-description true
   - &latency-aligner true
+  - &latency-normals true
+
+normal-estimators:
+  - &normals-omp
+    type: omp
+    support-radius: 0.02
+    threads: 4
+  - &normals-integral
+    type: integral-image
+    integral-method: covariance
+    smoothing-size: 10.0
+    max-depth-change: 0.02
+  - &normals-cupcl
+    type: cupcl
+    support-radius: 0.02
 
 keypoints:
   - &model-iss
@@ -111,21 +126,22 @@ verifiers:
 
 recognizer:
   preprocess:
-    passthrough: 1.5
-    normals:
-      type: cupcl
-      support-radius: 0.02
+    scene:
+  #    passthrough: 1.5
+      normals: *normals-integral
+      log-latency: *latency-normals
+
   aligner:
-    type: sparse
-    matching:
-#      - *orb-matching
-      - *shot-matching
-    clusters:
-      type: gc
-      gc-size: 0.01
-      gc-threshold: 5
-      viewer: *viewer-clusters
-    log-latency: *latency-aligner
+    type: mock
+#    matching:
+##      - *orb-matching
+#      - *shot-matching
+#    clusters:
+#      type: gc
+#      gc-size: 0.01
+#      gc-threshold: 5
+#      viewer: *viewer-clusters
+#    log-latency: *latency-aligner
 #  refinement:
 #    type: icp
 #    max-iterations: 10
@@ -133,4 +149,4 @@ recognizer:
 #    transformation-epsilon: 1e-5
 #    euclidean-fitness: 1
 #    use-reciprocal: false
-  verification: *papazov
+#  verification: *papazov

@@ -8,6 +8,10 @@
 #include <opencv2/imgproc.hpp>
 #include <pcl/common/centroid.h>
 
+#define PCL_NO_PRECOMPILE
+#include <pcl/features/our_cvfh.h>
+#undef PCL_NO_PRECOMPILE
+
 namespace descry {
 
 namespace {
@@ -294,6 +298,7 @@ private:
     Segmenter segmenter_;
     FullCloud::ConstPtr full_model_;
     Viewer<Aligner> viewer_;
+    std::vector<pcl::PointCloud<pcl::VFHSignature308>::Ptr> view_features_;
     bool log_latency_ = false;
 };
 
@@ -307,16 +312,54 @@ GlobalAligner::GlobalAligner(const Config& cfg) {
 void GlobalAligner::train(const Model& model) {
     full_model_ = model.getFullCloud();
     segmenter_.train(model);
+
+    for (const auto& view : model.getViews()) {
+        pcl::OURCVFHEstimation<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
+        ourcvfh.setInputCloud(view.image.getShapeCloud().host());
+        ourcvfh.setInputNormals(view.image.getNormals().host());
+        ourcvfh.setEPSAngleThreshold(static_cast<float>(5.0 / 180.0 * M_PI)); // 5 degrees.
+        ourcvfh.setCurvatureThreshold(1.0);
+        ourcvfh.setNormalizeBins(false);
+        auto indices_ptr = boost::make_shared<std::vector<int>>(view.mask);
+        ourcvfh.setIndices(indices_ptr);
+        auto descriptors = make_cloud<pcl::VFHSignature308>();
+        ourcvfh.compute(*descriptors);
+        view_features_.emplace_back(descriptors);
+        logger::get()->error("Training OURCVFH got {} descriptors", descriptors->size());
+    }
 }
 
 Instances GlobalAligner::compute(const Image& image) {
     auto segments = segmenter_.compute(image);
     logger::get()->error("Segmenter got {} segments", segments.size());
 
+    // OUR-CVFH estimation object.
+    pcl::OURCVFHEstimation<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
+    ourcvfh.setInputCloud(image.getShapeCloud().host());
+    ourcvfh.setInputNormals(image.getNormals().host());
+    ourcvfh.setEPSAngleThreshold(static_cast<float>(5.0 / 180.0 * M_PI)); // 5 degrees.
+    ourcvfh.setCurvatureThreshold(1.0);
+    ourcvfh.setNormalizeBins(false);
+    // Set the minimum axis ratio between the SGURF axes. At the disambiguation phase,
+    // this will decide if additional Reference Frames need to be created, if ambiguous.
+    ourcvfh.setAxisRatio(0.8);
+    for (auto& segment : segments) {
+        ourcvfh.setIndices(segment);
+        auto latency = measure_scope_latency("OURCVFH", true);
+        auto descriptors = make_cloud<pcl::VFHSignature308>();
+        ourcvfh.compute(*descriptors);
+        logger::get()->error("OURCVFH got {} descriptors", descriptors->size());
+    }
+
     auto instances = Instances{};
     instances.cloud = full_model_;
     return instances;
 }
+
+class MockAligner : public Aligner {
+    void train(const Model&) override {}
+    Instances compute(const Image&) override { return Instances{}; }
+};
 
 namespace {
 std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
@@ -331,6 +374,8 @@ std::unique_ptr<Aligner> makeStrategy(const Config& cfg) {
         return std::make_unique<GlobalAligner>(cfg);
     else if (aligner_type == config::aligner::SLIDING_TYPE)
         return std::make_unique<SlidingWindow>(cfg);
+    else if (aligner_type == config::aligner::MOCK_TYPE)
+        return std::make_unique<MockAligner>();
     else DESCRY_THROW(InvalidConfigException, "unsupported aligner type");
 }
 }

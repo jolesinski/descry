@@ -4,6 +4,7 @@
 #include <descry/common.h>
 #include <descry/config/viewer.h>
 #include <descry/image.h>
+#include <pcl/pcl_base.h>
 
 namespace descry {
 
@@ -57,7 +58,7 @@ class Segmenter;
 template <>
 class Viewer<Segmenter> : public ConfigurableViewer {
 public:
-    void show(const Image& image, const std::vector<std::vector<int>>& segments) const;
+    void show(const Image& image, const std::vector<pcl::IndicesPtr>& segments) const;
 };
 
 class Aligner;

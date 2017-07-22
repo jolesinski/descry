@@ -4,10 +4,11 @@
 #include <descry/common.h>
 #include <descry/model.h>
 #include <descry/config/segments.h>
+#include <pcl/pcl_base.h>
 
 namespace descry {
 
-using Segment = std::vector<int>;
+using Segment = pcl::IndicesPtr;
 
 class Segmenter {
 public:
