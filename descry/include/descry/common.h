@@ -5,17 +5,16 @@
 #include <Eigen/Eigen>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <yaml-cpp/yaml.h>
 
 #include <opencv2/core.hpp>
 
 #include <descry/cupcl/memory.h>
+#include <descry/config.h>
 #include <descry/exceptions.h>
 #include <pcl/correspondence.h>
 
 namespace descry {
 
-using Config = YAML::Node;
 using ShapePoint = pcl::PointXYZ;
 using ShapeCloud = pcl::PointCloud<ShapePoint>;
 using FullPoint = pcl::PointXYZRGBA;

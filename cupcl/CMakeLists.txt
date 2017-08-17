@@ -13,7 +13,7 @@ foreach(d ${vtk_flags})
     remove_definitions(-D${d})
 endforeach()
 
-find_package(CUDA QUIET REQUIRED)
+find_package(CUDA 6.5 QUIET REQUIRED)
 set(CUDA_SEPARABLE_COMPILATION ON)
 # Adjust maxregcount for specific device
 LIST(APPEND CUDA_NVCC_FLAGS --compiler-options -fno-strict-aliasing -lineinfo -use_fast_math -Xptxas -dlcm=cg)
@@ -21,6 +21,10 @@ LIST(APPEND CUDA_NVCC_FLAGS --compiler-options -fno-strict-aliasing -lineinfo -u
 #set(CUDA_NVCC_FLAGS "-lineinfo -maxrregcount=20")
 # Suppress PCL warnings
 LIST(APPEND CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets)
+
+if(${CUDA_VERSION_STRING} VERSION_GREATER "6.5")
+    LIST(APPEND CUDA_NVCC_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
+endif()
 
 # CUDA cmake does not support target_include_directories
 include_directories(include ../descry/include )
@@ -32,7 +36,7 @@ cuda_add_library(cupcl SHARED
         src/memory.cu
         src/normals.cu
         src/support.cu
-        OPTIONS -shared -Xcompiler -fPIC --expt-relaxed-constexpr --std=c++11 --expt-extended-lambda)
+        OPTIONS -shared -Xcompiler -fPIC --std=c++11)
 
 # Add it anyway for dependent targets
 target_include_directories(cupcl

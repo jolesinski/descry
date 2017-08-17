@@ -9,7 +9,7 @@ Project developed as part of masters thesis:
 * OpenCV 3.1
 * PCL 1.8 with [fixes](https://github.com/jolesinski/pcl).
 * yaml-cpp 0.53
-* CUDA 8
+* CUDA 6.5
 * spdlog
 
 ### Testing:

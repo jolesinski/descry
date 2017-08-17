@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#if __cplusplus <= 201103L
+#if __cplusplus == 201103L
 #include <cstddef>
 #include <type_traits>
 #include <utility>
