@@ -24,6 +24,12 @@ protected:
 };
 
 template <>
+class Viewer<Image> : public ConfigurableViewer {
+public:
+    void show(const Image& image) const;
+};
+
+template <>
 class Viewer<Normals> : public ConfigurableViewer {
 public:
     void show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const;

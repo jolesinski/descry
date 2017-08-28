@@ -20,6 +20,7 @@ void Preprocess::configure(const Config& cfg) {
         return;
 
     log_latency_ = cfg[config::LOG_LATENCY].as<bool>(false);
+    viewer_.configure(cfg);
 
     auto& passthrough_cfg = cfg[config::preprocess::PASSTHROUGH];
     if (passthrough_cfg) {
@@ -34,6 +35,7 @@ void Preprocess::configure(const Config& cfg) {
             pass.filter(*filtered);
             remove_indices(*filtered, *pass.getRemovedIndices());
             image = Image{filtered};
+            viewer_.show(image);
         });
     }
 
@@ -49,6 +51,7 @@ void Preprocess::configure(const Config& cfg) {
             smooth.setInputCloud(image.getFullCloud().host());
             smooth.applyFilter(*filtered);
             image = Image{filtered};
+            viewer_.show(image);
         });
     }
 
@@ -97,6 +100,7 @@ void Preprocess::configure(const Config& cfg) {
                 image = Image{filtered};
                 image.setNormals(std::move(normals));
             }
+            viewer_.show(image);
         });
     }
 }

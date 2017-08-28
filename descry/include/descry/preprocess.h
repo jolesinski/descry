@@ -3,6 +3,7 @@
 
 #include <descry/common.h>
 #include <descry/image.h>
+#include <descry/viewer.h>
 #include <descry/config/preprocess.h>
 
 namespace descry {
@@ -14,6 +15,7 @@ public:
 private:
     std::vector<std::function<void( Image& )>> steps_;
     bool log_latency_;
+    Viewer<Image> viewer_;
 };
 
 }

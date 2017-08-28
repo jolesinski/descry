@@ -188,6 +188,29 @@ void show_clusters_2d(const FullCloud::ConstPtr& view, const KeyFrame& m_keyfram
 
 }
 
+void Viewer<Image>::show(const Image& image) const {
+    // scalar only for now
+    if (!cfg_.IsMap() || !cfg_["enabled"].as<bool>(false))
+        return;
+
+    auto show_2d = cfg_[config::viewer::SHOW_2D].as<bool>(false);
+    if (show_2d) {
+        auto frame = image.getColorMat();
+        cv::namedWindow( config::keypoints::NODE_NAME, cv::WINDOW_AUTOSIZE );
+        cv::imshow( config::keypoints::NODE_NAME, frame );
+        cv::waitKey();
+    } else {
+        auto viewer = make_viewer("viewer");
+        auto rgb = pcl::visualization::PointCloudColorHandlerRGBField<FullPoint>{image.getFullCloud().host()};
+        viewer.addPointCloud(image.getFullCloud().host(), rgb, config::SCENE_NODE);
+        viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, config::SCENE_NODE);
+
+        while (!viewer.wasStopped()) {
+            viewer.spinOnce(100);
+        }
+    }
+}
+
 void Viewer<Normals>::show(const FullCloud::ConstPtr& image, const Normals::ConstPtr& normals) const {
     // scalar only for now
     if (!cfg_.IsMap() || !cfg_["enabled"].as<bool>(true))
