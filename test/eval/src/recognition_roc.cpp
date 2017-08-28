@@ -6,6 +6,8 @@
 
 #include <pcl/console/print.h>
 
+#include <numeric>
+
 class RecognitionROC {
 public:
     struct Stats {

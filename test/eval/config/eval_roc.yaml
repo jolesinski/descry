@@ -4,6 +4,9 @@ models:
 # - T_13_willow_dataset
 
 viewer:
+  - &viewer-preproc
+    enabled: true
+    show-2d: false
   - &viewer-normals
     enabled: false
   - &viewer-model-description
@@ -39,13 +42,26 @@ normal-estimators:
     threads: 4
   - &normals-integral
     type: integral-image
-    integral-method: covariance
+    integral-method: depth-change
     smoothing-size: 10.0
     max-depth-change: 0.02
     viewer: *viewer-normals
   - &normals-cupcl
     type: cupcl
     support-radius: 0.02
+
+smoothing:
+  - &bilateral-filter
+    sigma-r: 0.05
+    sigma-s: 5.0
+    threads: 4
+
+plane-removal:
+  - &organized-cc
+    min-inliers: 10000
+    angular-thresh: 0.05
+    distance-thresh: 0.02
+    project-points: true
 
 keypoints:
   - &model-iss
@@ -130,9 +146,12 @@ verifiers:
 recognizer:
   preprocess:
     scene:
-  #    passthrough: 1.5
-      normals: *normals-omp
+      passthrough: 1.5
+      smoothing: *bilateral-filter
+      normals: *normals-integral
+      segmentation: *organized-cc
       log-latency: *latency-normals
+      viewer: *viewer-preproc
 
   aligner:
     type: mock
