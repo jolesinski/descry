@@ -55,8 +55,15 @@ public:
         max_distance = config[config::matcher::MAX_DISTANCE].as<float>();
 
         if (config[config::matcher::MAX_NEIGHS])
-            max_neighs = config[config::matcher::MAX_NEIGHS].as < unsigned
-        int > ();
+            max_neighs = config[config::matcher::MAX_NEIGHS].as <unsigned int>();
+
+        if (config[config::matcher::USE_LOWE]) {
+            use_lowe = config[config::matcher::USE_LOWE].as<bool>();
+            max_neighs = 2;
+        }
+
+        if (config[config::matcher::LOWE_RATIO])
+            lowe_ratio = config[config::matcher::LOWE_RATIO].as<double>();
     }
 
     ~KDTreeFlannMatching() override {};
@@ -94,11 +101,17 @@ public:
             if (!descriptorFinite<Descriptor>(scene.host()->at(i))) //skipping NaNs
                 continue;
 
-            int found_neighs = tree.nearestKSearch(scene.host()->at(i), max_neighs, neigh_indices, neigh_sqr_dists);
+            int found_neighs = tree.nearestKSearch(scene.host()->at(i), 2, neigh_indices, neigh_sqr_dists);
 
-            for (int idx = 0; idx < found_neighs; ++idx)
-                if (neigh_sqr_dists[idx] < max_distance)
-                    model_scene_corrs->emplace_back(neigh_indices[idx], static_cast<int>(i), neigh_sqr_dists[idx]);
+            if (use_lowe && found_neighs == 2
+                && neigh_sqr_dists[0] < max_distance
+                && neigh_sqr_dists[0] < lowe_ratio * lowe_ratio * neigh_sqr_dists[1]) {
+                    model_scene_corrs->emplace_back(neigh_indices[0], static_cast<int>(i), neigh_sqr_dists[0]);
+            } else {
+                for (int idx = 0; idx < found_neighs; ++idx)
+                    if (neigh_sqr_dists[idx] < max_distance)
+                        model_scene_corrs->emplace_back(neigh_indices[idx], static_cast<int>(i), neigh_sqr_dists[idx]);
+            }
         }
 
         return model_scene_corrs;
@@ -116,6 +129,8 @@ private:
     std::vector<Tree> trees;
     unsigned int max_neighs = 1;
     double max_distance = 0.0;
+    bool use_lowe = false;
+    double lowe_ratio = 0.8;
 };
 
 class BruteForceMatching : public Matcher<cv::Mat> {
@@ -132,8 +147,7 @@ public:
             max_distance = config[config::matcher::MAX_DISTANCE].as<float>();
 
         if (config[config::matcher::MAX_NEIGHS])
-            max_neighs = config[config::matcher::MAX_NEIGHS].as < unsigned
-        int > ();
+            max_neighs = config[config::matcher::MAX_NEIGHS].as<unsigned int>();
 
         if (config[config::matcher::USE_LOWE])
             use_lowe = config[config::matcher::USE_LOWE].as<bool>();
