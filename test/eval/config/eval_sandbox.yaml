@@ -103,6 +103,18 @@ feature-matching:
       max-neighs: 1
       max-distance: 0.2
 
+clusterizers:
+  - &gc
+    type: gc
+    gc-size: 0.01
+    gc-threshold: 5
+    viewer: *viewer-clusters
+  - &hough
+    type: hough
+    bin-size: 0.01
+    hough-threshold: 5
+    viewer: *viewer-clusters
+
 refiners:
   - &icp
     type: icp
@@ -144,11 +156,7 @@ alignment:
     matching:
       - *orb-matching
       - *shot-matching
-    clusters:
-      type: gc
-      gc-size: 0.01
-      gc-threshold: 5
-      viewer: *viewer-clusters
+    clusters: &hough
     viewer: *viewer-aligner
     log-latency: *latency-aligner
   - &template

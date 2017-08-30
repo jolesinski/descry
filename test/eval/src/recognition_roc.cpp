@@ -98,24 +98,28 @@ public:
     void collectStats(const std::string& model_name,
                       const descry::AlignedVector<descry::Pose>& found_poses,
                       const descry::AlignedVector<descry::Pose>& gt_poses) {
+        auto potential_fps = found_poses.size();
+
         if (found_poses.empty() && gt_poses.empty()) {
             model_stats_[model_name].true_negative_++;
             return;
         } else if (gt_poses.empty()) {
-            model_stats_[model_name].false_positive_ += found_poses.size();
+            model_stats_[model_name].false_positive_ += potential_fps;
             return;
         }
 
         auto found_gts = matchPoses(found_poses, gt_poses);
 
         for (auto tp : found_gts) {
-            if (tp.first != -1 && tp.second < max_translation_error_)
+            if (tp.first != -1 && tp.second < max_translation_error_) {
                 model_stats_[model_name].true_positive_++;
+                potential_fps--;
+            }
             else if (tp.first == -1)
                 model_stats_[model_name].false_negative_++;
-            else
-                model_stats_[model_name].false_positive_++;
         }
+        model_stats_[model_name].false_positive_ += potential_fps;
+        log_->info("Found poses: {} ", found_poses.size());
     }
 
     static void logStats(const Stats& stats) {

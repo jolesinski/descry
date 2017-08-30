@@ -1,12 +1,13 @@
 models:
  - object_13
-#tests:
+tests:
+ - T_03_willow_dataset
 # - T_13_willow_dataset
 
 viewer:
   - &viewer-preproc
-    enabled: true
-    show-2d: false
+    enabled: false
+    show-2d: true
   - &viewer-normals
     enabled: false
   - &viewer-model-description
@@ -25,15 +26,19 @@ viewer:
 #   show-only: [7, 8, 9]
     show-2d: true
     keypoint-size: 5
+  - &viewer-segmenter false
   - &viewer-aligner false
   - &viewer-refiner false
   - &viewer-verifier false
+  - &viewer-verifier false
 
 latency:
+  - &latency-model-preproc false
+  - &latency-scene-preproc true
   - &latency-model-description false
   - &latency-scene-description true
   - &latency-aligner true
-  - &latency-normals true
+  - &latency-recognizer true
 
 normal-estimators:
   - &normals-omp
@@ -42,7 +47,7 @@ normal-estimators:
     threads: 4
   - &normals-integral
     type: integral-image
-    integral-method: depth-change
+    integral-method: covariance
     smoothing-size: 10.0
     max-depth-change: 0.02
     viewer: *viewer-normals
@@ -82,7 +87,7 @@ keypoints:
     min-neighbours: 10
   - &uniform
     type: uniform
-    support-radius: 0.02
+    support-radius: 0.03
 
 feature-matching:
   - &orb-matching
@@ -103,7 +108,7 @@ feature-matching:
       type: brute-force
       norm: hamming
       use-lowe: true
-      lowe-ratio: 0.8
+      lowe-ratio: 0.76
   - &shot-matching
     description:
       model:
@@ -131,7 +136,45 @@ feature-matching:
     matcher:
       type: kdtree-flann
       max-neighs: 1
-      max-distance: 0.15
+      max-distance: 0.3
+      use-lowe: true
+      lowe-ratio: 0.15
+
+clusterizers:
+  - &gc
+    type: gc
+    gc-size: 0.01
+    gc-threshold: 5
+    viewer: *viewer-clusters
+  - &hough
+    type: hough
+    bin-size: 0.05
+    hough-threshold: 7
+    viewer: *viewer-clusters
+
+alignment:
+  - &sparse
+    type: sparse
+    matching:
+      - *orb-matching
+#      - *shot-matching
+    clusters: *gc
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &template
+    type: sliding-window
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &global
+    type: global
+    segmentation:
+      angular-thresh: 0.07
+      distance-thresh: 0.01
+      min-size: 500
+      max-size: 250000
+      viewer: *viewer-segmenter
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
 
 verifiers:
   - &papazov
@@ -145,16 +188,18 @@ verifiers:
 
 recognizer:
   preprocess:
+    model:
+      normals: *normals-integral
+      log-latency: *latency-model-preproc
     scene:
       passthrough: 1.5
       smoothing: *bilateral-filter
       normals: *normals-integral
       segmentation: *organized-cc
-      log-latency: *latency-normals
+      log-latency: *latency-scene-preproc
       viewer: *viewer-preproc
 
-  aligner:
-    type: mock
+  aligner: *sparse
 #    matching:
 ##      - *orb-matching
 #      - *shot-matching
@@ -172,3 +217,4 @@ recognizer:
 #    euclidean-fitness: 1
 #    use-reciprocal: false
 #  verification: *papazov
+  log-latency: *latency-recognizer
