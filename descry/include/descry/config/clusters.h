@@ -7,7 +7,7 @@ namespace descry { namespace config { namespace clusters {
 static constexpr auto NODE_NAME = "clusters";
 
 // PCL Hough Grouping
-static constexpr auto HOUGH_TYPE = "uniform";
+static constexpr auto HOUGH_TYPE = "hough";
 // Params
 static constexpr auto BIN_SIZE = "bin-size";
 static constexpr auto HOUGH_THRESH = "hough-threshold";
