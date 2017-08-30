@@ -1,10 +1,12 @@
 #include <descry/viewer.h>
+#include <descry/descriptors.h>
+
+#ifdef USE_VISUALIZER
 #include <descry/config/aligner.h>
 #include <descry/config/clusters.h>
 #include <descry/config/common.h>
 #include <descry/config/normals.h>
 #include <descry/config/keypoints.h>
-#include <descry/descriptors.h>
 #include <descry/keypoints.h>
 #include <descry/matching.h>
 #include <descry/model.h>
@@ -346,5 +348,27 @@ void Viewer<Aligner>::show(const FullCloud::ConstPtr& scene, const Instances& in
         viewer.spinOnce(100);
     }
 }
-
 }
+
+#else
+
+namespace descry {
+void Viewer<Image>::show(const Image& /*image*/) const {}
+
+void Viewer<Normals>::show(const FullCloud::ConstPtr& /*image*/, const Normals::ConstPtr& /*normals*/) const {}
+
+void Viewer<Keypoints>::show(const Image& /*image*/, const Keypoints& /*keypoints*/) {}
+
+void Viewer<Clusterizer>::addModel(const Model& /*model*/, const std::vector<KeyFrame::Ptr>& /*m_keyframes*/) {}
+
+void Viewer<Clusterizer>::show(const Image& /*scene*/, const ModelSceneMatches& /*matches*/) {}
+
+void Viewer<Clusterizer>::show(const Image& /*scene*/, const KeyFrame& /*keyframe*/,
+                               const std::vector<pcl::Correspondences>& /*clustered*/, unsigned int /*idx*/) {}
+
+void Viewer<Segmenter>::show(const Image& /*image*/, const std::vector<pcl::IndicesPtr>& /*segments*/) const {}
+
+void Viewer<Aligner>::show(const FullCloud::ConstPtr& /*scene*/, const Instances& /*instances*/) const {}
+}
+
+#endif

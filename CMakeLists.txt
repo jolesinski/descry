@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(descry VERSION 0.1 LANGUAGES CXX)
 
-option(USE_CUDA "Compile without CUDA support" ON)
+option(USE_CUDA "Compile with CUDA support" ON)
+if(NOT USE_CUDA)
+    add_definitions(-DCUPCL_MOCK)
+endif()
+
+option(USE_VISUALIZER "Compile with VTK visualization" ON)
+if(USE_VISUALIZER)
+    add_definitions(-DUSE_VISUALIZER)
+endif()
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV 3.1 REQUIRED)
@@ -18,11 +26,9 @@ include_directories(SYSTEM
         ${YAML_CPP_INCLUDE_DIR})
 
 add_subdirectory(extern)
+
 add_subdirectory(descry)
 
-if(NOT USE_CUDA)
-    add_definitions(-DCUPCL_MOCK)
-endif()
 
 add_subdirectory(cupcl)
 add_subdirectory(test)
