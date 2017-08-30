@@ -11,7 +11,7 @@ target_link_libraries(descry_sandbox descry)
 
 add_executable(descry_recognition_roc src/recognition_roc.cpp)
 target_include_directories(descry_recognition_roc PRIVATE ../include)
-target_link_libraries(descry_recognition_roc descry)
+target_link_libraries(descry_recognition_roc descry -pthread)
 
 set_target_properties(descry_key_eval descry_sandbox descry_recognition_roc
         PROPERTIES CXX_STANDARD 14

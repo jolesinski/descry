@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(descry VERSION 0.1 LANGUAGES CXX)
 
+option(USE_CUDA "Compile without CUDA support" ON)
+
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV 3.1 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
@@ -17,5 +19,10 @@ include_directories(SYSTEM
 
 add_subdirectory(extern)
 add_subdirectory(descry)
+
+if(NOT USE_CUDA)
+    add_definitions(-DCUPCL_MOCK)
+endif()
+
 add_subdirectory(cupcl)
 add_subdirectory(test)

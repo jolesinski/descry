@@ -17,10 +17,18 @@ struct ISSConfig {
     float lambda_threshold_3 = 0.0005f;
 };
 
+#ifndef CUPCL_MOCK
 DualShapeCloud computeISS(const DualShapeCloud& points,
                           const DualPerpective& projection,
                           const ISSConfig& cfg);
 
+#else
+inline DualShapeCloud computeISS(const DualShapeCloud& /*points*/,
+                                 const DualPerpective& /*projection*/,
+                                 const ISSConfig& /*cfg*/) {
+    return DualShapeCloud{make_cloud<ShapePoint>()};
+}
+#endif
 } }
 
 #endif //CUPCL_ISS_H

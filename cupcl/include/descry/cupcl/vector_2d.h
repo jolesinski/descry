@@ -13,8 +13,13 @@ namespace descry { namespace cupcl {
 
 // To keep descy independent of CUDA compiler, leave incomplete
 #ifndef __CUDACC__
+#ifndef CUPCL_MOCK
 template <class Point, class HostContainer>
 class DeviceVector2d;
+#else
+template <class Point, class HostContainer>
+class DeviceVector2d {};
+#endif
 #else
 
 template <class Point, class HostContainer>

@@ -56,6 +56,57 @@ private:
     mutable DeviceContainer d_container;
 };
 
+#ifdef CUPCL_MOCK
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::DualContainer() = default;
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::DualContainer(H_C h) : h_container(std::move(h)) {}
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::DualContainer(D_C d) : d_container(std::move(d)) {}
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::DualContainer(DualContainer&& other) = default;
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>& DualContainer<H_T, H_C, D_T, D_C>::operator=(DualContainer<H_T, H_C, D_T, D_C>&& other) = default;
+
+template<class H_T, class H_C, class D_T, class D_C>
+DualContainer<H_T, H_C, D_T, D_C>::~DualContainer() = default;
+
+
+template<class H_T, class H_C, class D_T, class D_C>
+void DualContainer<H_T, H_C, D_T, D_C>::clearDevice() {}
+
+template<class H_T, class H_C, class D_T, class D_C>
+void DualContainer<H_T, H_C, D_T, D_C>::clearHost() {
+    h_container.reset();
+}
+
+template<class H_T, class H_C, class D_T, class D_C>
+bool DualContainer<H_T, H_C, D_T, D_C>::isDeviceSet() const noexcept { return false; }
+
+template<class H_T, class H_C, class D_T, class D_C>
+bool DualContainer<H_T, H_C, D_T, D_C>::isHostSet() const noexcept {
+    return !!h_container;
+}
+
+template<class H_T, class H_C, class D_T, class D_C>
+void DualContainer<H_T, H_C, D_T, D_C>::upload() const {}
+
+template<class H_T, class H_C, class D_T, class D_C>
+void DualContainer<H_T, H_C, D_T, D_C>::download() const {}
+
+template<class H_T, class H_C, class D_T, class D_C>
+std::size_t DualContainer<H_T, H_C, D_T, D_C>::size() const noexcept {
+    if (isHostSet())
+        return h_container->size();
+    return 0;
+}
+
+#endif
+
 } }
 
 #endif //DESCRY_CUPCL_MEMORY_H
