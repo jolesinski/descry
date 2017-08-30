@@ -40,27 +40,30 @@ AlignedVector<View> SphericalProjector::generateViews(const FullCloud::ConstPtr&
 }
 
 View SphericalProjector::project(const FullCloud::ConstPtr& full, const Pose& viewpoint) const {
-    struct hasher : public std::unary_function<std::pair<int, int>, std::size_t>
+    using UVType = uint16_t;
+    using UVPair = std::pair<UVType, UVType>;
+
+    struct hasher : public std::unary_function<UVPair, std::size_t>
     {
-        std::size_t operator()(const std::pair<int, int>& k) const
+        std::size_t operator()(const UVPair& k) const
         {
-            return (static_cast<size_t>(k.first) << 32) | k.second;
+            return (static_cast<std::size_t>(k.first) << 16) | k.second;
         }
     };
 
-    struct equalizer : public std::binary_function<std::pair<int, int>, std::pair<int, int>, bool>
+    struct equalizer : public std::binary_function<UVPair, UVPair, bool>
     {
-        bool operator()(const std::pair<int, int>& v0, const std::pair<int, int>& v1) const
+        bool operator()(const UVPair& v0, const UVPair& v1) const
         {
             return (v0.first == v1.first) && (v0.second == v1.second);
         }
     };
-    std::unordered_map<const std::pair<int, int>, descry::FullPoint, hasher, equalizer> plane_to_space;
+    std::unordered_map<const UVPair, descry::FullPoint, hasher, equalizer> plane_to_space;
 
-    auto min_uv = std::make_pair(std::numeric_limits<int>::max(),
-                                 std::numeric_limits<int>::max());
-    auto max_uv = std::make_pair(std::numeric_limits<int>::min(),
-                                 std::numeric_limits<int>::min());
+    auto min_uv = std::make_pair(std::numeric_limits<UVType>::max(),
+                                 std::numeric_limits<UVType>::max());
+    auto max_uv = std::make_pair(std::numeric_limits<UVType>::min(),
+                                 std::numeric_limits<UVType>::min());
 
     for(const auto& point : full->points)
     {
@@ -75,8 +78,8 @@ View SphericalProjector::project(const FullCloud::ConstPtr& full, const Pose& vi
 
         Eigen::Vector3f projected = perspective * transformed.getVector4fMap();
         auto plane_uv = std::make_pair(
-                static_cast<int>(std::round(projected(0) / projected(2))),
-                static_cast<int>(std::round(projected(1) / projected(2)))
+                static_cast<UVType>(std::round(projected(0) / projected(2))),
+                static_cast<UVType>(std::round(projected(1) / projected(2)))
         );
 
         if ( plane_to_space.count(plane_uv) == 0 || plane_to_space[plane_uv].z > transformed.z )
@@ -89,8 +92,8 @@ View SphericalProjector::project(const FullCloud::ConstPtr& full, const Pose& vi
     }
 
     pcl::PointCloud<descry::FullPoint>::Ptr partial(new pcl::PointCloud<descry::FullPoint>());
-    partial->width = max_uv.first - min_uv.first + 1;
-    partial->height = max_uv.second - min_uv.second + 1;
+    partial->width = max_uv.first - min_uv.first + 1u;
+    partial->height = max_uv.second - min_uv.second + 1u;
     partial->points.resize(partial->width * partial->height);
     partial->is_dense = false;
 
@@ -100,7 +103,7 @@ View SphericalProjector::project(const FullCloud::ConstPtr& full, const Pose& vi
         {
             descry::FullPoint& point = partial->at(u, v);
             auto uv = std::make_pair(u + min_uv.first, v + min_uv.second);
-            if ( plane_to_space.count(uv) ) {
+            if ( plane_to_space.count(uv) != 0 ) {
                 indices.emplace_back(u + v * partial->height);
                 point = plane_to_space.at(uv);
             }
