@@ -178,6 +178,7 @@ Instances SparseAligner::compute(const Image& image) {
     auto latency = measure_latency("Folding matches", log_latency_);
     auto folded_matches = fold_matches(model_scene_matches, image, folded_kfs_);
     latency.finish();
+    logger::get()->info("Found matches: {}", model_scene_matches.size());
 
     latency.start("Clustering");
     auto instances = clustering_.compute(image, folded_matches);
