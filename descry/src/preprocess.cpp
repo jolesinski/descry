@@ -12,6 +12,8 @@
 #include <descry/config/common.h>
 #include <descry/latency.h>
 #include <descry/utils.h>
+#include <pcl/filters/radius_outlier_removal.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 namespace descry {
 
@@ -69,7 +71,7 @@ void Preprocess::configure(const Config& cfg) {
         }
     }
 
-    auto& segmentation_cfg = cfg[config::preprocess::SEGMENTATION];
+    auto& segmentation_cfg = cfg[config::preprocess::PLANE_REMOVAL];
     if (segmentation_cfg) {
         pcl::OrganizedMultiPlaneSegmentation<descry::FullPoint, pcl::Normal, pcl::Label> mps;
         mps.setMinInliers(segmentation_cfg[config::preprocess::MIN_INLIERS].as<unsigned int>(10000));
@@ -103,9 +105,44 @@ void Preprocess::configure(const Config& cfg) {
             viewer_.show(image);
         });
     }
+
+    auto& outlier_cfg = cfg[config::preprocess::OUTLIER_REMOVAL];
+    if (outlier_cfg) {
+        auto type = outlier_cfg[config::TYPE_NODE].as<std::string>(config::preprocess::OUTLIER_RADIUS);
+        if (type == config::preprocess::OUTLIER_STAT) {
+            pcl::StatisticalOutlierRemoval<descry::FullPoint> outrem;
+            outrem.setKeepOrganized(true);
+            outrem.setStddevMulThresh(outlier_cfg[config::preprocess::OUTLIER_STDDEV_MUL].as<float>(1.0));
+            outrem.setMeanK(outlier_cfg[config::preprocess::OUTLIER_MEANK].as<int>(50));
+            steps_.emplace_back( [outrem, this] (Image& image) mutable {
+                auto latency = measure_scope_latency("Outliers", this->log_latency_);
+                auto filtered = make_cloud<descry::FullPoint>();
+                outrem.setInputCloud(image.getFullCloud().host());
+                outrem.filter(*filtered);
+                logger::get()->info("Removed indices {}", outrem.getRemovedIndices()->size());
+                image = Image{filtered};
+                viewer_.show(image);
+            });
+        } else {
+            pcl::RadiusOutlierRemoval<descry::FullPoint> outrem;
+            outrem.setKeepOrganized(true);
+            outrem.setRadiusSearch(outlier_cfg[config::preprocess::OUTLIER_RADIUS].as<float>(0.1));
+            outrem.setMinNeighborsInRadius(outlier_cfg[config::preprocess::OUTLIER_NEIGHBOURS].as<int>(5));
+            steps_.emplace_back( [outrem, this] (Image& image) mutable {
+                auto latency = measure_scope_latency("Outliers", this->log_latency_);
+                auto filtered = make_cloud<descry::FullPoint>();
+                outrem.setInputCloud(image.getFullCloud().host());
+                outrem.filter(*filtered);
+                logger::get()->info("Removed indices {}", outrem.getRemovedIndices()->size());
+                image = Image{filtered};
+                viewer_.show(image);
+            });
+        }
+    }
 }
 
 void Preprocess::process(Image& image) const {
+    viewer_.show(image);
     for(auto& step : steps_)
         step(image);
 }

@@ -12,11 +12,18 @@ static constexpr auto SIGMA_R = "sigma-r";
 // larger features are smoothed out with larger simga-s
 static constexpr auto SIGMA_S = "sigma-s";
 
-static constexpr auto SEGMENTATION = "segmentation";
+static constexpr auto PLANE_REMOVAL = "plane-removal";
 static constexpr auto MIN_INLIERS = "min-inliers";
 static constexpr auto ANGULAR_THRESH = "angular-thresh";
 static constexpr auto DISTANCE_THRESH = "distance-thresh";
 static constexpr auto PROJECT_POINTS = "project-points";
+
+static constexpr auto OUTLIER_REMOVAL = "outlier-removal";
+static constexpr auto OUTLIER_STAT = "statistical";
+static constexpr auto OUTLIER_MEANK = "mean-k";
+static constexpr auto OUTLIER_STDDEV_MUL = "stddev-multiplier";
+static constexpr auto OUTLIER_RADIUS = "radius";
+static constexpr auto OUTLIER_NEIGHBOURS = "min-neighbours";
 
 }}}
 

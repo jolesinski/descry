@@ -12,7 +12,7 @@ viewer:
     show-2d: true
   - &viewer-scene-preproc
     enabled: true
-    show-2d: false
+    show-2d: true
   - &viewer-normals
     enabled: false
   - &viewer-model-description
@@ -76,8 +76,13 @@ plane-removal:
 
 outlier-removal:
   - &radius-or
-    radius: 1.0
-    min-neighbours: 50
+    type: radius
+    radius: 0.1
+    min-neighbours: 5
+  - &statistical-or
+    type: statistical
+    mean-k: 1.0
+    stddev-multiplier: 50
 
 keypoints:
   - &model-iss
@@ -207,7 +212,7 @@ recognizer:
       viewer: *viewer-model-preproc
     scene:
       passthrough: 1.5
-      outlier-removal: *bilateral-filter
+      outlier-removal: *radius-or
       smoothing: *bilateral-filter
       normals: *normals-omp
       plane-removal: *organized-cc
