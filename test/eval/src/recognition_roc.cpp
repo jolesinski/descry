@@ -53,9 +53,10 @@ public:
         double getRecall() const { return getTruePositiveRate(); }
     };
 
-    RecognitionROC() : log_(descry::logger::get()),
-                       willow_db_(descry::test::loadDBConfig()),
-                       willow_ts_(descry::test::loadDBConfig()) {}
+    explicit RecognitionROC(const std::string& db_config_path) :
+            log_(descry::logger::get()),
+            willow_db_(descry::test::loadDBConfig(db_config_path)),
+            willow_ts_(descry::test::loadDBConfig(db_config_path)) {}
 
     static float rotationError(const descry::Pose& found, const descry::Pose& gt) {
         Eigen::Vector4f test;
@@ -230,8 +231,9 @@ int main(int argc, char * argv[]) {
         return EXIT_FAILURE;
     }
 
+    auto db_conf_path = cfg["db_conf_path"].as<std::string>(descry::test::DB_CFG_PATH);
 
-    auto roc = RecognitionROC{};
+    auto roc = RecognitionROC{db_conf_path};
     roc.evaluate(cfg);
 
     return EXIT_SUCCESS;

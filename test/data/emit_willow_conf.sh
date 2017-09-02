@@ -28,7 +28,7 @@ function emit_array_elem {
 function emit_model {
     emit 'models:'
     shopt -s nullglob
-    for object in ${WILLOW_DB_PATH}/willow_models/*; do
+    for object in ${WILLOW_DB_PATH}/*models/*; do
         if [[ -d $object ]]; then
             indent
             emit "$(basename "$object"):"

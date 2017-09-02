@@ -1,13 +1,18 @@
+#db_conf_path: '/home/oles/mgr/datasets/my/my.yaml'
+
 models:
  - object_13
 tests:
  - T_03_willow_dataset
-# - T_13_willow_dataset
+ - T_13_willow_dataset
 
 viewer:
-  - &viewer-preproc
+  - &viewer-model-preproc
     enabled: false
     show-2d: true
+  - &viewer-scene-preproc
+    enabled: true
+    show-2d: false
   - &viewer-normals
     enabled: false
   - &viewer-model-description
@@ -33,7 +38,7 @@ viewer:
   - &viewer-verifier false
 
 latency:
-  - &latency-model-preproc false
+  - &latency-model-preproc true
   - &latency-scene-preproc true
   - &latency-model-description false
   - &latency-scene-description true
@@ -54,6 +59,7 @@ normal-estimators:
   - &normals-cupcl
     type: cupcl
     support-radius: 0.02
+    viewer: *viewer-normals
 
 smoothing:
   - &bilateral-filter
@@ -67,6 +73,11 @@ plane-removal:
     angular-thresh: 0.05
     distance-thresh: 0.02
     project-points: true
+
+outlier-removal:
+  - &radius-or
+    radius: 1.0
+    min-neighbours: 50
 
 keypoints:
   - &model-iss
@@ -175,6 +186,8 @@ alignment:
       viewer: *viewer-segmenter
     viewer: *viewer-aligner
     log-latency: *latency-aligner
+  - &mock
+    type: mock
 
 verifiers:
   - &papazov
@@ -189,17 +202,19 @@ verifiers:
 recognizer:
   preprocess:
     model:
-      normals: *normals-integral
+      normals: *normals-cupcl
       log-latency: *latency-model-preproc
+      viewer: *viewer-model-preproc
     scene:
       passthrough: 1.5
+      outlier-removal: *bilateral-filter
       smoothing: *bilateral-filter
-      normals: *normals-integral
-      segmentation: *organized-cc
+      normals: *normals-omp
+      plane-removal: *organized-cc
       log-latency: *latency-scene-preproc
-      viewer: *viewer-preproc
+      viewer: *viewer-scene-preproc
 
-  aligner: *sparse
+  aligner: *mock
 #    matching:
 ##      - *orb-matching
 #      - *shot-matching
