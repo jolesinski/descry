@@ -3,6 +3,8 @@
 #include <opencv2/features2d.hpp>
 #include <descry/latency.h>
 
+#include <opencv2/xfeatures2d/nonfree.hpp>
+
 #define PCL_NO_PRECOMPILE
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/fpfh_omp.h>
@@ -108,6 +110,49 @@ struct convert<cv::Ptr<cv::ORB>> {
             if (elem)
                 rhs->setWTA_K(elem.as<int>());
         }
+
+        return true;
+    }
+};
+
+template<>
+struct convert<cv::Ptr<cv::AKAZE>> {
+    static bool decode(const Node &node, cv::Ptr<cv::AKAZE> &rhs) {
+        namespace cfg = descry::config::features;
+
+        if (!node.IsMap())
+            return false;
+
+        rhs = cv::AKAZE::create();
+
+        auto descr_size = node[cfg::AKAZE_SIZE].as<int>(0);
+        auto descr_channels = node[cfg::AKAZE_CHANNELS].as<int>(3);
+        auto nOctaves = node[cfg::NUM_OCTAVES].as<int>(4);
+        auto nOctaveLayers = node[cfg::OCTAVE_LAYERS].as<int>(4);
+        auto thresh = node[cfg::AKAZE_THRESH].as<float>(0.001);
+
+        rhs = cv::AKAZE::create(cv::AKAZE::DESCRIPTOR_MLDB, descr_size, descr_channels, thresh, nOctaves, nOctaveLayers);
+
+        return true;
+    }
+};
+
+template<>
+struct convert<cv::Ptr<cv::xfeatures2d::SIFT>> {
+    static bool decode(const Node &node, cv::Ptr<cv::xfeatures2d::SIFT> &rhs) {
+        namespace cfg = descry::config::features;
+
+        if (!node.IsMap())
+            return false;
+
+        // optionals
+        auto nFeatures = node[cfg::RETAIN_FEATURES].as<int>(0);
+        auto nOctaveLayers = node[cfg::OCTAVE_LAYERS].as<int>(3);
+        auto contrastThreshold = node[cfg::CONTRAST_THRESH].as<double>(0.04);
+        auto edgeThreshold = node[cfg::EDGE_THRESH].as<double>(10.);
+        auto sigma = node[cfg::SIGMA].as<double>(1.6);
+
+        rhs = cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 
         return true;
     }
@@ -255,26 +300,32 @@ bool Describer<cv::Mat>::configure(const Config& cfg) {
     if (!features_config[config::TYPE_NODE])
         return false;
     auto est_type = features_config[config::TYPE_NODE].as<std::string>();
+    cv::Ptr<cv::Feature2D> descr{};
     try {
-        if (est_type == config::features::ORB_TYPE) {
-            auto descr = features_config.as<cv::Ptr<cv::ORB>>();
-            _descr = [ descr{std::move(descr)}, this ] (const Image& image) mutable {
-                auto color = ColorDescription{};
-                {
-                    auto scoped_latency = measure_scope_latency(config::features::NODE_NAME, this->log_latency_);
-                    descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
-                }
-                auto filtered_color = filter_null_keypoints(color, image);
-                auto d = Description<cv::Mat>{};
-                d.setKeypoints(Keypoints{std::move(filtered_color.keypoints), image});
-                d.setFeatures(std::move(filtered_color.descriptors));
-                return d;
-            };
-        } else
+        if (est_type == config::features::ORB_TYPE)
+            descr = features_config.as<cv::Ptr<cv::ORB>>();
+        else if (est_type == config::features::AKAZE_TYPE)
+            descr = features_config.as<cv::Ptr<cv::AKAZE>>();
+        else if (est_type == config::features::SIFT_TYPE)
+            descr = features_config.as<cv::Ptr<cv::xfeatures2d::SIFT>>();
+        else
             return false;
     } catch ( const YAML::BadConversion& e) {
         return false;
     }
+
+    _descr = [ descr{std::move(descr)}, this ] (const Image& image) mutable {
+        auto color = ColorDescription{};
+        {
+            auto scoped_latency = measure_scope_latency(config::features::NODE_NAME, this->log_latency_);
+            descr->detectAndCompute(image.getColorMat(), cv::noArray(), color.keypoints, color.descriptors);
+        }
+        auto filtered_color = filter_null_keypoints(color, image);
+        auto d = Description<cv::Mat>{};
+        d.setKeypoints(Keypoints{std::move(filtered_color.keypoints), image});
+        d.setFeatures(std::move(filtered_color.descriptors));
+        return d;
+    };
 
     viewer_.configure(cfg);
     if (cfg[config::LOG_LATENCY])

@@ -11,7 +11,7 @@ viewer:
     enabled: false
     show-2d: true
   - &viewer-scene-preproc
-    enabled: true
+    enabled: false
     show-2d: true
   - &viewer-normals
     enabled: false
@@ -21,7 +21,7 @@ viewer:
     show-2d: true
   - &viewer-scene-description
     enabled: false
-    show-only: [7]
+#    show-only: [7]
     show-2d: true
   - &viewer-clusters
     enabled: false
@@ -91,15 +91,15 @@ keypoints:
     non-max-radius: 0.02
     lambda-ratio-21: 0.9
     lambda-ratio-32: 0.2
-    lambda-threshold-3: 1e-6
+    lambda-threshold-3: 1e-8
     min-neighbours: 10
   - &scene-iss
-    type: iss-cupcl
-    salient-radius: 0.005
-    non-max-radius: 0.01
-    lambda-ratio-21: 0.9
-    lambda-ratio-32: 0.2
-    lambda-threshold-3: 1e-6
+    type: iss
+    salient-radius: 0.01
+    non-max-radius: 0.015
+    lambda-ratio-21: 0.5
+    lambda-ratio-32: 0.5
+    lambda-threshold-3: 1e-8
     min-neighbours: 10
   - &uniform
     type: uniform
@@ -125,29 +125,72 @@ feature-matching:
       norm: hamming
       use-lowe: true
       lowe-ratio: 0.76
+  - &akaze-matching
+    description:
+      model:
+        features: &akaze
+          type: akaze
+          akaze-size: 0
+          akaze-channels: 3
+          akaze-thresh: 0.001
+          num-octaves: 4
+          octave-layers: 4
+        viewer: *viewer-model-description
+        log-latency: *latency-model-description
+      scene:
+        features: *akaze
+        viewer: *viewer-scene-description
+        log-latency: *latency-scene-description
+    matcher:
+      type: brute-force
+      norm: hamming
+      use-lowe: true
+      lowe-ratio: 0.76
+  - &sift-matching
+    description:
+      model:
+        features: &sift
+          type: sift
+          retain-features: 0
+          octave-layers: 3
+          contrast-thresh: 0.1
+          edge-thresh: 50.0
+          sigma: 1.6
+        viewer: *viewer-model-description
+        log-latency: *latency-model-description
+      scene:
+        features: *sift
+        viewer: *viewer-scene-description
+        log-latency: *latency-scene-description
+    matcher:
+      type: brute-force
+      norm: l2
+      use-lowe: true
+      lowe-ratio: 0.76
   - &shot-matching
     description:
       model:
-        keypoints: *uniform
+        keypoints: *model-iss
         reference-frames:
           type: board
           find-holes: true
           support-radius: 0.015
         features:
           type: shot
-          support-radius: 0.015
+          support-radius: 0.025
           threads: 4
         log-latency: *latency-model-description
       scene:
-        keypoints: *uniform
+        keypoints: *scene-iss
         reference-frames:
           type: board
           find-holes: true
           support-radius: 0.015
         features:
           type: shot
-          support-radius: 0.015
+          support-radius: 0.025
           threads: 4
+        viewer: *viewer-scene-description
         log-latency: *latency-scene-description
     matcher:
       type: kdtree-flann
@@ -172,8 +215,10 @@ alignment:
   - &sparse
     type: sparse
     matching:
-      - *orb-matching
+#      - *orb-matching
+#      - *akaze-matching
 #      - *shot-matching
+      - *sift-matching
     clusters: *gc
     viewer: *viewer-aligner
     log-latency: *latency-aligner
@@ -212,14 +257,14 @@ recognizer:
       viewer: *viewer-model-preproc
     scene:
       passthrough: 1.5
-      outlier-removal: *radius-or
+#      outlier-removal: *radius-or
       smoothing: *bilateral-filter
-      normals: *normals-omp
+      normals: *normals-cupcl
       plane-removal: *organized-cc
       log-latency: *latency-scene-preproc
       viewer: *viewer-scene-preproc
 
-  aligner: *mock
+  aligner: *sparse
 #    matching:
 ##      - *orb-matching
 #      - *shot-matching

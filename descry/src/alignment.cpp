@@ -12,6 +12,8 @@
 #include <pcl/features/our_cvfh.h>
 #undef PCL_NO_PRECOMPILE
 
+#include <numeric>
+
 namespace descry {
 
 namespace {
@@ -178,7 +180,12 @@ Instances SparseAligner::compute(const Image& image) {
     auto latency = measure_latency("Folding matches", log_latency_);
     auto folded_matches = fold_matches(model_scene_matches, image, folded_kfs_);
     latency.finish();
-    logger::get()->info("Found matches: {}", model_scene_matches.size());
+
+    logger::get()->info("Found matches: {} total: {}",
+                        std::accumulate(folded_matches.view_corrs.begin(), folded_matches.view_corrs.end(),
+                                        std::string{}, [](auto acc, auto elem){ return acc + std::to_string(elem.corrs->size()) + ", "; }),
+                        std::accumulate(folded_matches.view_corrs.begin(), folded_matches.view_corrs.end(),
+                                        0, [](auto acc, auto elem){ return acc + elem.corrs->size(); }));
 
     latency.start("Clustering");
     auto instances = clustering_.compute(image, folded_matches);

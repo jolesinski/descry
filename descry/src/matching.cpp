@@ -124,6 +124,10 @@ std::unique_ptr<Matching> makeStrategy(const Config& cfg) {
         return std::make_unique<SparseMatching<pcl::FPFHSignature33>>(cfg);
     else if (descr_type == config::features::ORB_TYPE)
         return std::make_unique<SparseMatching<cv::Mat>>(cfg);
+    else if (descr_type == config::features::AKAZE_TYPE)
+        return std::make_unique<SparseMatching<cv::Mat>>(cfg);
+    else if (descr_type == config::features::SIFT_TYPE)
+        return std::make_unique<SparseMatching<cv::Mat>>(cfg);
     else
         DESCRY_THROW(InvalidConfigException, "unsupported descriptor type");
 }
