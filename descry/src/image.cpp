@@ -37,6 +37,16 @@ cv::Mat convertToColorMat(const descry::FullCloud::ConstPtr& in) {
     return frame;
 }
 
+cv::Mat convertToDepthMat(const descry::FullCloud::ConstPtr& in) {
+    cv::Mat frame = cv::Mat::zeros(in->height, in->width, CV_32FC1);
+    frame.forEach<float>([&](float& pixel, const int position[]) -> void {
+        const auto& point = in->at(position[1], position[0]);
+        pixel = point.z;
+    });
+
+    return frame;
+}
+
 }
 
 namespace descry {
@@ -62,6 +72,13 @@ const cv::Mat& Image::getColorMat() const {
         color = convertToColorMat(full.host());
 
     return color;
+}
+
+const cv::Mat& Image::getDepthMat() const {
+    if (depth.empty())
+        depth = convertToDepthMat(full.host());
+
+    return depth;
 }
 
 const DualNormals& Image::getNormals() const {

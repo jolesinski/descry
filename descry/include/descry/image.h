@@ -14,6 +14,7 @@ public:
     const DualPerpective& getProjection() const;
     const DualShapeCloud& getShapeCloud() const;
     const cv::Mat& getColorMat() const;
+    const cv::Mat& getDepthMat() const;
 
     const DualNormals& getNormals() const;
     void setNormals(DualNormals&& normals);
@@ -24,6 +25,7 @@ private:
     mutable DualPerpective projection;
     mutable DualShapeCloud shape;
     mutable cv::Mat color;
+    mutable cv::Mat depth;
     DualNormals normals;
 };
 
