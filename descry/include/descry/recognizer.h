@@ -20,7 +20,7 @@ public:
 private:
     Preprocess model_preproc_;
     Preprocess scene_preproc_;
-    Aligner aligner_;
+    std::vector<Aligner> aligners_;
     Refiner refiner_;
     Verifier verifier_;
     bool log_latency_;

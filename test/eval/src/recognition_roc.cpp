@@ -100,6 +100,7 @@ public:
                       const descry::AlignedVector<descry::Pose>& found_poses,
                       const descry::AlignedVector<descry::Pose>& gt_poses) {
         auto potential_fps = found_poses.size();
+        auto potential_fns = gt_poses.size();
 
         if (found_poses.empty() && gt_poses.empty()) {
             model_stats_[model_name].true_negative_++;
@@ -115,12 +116,12 @@ public:
             if (tp.first != -1 && tp.second < max_translation_error_) {
                 model_stats_[model_name].true_positive_++;
                 potential_fps--;
+                potential_fns--;
             }
-            else if (tp.first == -1)
-                model_stats_[model_name].false_negative_++;
         }
         model_stats_[model_name].false_positive_ += potential_fps;
-        log_->info("Found poses: {} ", found_poses.size());
+        model_stats_[model_name].false_negative_ += potential_fns;
+        descry::logger::get()->info("Found poses: {} gt: {} ", found_poses.size(), gt_poses.size());
     }
 
     static void logStats(const Stats& stats) {
@@ -165,7 +166,7 @@ public:
         auto progress_total = model_names.size() * test_names.size();
 
         for (const auto& model_name : model_names) {
-            log_->info("Processing model {}", model_name);
+            descry::logger::get()->info("Processing model {}", model_name);
             auto latency = descry::measure_latency("Loading model", log_latency);
             auto model = willow_db_.loadModel(model_name);
             latency.start("Training");
@@ -173,7 +174,7 @@ public:
             latency.finish();
 
             for (const auto& test_name : test_names) {
-                log_->info("Processing test {}", test_name);
+                descry::logger::get()->info("Processing test {}", test_name);
                 latency.start("Loading test scenes");
                 auto test_data = willow_ts_.loadSingleTest(test_name);
                 latency.finish();
@@ -190,7 +191,7 @@ public:
                     else
                         collectStats(model_name, instances.poses, {});
                 }
-                log_->info("Progress {}%", (++progress_count*100)/progress_total);
+                descry::logger::get()->info("Progress {}%", (++progress_count*100)/progress_total);
             }
             logStats(model_stats_[model_name]);
         }

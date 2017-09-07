@@ -1,3 +1,5 @@
+
+
 #include <descry/alignment.h>
 #include <descry/clusters.h>
 #include <descry/matching.h>
@@ -8,9 +10,7 @@
 #include <opencv2/imgproc.hpp>
 #include <pcl/common/centroid.h>
 
-#define PCL_NO_PRECOMPILE
-#include <pcl/features/our_cvfh.h>
-#undef PCL_NO_PRECOMPILE
+#include <descry/ourcvfh.h>
 
 #include <numeric>
 
@@ -181,6 +181,12 @@ Instances SparseAligner::compute(const Image& image) {
     auto folded_matches = fold_matches(model_scene_matches, image, folded_kfs_);
     latency.finish();
 
+
+    logger::get()->info("Found keypoints: scene: {} model: {}",
+                        folded_matches.scene->keypoints.size(),
+                        std::accumulate(folded_matches.view_corrs.begin(), folded_matches.view_corrs.end(), std::string{},
+                                        [](auto acc, auto elem){ return acc + std::to_string(elem.view->keypoints.size()) + ", "; }));
+
     logger::get()->info("Found matches: {} total: {}",
                         std::accumulate(folded_matches.view_corrs.begin(), folded_matches.view_corrs.end(),
                                         std::string{}, [](auto acc, auto elem){ return acc + std::to_string(elem.corrs->size()) + ", "; }),
@@ -298,15 +304,20 @@ Instances SlidingWindow::compute(const Image& image) {
 
 class GlobalAligner : public Aligner {
 public:
+    using VFHVector = std::vector<pcl::PointCloud<pcl::VFHSignature308>::Ptr>;
+
     GlobalAligner(const Config& cfg);
 
     void train(const Model& model) override;
     Instances compute(const Image& image) override;
+    AlignedVector<Pose> match(const VFHVector& scene_features, const AlignedVector<Pose>& feature_poses);
 private:
     Segmenter segmenter_;
     FullCloud::ConstPtr full_model_;
     Viewer<Aligner> viewer_;
-    std::vector<pcl::PointCloud<pcl::VFHSignature308>::Ptr> view_features_;
+    VFHVector view_features_;
+    AlignedVector<Pose> model_feature_transforms_;
+    pcl::PointCloud<pcl::VFHSignature308>::Ptr combined_model_;
     bool log_latency_ = false;
 };
 
@@ -322,7 +333,7 @@ void GlobalAligner::train(const Model& model) {
     segmenter_.train(model);
 
     for (const auto& view : model.getViews()) {
-        pcl::OURCVFHEstimation<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
+        pcl_fixed::OURCVFHEstimation2<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
         ourcvfh.setInputCloud(view.image.getShapeCloud().host());
         ourcvfh.setInputNormals(view.image.getNormals().host());
         ourcvfh.setEPSAngleThreshold(static_cast<float>(5.0 / 180.0 * M_PI)); // 5 degrees.
@@ -332,9 +343,50 @@ void GlobalAligner::train(const Model& model) {
         ourcvfh.setIndices(indices_ptr);
         auto descriptors = make_cloud<pcl::VFHSignature308>();
         ourcvfh.compute(*descriptors);
+
+        auto transforms = AlignedVector<Pose>{};
+        ourcvfh.getTransforms(transforms);
+
+        for (auto& transform : transforms) {
+            model_feature_transforms_.emplace_back(view.viewpoint*transform);
+        }
+
         view_features_.emplace_back(descriptors);
         logger::get()->error("Training OURCVFH got {} descriptors", descriptors->size());
     }
+
+    combined_model_ = make_cloud<pcl::VFHSignature308>();
+
+    logger::get()->error("asdf");
+    for (auto& view : view_features_)
+        combined_model_->insert(combined_model_->end(), view->begin(), view->end());
+    logger::get()->error("asdf2");
+}
+
+AlignedVector<Pose> GlobalAligner::match(const VFHVector& segment_features, const AlignedVector<Pose>& feature_poses) {
+    AlignedVector<Pose> instances;
+    pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
+    pcl::KdTreeFLANN<pcl::VFHSignature308> kdtree;
+    kdtree.setInputCloud(combined_model_);
+
+    std::vector<int> foundIndices(1);
+    std::vector<float> foundDistances(1);
+    int i = 0;
+    for (auto& segment : segment_features) {
+        for (auto& feature : *segment) {
+            if (kdtree.nearestKSearch(feature, 1, foundIndices, foundDistances) == 1) {
+                logger::get()->error("Nearest match {} with distance {}", foundIndices.front(), std::sqrt(foundDistances.front()));
+                if (foundDistances.front() < 4000000) {
+                    model_scene_corrs->emplace_back(foundIndices.front(), i, foundDistances.front());
+                    instances.emplace_back(feature_poses.at(i).inverse()*model_feature_transforms_.at(foundIndices.front()));
+                }
+            }
+            i++;
+        }
+    }
+    logger::get()->error("Found matches {}", model_scene_corrs->size());
+
+    return AlignedVector<Pose>{};
 }
 
 Instances GlobalAligner::compute(const Image& image) {
@@ -342,7 +394,7 @@ Instances GlobalAligner::compute(const Image& image) {
     logger::get()->error("Segmenter got {} segments", segments.size());
 
     // OUR-CVFH estimation object.
-    pcl::OURCVFHEstimation<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
+    pcl_fixed::OURCVFHEstimation2<ShapePoint, pcl::Normal, pcl::VFHSignature308> ourcvfh;
     ourcvfh.setInputCloud(image.getShapeCloud().host());
     ourcvfh.setInputNormals(image.getNormals().host());
     ourcvfh.setEPSAngleThreshold(static_cast<float>(5.0 / 180.0 * M_PI)); // 5 degrees.
@@ -351,16 +403,26 @@ Instances GlobalAligner::compute(const Image& image) {
     // Set the minimum axis ratio between the SGURF axes. At the disambiguation phase,
     // this will decide if additional Reference Frames need to be created, if ambiguous.
     ourcvfh.setAxisRatio(0.8);
+
+    VFHVector segment_features;
+    AlignedVector<Pose> feature_poses;
+
     for (auto& segment : segments) {
         ourcvfh.setIndices(segment);
         auto latency = measure_scope_latency("OURCVFH", true);
         auto descriptors = make_cloud<pcl::VFHSignature308>();
         ourcvfh.compute(*descriptors);
+        segment_features.emplace_back(descriptors);
         logger::get()->error("OURCVFH got {} descriptors", descriptors->size());
+
+        AlignedVector<Pose> transforms;
+        ourcvfh.getTransforms(transforms);
+        feature_poses.insert(feature_poses.end(), transforms.begin(), transforms.end());
     }
 
     auto instances = Instances{};
     instances.cloud = full_model_;
+    instances.poses = match(segment_features, feature_poses);
     return instances;
 }
 

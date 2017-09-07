@@ -2,9 +2,9 @@
 
 models:
  - object_13
-tests:
- - T_03_willow_dataset
- - T_13_willow_dataset
+#tests:
+# - T_03_willow_dataset
+# - T_13_willow_dataset
 
 viewer:
   - &viewer-model-preproc
@@ -31,7 +31,7 @@ viewer:
 #   show-only: [7, 8, 9]
     show-2d: true
     keypoint-size: 5
-  - &viewer-segmenter false
+  - &viewer-segmenter true
   - &viewer-aligner false
   - &viewer-refiner false
   - &viewer-verifier false
@@ -94,7 +94,7 @@ keypoints:
     lambda-threshold-3: 1e-8
     min-neighbours: 10
   - &scene-iss
-    type: iss
+    type: iss-cupcl
     salient-radius: 0.01
     non-max-radius: 0.015
     lambda-ratio-21: 0.5
@@ -104,6 +104,9 @@ keypoints:
   - &uniform
     type: uniform
     support-radius: 0.03
+  - &uniform-model
+    type: uniform
+    support-radius: 0.015
 
 feature-matching:
   - &orb-matching
@@ -132,7 +135,7 @@ feature-matching:
           type: akaze
           akaze-size: 0
           akaze-channels: 3
-          akaze-thresh: 0.001
+          akaze-thresh: 0.0002
           num-octaves: 4
           octave-layers: 4
         viewer: *viewer-model-description
@@ -152,8 +155,8 @@ feature-matching:
         features: &sift
           type: sift
           retain-features: 0
-          octave-layers: 3
-          contrast-thresh: 0.1
+          octave-layers: 5
+          contrast-thresh: 0.08
           edge-thresh: 50.0
           sigma: 1.6
         viewer: *viewer-model-description
@@ -163,41 +166,64 @@ feature-matching:
         viewer: *viewer-scene-description
         log-latency: *latency-scene-description
     matcher:
-      type: brute-force
+      type: kdtree-flann
       norm: l2
       use-lowe: true
       lowe-ratio: 0.76
   - &shot-matching
     description:
       model:
-        keypoints: *model-iss
+        keypoints: *uniform-model
         reference-frames:
           type: board
           find-holes: true
-          support-radius: 0.015
+          support-radius: 0.02
         features:
           type: shot
-          support-radius: 0.025
+          support-radius: 0.02
           threads: 4
         log-latency: *latency-model-description
       scene:
-        keypoints: *scene-iss
+        keypoints: *uniform
         reference-frames:
           type: board
           find-holes: true
-          support-radius: 0.015
+          support-radius: 0.02
         features:
           type: shot
-          support-radius: 0.025
+          support-radius: 0.02
           threads: 4
         viewer: *viewer-scene-description
         log-latency: *latency-scene-description
     matcher:
       type: kdtree-flann
       max-neighs: 1
-      max-distance: 0.3
+      max-distance: 0.2
       use-lowe: true
-      lowe-ratio: 0.15
+      lowe-ratio: 0.1
+  - &fpfh-matching
+    description:
+      model:
+        keypoints: *uniform
+        features:
+          type: fpfh
+          support-radius: 0.02
+          threads: 4
+        log-latency: *latency-model-description
+      scene:
+        keypoints: *uniform
+        features:
+          type: fpfh
+          support-radius: 0.02
+          threads: 4
+        viewer: *viewer-scene-description
+        log-latency: *latency-scene-description
+    matcher:
+      type: kdtree-flann
+      max-neighs: 1
+      max-distance: 200
+      use-lowe: true
+      lowe-ratio: 0.2
 
 clusterizers:
   - &gc
@@ -212,13 +238,31 @@ clusterizers:
     viewer: *viewer-clusters
 
 alignment:
-  - &sparse
+  - &sparse-orb
     type: sparse
     matching:
-#      - *orb-matching
-#      - *akaze-matching
-#      - *shot-matching
+      - *orb-matching
+    clusters: *gc
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &sparse-akaze
+    type: sparse
+    matching:
+      - *akaze-matching
+    clusters: *gc
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &sparse-sift
+    type: sparse
+    matching:
       - *sift-matching
+    clusters: *gc
+    viewer: *viewer-aligner
+    log-latency: *latency-aligner
+  - &sparse-shot
+    type: sparse
+    matching:
+      - *shot-matching
     clusters: *gc
     viewer: *viewer-aligner
     log-latency: *latency-aligner
@@ -264,16 +308,14 @@ recognizer:
       log-latency: *latency-scene-preproc
       viewer: *viewer-scene-preproc
 
-  aligner: *sparse
-#    matching:
-##      - *orb-matching
-#      - *shot-matching
-#    clusters:
-#      type: gc
-#      gc-size: 0.01
-#      gc-threshold: 5
-#      viewer: *viewer-clusters
-#    log-latency: *latency-aligner
+  aligner:
+#    - *sparse-akaze
+#    - *sparse-shot
+#    - *sparse-sift
+    - *sparse-orb
+#    - *template
+#    - *global
+#    - *mock
 #  refinement:
 #    type: icp
 #    max-iterations: 10

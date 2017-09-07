@@ -13,10 +13,20 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
         }
     }
 
-    if (cfg[config::aligner::NODE_NAME])
-        aligner_.configure(cfg[config::aligner::NODE_NAME]);
-    else
-        DESCRY_THROW(InvalidConfigException, "missing aligner config");
+    {
+        auto aligner_cfg = cfg[config::aligner::NODE_NAME];
+        aligners_.clear();
+        if (aligner_cfg.IsMap()) {
+            aligners_.emplace_back();
+            aligners_.back().configure(aligner_cfg);
+        } else if (aligner_cfg.IsSequence()) {
+            for (auto it = aligner_cfg.begin(); it != aligner_cfg.end(); ++it) {
+                aligners_.emplace_back();
+                aligners_.back().configure(*it);
+            }
+        } else
+            DESCRY_THROW(InvalidConfigException, "missing aligner config");
+    }
 
     {
         auto refiner_cfg = cfg[config::refiner::NODE_NAME];
@@ -38,7 +48,8 @@ bool descry::Recognizer::configure(const descry::Config &cfg) {
 void descry::Recognizer::train(descry::Model& model) {
     model.prepare(model_preproc_);
 
-    aligner_.train(model);
+    for (auto& aligner : aligners_)
+        aligner.train(model);
 
     if (refiner_.is_configured())
         refiner_.train(model);
@@ -51,9 +62,14 @@ descry::Recognizer::compute(const descry::FullCloud::ConstPtr& scene) {
     auto latency = measure_latency(config::preprocess::NODE_NAME, log_latency_);
     scene_preproc_.process(image);
 
-    latency.restart(config::aligner::NODE_NAME);
-    auto instances = aligner_.compute(image);
-    latency.finish();
+    auto instances = Instances{};
+    for (auto& aligner : aligners_) {
+        latency.restart(config::aligner::NODE_NAME);
+        auto aligned_instances = aligner.compute(image);
+        instances.cloud = aligned_instances.cloud;
+        instances.poses.insert(instances.poses.end(), aligned_instances.poses.begin(), aligned_instances.poses.end());
+        latency.finish();
+    }
 
     if (refiner_.is_trained()) {
         latency.start(config::refiner::NODE_NAME);
